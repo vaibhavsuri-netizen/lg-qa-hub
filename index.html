@@ -842,9 +842,7 @@
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
-            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">
-                ⬇ Download CSV
-            </button>        
+            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
         </div>
     </div>
     <div class="col-toggle-panel" id="colTogglePanel">
@@ -865,111 +863,41 @@
 
 <!-- ROSTER VIEW -->
 <div id="roster-view" class="view-section">
-   <div class="page-header">
-    <div>
-        <div class="page-title">👥 Agent Roster</div>
-        <div class="page-subtitle">Manage active agents</div>
+    <div class="page-header">
+        <div><div class="page-title">👥 Agent Roster</div><div class="page-subtitle">Manage active agents</div></div>
     </div>
-</div>
-
-<div class="card">
-    <div class="section-title"><span class="section-num">+</span>Add New Agent</div>
-
-    <!-- Add New Agent Form -->
-    <div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
-        <div class="form-group">
-            <label>Agent Name</label>
-            <input type="text" id="r_Name" placeholder="Last, First">
+    <div class="card">
+        <div class="section-title"><span class="section-num">+</span>Add New Agent</div>
+        <div class="form-grid" style="background:var(--bg-main); padding:18px; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
+            <div class="form-group"><label>Agent Name</label><input type="text" id="r_Name" placeholder="Last, First"></div>
+            <div class="form-group"><label>Avaya ID</label><input type="text" id="r_Avaya" placeholder="Avaya ID"></div>
+            <div class="form-group"><label>AWS ID</label><input type="text" id="r_AWS" placeholder="AWS ID"></div>
+            <div class="form-group"><label>GSFS ID</label><input type="text" id="r_GSFS" placeholder="GSFS ID"></div>
+            <div class="form-group"><label>Econnect ID</label><input type="text" id="r_Econnect" placeholder="Econnect ID"></div>
+            <div class="form-group"><label>Date of Hire</label><input type="date" id="r_Hire"></div>
+            <div class="form-group"><label>Coach</label>
+                <select id="r_Coach">
+                    <option value="Coach A">Coach A</option>
+                    <option value="Coach B">Coach B</option>
+                    <option value="Coach C">Coach C</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Line of Business</label>
+                <select id="r_LOB">
+                    <option value="Tier 1">Tier 1</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Site</label>
+                <select id="r_Site">
+                    <option value="Site A">Site A</option>
+                    <option value="Site B">Site B</option>
+                    <option value="Site C">Site C</option>
+                </select>
+            </div>
+            <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
+                <button class="btn" onclick="addAgent()">+ Add Agent</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Avaya ID</label>
-            <input type="text" id="r_Avaya" placeholder="Avaya ID">
-        </div>
-        <div class="form-group">
-            <label>Coach</label>
-            <select id="r_Coach">
-                <option value="Coach A">Coach A</option>
-                <option value="Coach B">Coach B</option>
-                <option value="Coach C">Coach C</option>
-            </select>
-        </div>
-        <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
-            <button class="btn" onclick="addAgent()">+ Add Agent</button>
-        </div>
-    </div>
-
-    <!-- IMPORT / EXPORT SECTION -->
-    <div style="margin-top: 10px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
-        <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
-        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-            <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
-                📥 Import Agents (CSV/JSON)
-            </button>
-            <button class="btn btn-ghost btn-small" onclick="exportAgents()">
-                📤 Export Agents
-            </button>
-        </div>
-    </div>
-
-    <!-- TEST BUTTON -->
-    <div style="margin-top: 15px; text-align: center;">
-        <button class="btn btn-ghost btn-small" onclick="testNetlifyConnection()" 
-                style="background: #f0f4f9; color: #002b5e; border: 1px solid #002b5e;">
-            🔍 Test Netlify Connection
-        </button>
-    </div>
-
-    <div style="overflow-x:auto; margin-top:22px;">
-        <table id="rosterTable">
-            <thead>
-                <tr>
-                    <th>Agent Name</th>
-                    <th>Avaya ID</th>
-                    <th>Coach</th>
-                    <th>Site</th>
-                    <th>Audits</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
-</div>
-
-<!-- Add New Agent Form -->
-<div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
-    <div class="form-group">
-        <label>Agent Name</label>
-        <input type="text" id="r_Name" placeholder="Last, First">
-    </div>
-    <div class="form-group">
-        <label>Avaya ID</label>
-        <input type="text" id="r_Avaya" placeholder="Avaya ID">
-    </div>
-    <div class="form-group">
-        <label>Coach</label>
-        <select id="r_Coach">
-            <option value="Coach A">Coach A</option>
-            <option value="Coach B">Coach B</option>
-            <option value="Coach C">Coach C</option>
-        </select>
-    </div>
-    <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
-        <button class="btn" onclick="addAgent()">+ Add Agent</button>
-    </div>
-</div>
-        <!-- IMPORT / EXPORT SECTION -->
-<div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
-    <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
-    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-        <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
-            📥 Import Agents
-        </button>
-        <button class="btn btn-ghost btn-small" onclick="exportAgents()">
-            📤 Export Agents
-        </button>
-    </div>
-</div>
         <div style="overflow-x:auto; margin-top:22px;">
             <table id="rosterTable">
                 <thead><tr><th>Agent Name</th><th>Avaya ID</th><th>AWS ID</th><th>Date of Hire</th><th>Coach</th><th>LOB</th><th>Site</th><th>Status</th><th>Audits</th></tr></thead>
@@ -978,19 +906,7 @@
         </div>
     </div>
 </div>
-<!-- TEST NETLIFY CONNECTION BUTTON -->
-<div style="margin-top: 15px; text-align: center;">
-    <button class="btn btn-ghost btn-small" onclick="testNetlifyConnection()" 
-            style="background: #f0f4f9; color: #002b5e; border: 1px solid #002b5e;">
-        🔍 Test Netlify Connection
-    </button>
-</div>
 
-<div style="overflow-x:auto; margin-top:22px;">
-    <table id="rosterTable">
-        ...
-    </table>
-</div>    
 </div><!-- end main-content -->
 
 <!-- DETAIL PANEL -->
@@ -1016,6 +932,7 @@
         <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
+
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctxMenu">
     <div class="ctx-item" onclick="ctxDrillDown()">🔍 Drill down into this</div>
@@ -1420,171 +1337,6 @@ async function initApp() {
 }
 
 initApp();
-// ==================== IMPORT / EXPORT FIXES ====================
-
-let currentImportType = '';
-
-function showImportModal(type) {
-    currentImportType = type;
-    document.getElementById('importModalTitle').innerText = 
-        type === 'agents' ? 'Import Agents' : 'Import Evaluations';
-    document.getElementById('importModal').classList.add('active');
-}
-
-function closeImportModal() {
-    document.getElementById('importModal').classList.remove('active');
-}
-
-function downloadSampleTemplate() {
-    let csv = '';
-    let filename = '';
-
-    if (currentImportType === 'agents') {
-        csv = `name,avayaId,awsId,hire,coach,lob,site\nDacut, Andrea,1926225,AWS-001,2023-03-15,Coach A,Tier 1,Site A`;
-        filename = 'LG_Agents_Sample.csv';
-    } else {
-        csv = `Eval Date,Month,CNN,Agent Name,Coach,Final Score,Auto-Failed\n2026-05-15,2026-05,CNN-123456,Dacut, Andrea,Coach A,92,No`;
-        filename = 'LG_Evaluations_Sample.csv';
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    showToast("✅ Sample template downloaded!");
-}
-
-function triggerFileUpload() {
-    closeImportModal();
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv,.json';
-    
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                let newData = file.name.endsWith('.json') 
-                    ? JSON.parse(event.target.result)
-                    : parseCSV(event.target.result);
-
-                if (currentImportType === 'agents') {
-                    newData.forEach(agent => {
-                        const exists = roster.findIndex(a => a.name === agent.name);
-                        if (exists === -1) roster.push(agent);
-                    });
-                    populateRosterTable();
-                    showToast(`✅ ${newData.length} agents imported!`);
-                } else {
-                    for (const rec of newData) {
-                        await fetch('/.netlify/functions/evaluations', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(rec)
-                        });
-                    }
-                    const res = await fetch('/.netlify/functions/evaluations');
-                    const data = await res.json();
-                    evaluationsDB = data.records || [];
-                    updateDashboard();
-                    renderDBTable();
-                    showToast(`✅ ${newData.length} evaluations imported!`);
-                }
-            } catch (err) {
-                showToast("❌ Invalid file format", "#C8102E");
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
-
-function parseCSV(csvText) {
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    const result = [];
-    for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        const obj = {};
-        const values = lines[i].split(',');
-        headers.forEach((header, index) => {
-            obj[header] = values[index] || '';
-        });
-        result.push(obj);
-    }
-    return result;
-}
-
-// FIXED Download CSV
-function downloadCSV() {
-    if (!evaluationsDB || evaluationsDB.length === 0) {
-        showToast("No data to export!", "#C8102E");
-        return;
-    }
-
-    const headers = Object.keys(evaluationsDB[0]);
-    let csvContent = headers.join(",") + "\n";
-
-    evaluationsDB.forEach(row => {
-        const values = headers.map(header => {
-            let val = row[header] || "";
-            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
-                val = `"${val.replace(/"/g, '""')}"`;
-            }
-            return val;
-        });
-        csvContent += values.join(",") + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `LG_QA_Export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    
-    showToast("✅ CSV downloaded successfully!");
-}
-function addAgent() {
-    const name = document.getElementById('r_Name').value.trim();
-    const avaya = document.getElementById('r_Avaya').value.trim();
-    const coach = document.getElementById('r_Coach').value;
-
-    if (!name || !avaya) {
-        showToast("⚠️ Agent Name and Avaya ID are required", "#C8102E");
-        return;
-    }
-
-    // Check if agent already exists
-    const exists = roster.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
-    if (exists !== -1) {
-        showToast("⚠️ Agent already exists!", "#C8102E");
-        return;
-    }
-
-    // Add new agent
-    roster.push({
-        id: avaya,
-        name: name,
-        awsId: "AWS-" + avaya,
-        hire: new Date().toISOString().split('T')[0],
-        coach: coach,
-        lob: "Tier 1",
-        site: "Site A"
-    });
-
-    // Refresh table
-    populateRosterTable();
-
-    // Clear form
-    document.getElementById('r_Name').value = '';
-    document.getElementById('r_Avaya').value = '';
-
-    showToast("✅ Agent added successfully!");
-}
 </script>
 </body>
 </html>
