@@ -842,7 +842,9 @@
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
-            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
+            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">
+                ⬇ Download CSV
+            </button>        
         </div>
     </div>
     <div class="col-toggle-panel" id="colTogglePanel">
@@ -898,6 +900,18 @@
                 <button class="btn" onclick="addAgent()">+ Add Agent</button>
             </div>
         </div>
+        <!-- IMPORT / EXPORT SECTION -->
+<div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
+    <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
+    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+        <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
+            📥 Import Agents
+        </button>
+        <button class="btn btn-ghost btn-small" onclick="exportAgents()">
+            📤 Export Agents
+        </button>
+    </div>
+</div>
         <div style="overflow-x:auto; margin-top:22px;">
             <table id="rosterTable">
                 <thead><tr><th>Agent Name</th><th>Avaya ID</th><th>AWS ID</th><th>Date of Hire</th><th>Coach</th><th>LOB</th><th>Site</th><th>Status</th><th>Audits</th></tr></thead>
@@ -1337,6 +1351,135 @@ async function initApp() {
 }
 
 initApp();
+// ==================== IMPORT / EXPORT FIXES ====================
+
+let currentImportType = '';
+
+function showImportModal(type) {
+    currentImportType = type;
+    document.getElementById('importModalTitle').innerText = 
+        type === 'agents' ? 'Import Agents' : 'Import Evaluations';
+    document.getElementById('importModal').classList.add('active');
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('active');
+}
+
+function downloadSampleTemplate() {
+    let csv = '';
+    let filename = '';
+
+    if (currentImportType === 'agents') {
+        csv = `name,avayaId,awsId,hire,coach,lob,site\nDacut, Andrea,1926225,AWS-001,2023-03-15,Coach A,Tier 1,Site A`;
+        filename = 'LG_Agents_Sample.csv';
+    } else {
+        csv = `Eval Date,Month,CNN,Agent Name,Coach,Final Score,Auto-Failed\n2026-05-15,2026-05,CNN-123456,Dacut, Andrea,Coach A,92,No`;
+        filename = 'LG_Evaluations_Sample.csv';
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    showToast("✅ Sample template downloaded!");
+}
+
+function triggerFileUpload() {
+    closeImportModal();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.json';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                let newData = file.name.endsWith('.json') 
+                    ? JSON.parse(event.target.result)
+                    : parseCSV(event.target.result);
+
+                if (currentImportType === 'agents') {
+                    newData.forEach(agent => {
+                        const exists = roster.findIndex(a => a.name === agent.name);
+                        if (exists === -1) roster.push(agent);
+                    });
+                    populateRosterTable();
+                    showToast(`✅ ${newData.length} agents imported!`);
+                } else {
+                    for (const rec of newData) {
+                        await fetch('/.netlify/functions/evaluations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(rec)
+                        });
+                    }
+                    const res = await fetch('/.netlify/functions/evaluations');
+                    const data = await res.json();
+                    evaluationsDB = data.records || [];
+                    updateDashboard();
+                    renderDBTable();
+                    showToast(`✅ ${newData.length} evaluations imported!`);
+                }
+            } catch (err) {
+                showToast("❌ Invalid file format", "#C8102E");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const result = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const obj = {};
+        const values = lines[i].split(',');
+        headers.forEach((header, index) => {
+            obj[header] = values[index] || '';
+        });
+        result.push(obj);
+    }
+    return result;
+}
+
+// FIXED Download CSV
+function downloadCSV() {
+    if (!evaluationsDB || evaluationsDB.length === 0) {
+        showToast("No data to export!", "#C8102E");
+        return;
+    }
+
+    const headers = Object.keys(evaluationsDB[0]);
+    let csvContent = headers.join(",") + "\n";
+
+    evaluationsDB.forEach(row => {
+        const values = headers.map(header => {
+            let val = row[header] || "";
+            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
+                val = `"${val.replace(/"/g, '""')}"`;
+            }
+            return val;
+        });
+        csvContent += values.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `LG_QA_Export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    showToast("✅ CSV downloaded successfully!");
+}
+   
 </script>
 </body>
 </html>
