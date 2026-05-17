@@ -870,36 +870,29 @@
     </div>
     <div class="card">
         <div class="section-title"><span class="section-num">+</span>Add New Agent</div>
-        <div class="form-grid" style="background:var(--bg-main); padding:18px; border-radius:var(--radius-sm); border:1px solid var(--border-light);">
-            <div class="form-group"><label>Agent Name</label><input type="text" id="r_Name" placeholder="Last, First"></div>
-            <div class="form-group"><label>Avaya ID</label><input type="text" id="r_Avaya" placeholder="Avaya ID"></div>
-            <div class="form-group"><label>AWS ID</label><input type="text" id="r_AWS" placeholder="AWS ID"></div>
-            <div class="form-group"><label>GSFS ID</label><input type="text" id="r_GSFS" placeholder="GSFS ID"></div>
-            <div class="form-group"><label>Econnect ID</label><input type="text" id="r_Econnect" placeholder="Econnect ID"></div>
-            <div class="form-group"><label>Date of Hire</label><input type="date" id="r_Hire"></div>
-            <div class="form-group"><label>Coach</label>
-                <select id="r_Coach">
-                    <option value="Coach A">Coach A</option>
-                    <option value="Coach B">Coach B</option>
-                    <option value="Coach C">Coach C</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Line of Business</label>
-                <select id="r_LOB">
-                    <option value="Tier 1">Tier 1</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Site</label>
-                <select id="r_Site">
-                    <option value="Site A">Site A</option>
-                    <option value="Site B">Site B</option>
-                    <option value="Site C">Site C</option>
-                </select>
-            </div>
-            <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
-                <button class="btn" onclick="addAgent()">+ Add Agent</button>
-            </div>
-        </div>
+
+<!-- Add New Agent Form -->
+<div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
+    <div class="form-group">
+        <label>Agent Name</label>
+        <input type="text" id="r_Name" placeholder="Last, First">
+    </div>
+    <div class="form-group">
+        <label>Avaya ID</label>
+        <input type="text" id="r_Avaya" placeholder="Avaya ID">
+    </div>
+    <div class="form-group">
+        <label>Coach</label>
+        <select id="r_Coach">
+            <option value="Coach A">Coach A</option>
+            <option value="Coach B">Coach B</option>
+            <option value="Coach C">Coach C</option>
+        </select>
+    </div>
+    <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
+        <button class="btn" onclick="addAgent()">+ Add Agent</button>
+    </div>
+</div>
         <!-- IMPORT / EXPORT SECTION -->
 <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
     <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
@@ -920,7 +913,19 @@
         </div>
     </div>
 </div>
+<!-- TEST NETLIFY CONNECTION BUTTON -->
+<div style="margin-top: 15px; text-align: center;">
+    <button class="btn btn-ghost btn-small" onclick="testNetlifyConnection()" 
+            style="background: #f0f4f9; color: #002b5e; border: 1px solid #002b5e;">
+        🔍 Test Netlify Connection
+    </button>
+</div>
 
+<div style="overflow-x:auto; margin-top:22px;">
+    <table id="rosterTable">
+        ...
+    </table>
+</div>    
 </div><!-- end main-content -->
 
 <!-- DETAIL PANEL -->
@@ -946,7 +951,6 @@
         <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
-
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctxMenu">
     <div class="ctx-item" onclick="ctxDrillDown()">🔍 Drill down into this</div>
@@ -1479,7 +1483,43 @@ function downloadCSV() {
     
     showToast("✅ CSV downloaded successfully!");
 }
-   
+function addAgent() {
+    const name = document.getElementById('r_Name').value.trim();
+    const avaya = document.getElementById('r_Avaya').value.trim();
+    const coach = document.getElementById('r_Coach').value;
+
+    if (!name || !avaya) {
+        showToast("⚠️ Agent Name and Avaya ID are required", "#C8102E");
+        return;
+    }
+
+    // Check if agent already exists
+    const exists = roster.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
+    if (exists !== -1) {
+        showToast("⚠️ Agent already exists!", "#C8102E");
+        return;
+    }
+
+    // Add new agent
+    roster.push({
+        id: avaya,
+        name: name,
+        awsId: "AWS-" + avaya,
+        hire: new Date().toISOString().split('T')[0],
+        coach: coach,
+        lob: "Tier 1",
+        site: "Site A"
+    });
+
+    // Refresh table
+    populateRosterTable();
+
+    // Clear form
+    document.getElementById('r_Name').value = '';
+    document.getElementById('r_Avaya').value = '';
+
+    showToast("✅ Agent added successfully!");
+}
 </script>
 </body>
 </html>
