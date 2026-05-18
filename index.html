@@ -4927,7 +4927,7 @@ async function initApp() {
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loginPwd').focus();
 });
-<!-- ==================== EDIT / DELETE FEATURE (CLEAN VERSION) ==================== -->
+<!-- ==================== EDIT / DELETE (FINAL CLEAN VERSION) ==================== -->
 
 function renderDBTable() {
     const table = document.getElementById('dbTable');
@@ -4993,7 +4993,7 @@ function renderDBTable() {
     table.appendChild(tbody);
 }
 
-// Edit Modal
+// Simple Edit Modal
 let editIndex = null;
 
 function editRecord(i) {
@@ -5056,12 +5056,13 @@ async function deleteRecord(i) {
     showToast("🗑️ Deleted", "#C8102E");
 }
 
-// Make sure renderDBTable works when clicking Database tab
+// Auto open table when clicking Database tab
 document.addEventListener('click', function(e) {
     if (e.target.textContent.includes('Database Export')) {
-        setTimeout(renderDBTable, 200);
+        setTimeout(renderDBTable, 300);
     }
 });
+
 </script>
 </body>
 </html>
