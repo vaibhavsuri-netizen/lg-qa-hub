@@ -1050,7 +1050,7 @@
 
 <script>
 // Simple password protection
-const correctPassword = import.meta.env.VITE_QA_PASSWORD || "lgqa2026";
+const correctPassword = "lgqa2026";   // Change this password if you want
 const entered = prompt("Enter password to access LG QA Hub:");
 if (entered !== correctPassword) {
   document.body.innerHTML = "<h1>Access Denied</h1>";
