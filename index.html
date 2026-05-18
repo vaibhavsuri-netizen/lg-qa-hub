@@ -429,6 +429,67 @@
             </tr></thead>
             <tbody id="qBody"></tbody>
         </table>
+    <script>
+    // This builds the 22 questions table
+    const qaQuestions = [
+        { id:1, section:"Greeting / Opening", title:"Greeting Statement", w:4.0 },
+        { id:2, section:"", title:"Probing Questions", w:4.0 },
+        { id:3, section:"", title:"Clarity & Efficiency", w:4.0 },
+        { id:4, section:"Rapport", title:"Acknowledgment Statements", w:5.0 },
+        { id:5, section:"", title:"Empathy", w:5.0 },
+        { id:6, section:"Ownership", title:"Positive Engagement", w:5.0 },
+        { id:7, section:"Issue Resolution", title:"Issue Resolution", w:15.0 },
+        { id:8, section:"", title:"Expectations", w:5.0 },
+        { id:9, section:"", title:"Proper Tools Usage", w:5.0 },
+        { id:10, section:"Clear Communication", title:"Clear & Direct Communication", w:7.0 },
+        { id:11, section:"", title:"Grammar Structure", w:4.0 },
+        { id:12, section:"", title:"Jargon", w:3.0 },
+        { id:13, section:"", title:"Tone / Pacing", w:4.0 },
+        { id:14, section:"Closing", title:"Offer Further Assistance", w:2.0 },
+        { id:15, section:"", title:"Reference Number", w:2.0 },
+        { id:16, section:"", title:"Survey Flow", w:2.0 },
+        { id:17, section:"", title:"Closing Statement", w:2.0 },
+        { id:18, section:"Documentation", title:"Case Notes", w:3.5 },
+        { id:19, section:"", title:"Case Tagging", w:3.5 },
+        { id:20, section:"Time Management", title:"Hold Time Protocol", w:5.0 },
+        { id:21, section:"", title:"Unnecessary Information", w:5.0 },
+        { id:22, section:"", title:"Mute / Dead Air", w:5.0 }
+    ];
+
+    const tbody = document.getElementById('qBody');
+    let currentSection = "";
+
+    qaQuestions.forEach(q => {
+        if (q.section && q.section !== currentSection) {
+            currentSection = q.section;
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = `<td colspan="4" class="row-header">▶ ${q.section}</td>`;
+            tbody.appendChild(headerRow);
+        }
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <div class="q-title">
+                    <span class="q-number">${q.id}</span>${q.title}
+                </div>
+            </td>
+            <td>
+                <select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </td>
+            <td>
+                <input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note...">
+            </td>
+            <td style="text-align:center;">
+                <span class="weight-badge">${q.w.toFixed(1)}%</span>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+</script>
     </div>
 
     <div class="card" style="border-left: 4px solid var(--header-blue);">
@@ -874,60 +935,69 @@
     <div class="card">
         <div class="section-title"><span class="section-num">+</span> Add New Agent</div>
 
-        <!-- Add New Agent Form -->
-        <div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
-            <div class="form-group">
-                <label>Agent Name</label>
-                <input type="text" id="r_Name" placeholder="Last, First">
-            </div>
-            <div class="form-group">
-                <label>Avaya ID</label>
-                <input type="text" id="r_Avaya" placeholder="Avaya ID">
-            </div>
-            <div class="form-group">
-                <label>Coach</label>
-                <select id="r_Coach">
-                    <option value="Coach A">Coach A</option>
-                    <option value="Coach B">Coach B</option>
-                    <option value="Coach C">Coach C</option>
-                </select>
-            </div>
-            <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
-                <button class="btn" onclick="addAgent()">+ Add Agent</button>
-            </div>
-        </div>
-
-        <!-- IMPORT / EXPORT SECTION -->
-        <div style="margin-top: 10px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
-            <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
-            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-                <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
-                    📥 Import Agents (CSV/JSON)
-                </button>
-                <button class="btn btn-ghost btn-small" onclick="exportAgents()">
-                    📤 Export Agents
-                </button>
-            </div>
-        </div>
-
-        <div style="overflow-x:auto; margin-top:22px;">
-            <table id="rosterTable">
-                <thead>
-                    <tr>
-                        <th>Agent Name</th>
-                        <th>Avaya ID</th>
-                        <th>AWS ID</th>
-                        <th>Date of Hire</th>
-                        <th>Coach</th>
-                        <th>LOB</th>
-                        <th>Site</th>
-                        <th>Status</th>
-                        <th>Audits</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+<!-- Add New Agent Form -->
+<div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+    
+    <div class="form-group">
+        <label>Agent Name</label>
+        <input type="text" id="r_Name" placeholder="Last, First">
+    </div>
+    
+    <div class="form-group">
+        <label>Avaya ID</label>
+        <input type="text" id="r_Avaya" placeholder="Avaya ID">
+    </div>
+    
+    <div class="form-group">
+        <label>AWS ID</label>
+        <input type="text" id="r_AWS" placeholder="AWS-001">
+    </div>
+    
+    <div class="form-group">
+        <label>eConnect ID</label>
+        <input type="text" id="r_eConnect" placeholder="EC-88291">
+    </div>
+    
+    <div class="form-group">
+        <label>GSFS ID</label>
+        <input type="text" id="r_GSFS" placeholder="GSFS-4412">
+    </div>
+    
+    <div class="form-group">
+        <label>Date of Hire</label>
+        <input type="date" id="r_Hire">
+    </div>
+    
+    <div class="form-group">
+        <label>Coach</label>
+        <select id="r_Coach">
+            <option value="Coach A">Coach A</option>
+            <option value="Coach B">Coach B</option>
+            <option value="Coach C">Coach C</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label>LOB</label>
+        <input type="text" id="r_LOB" placeholder="Tier 1">
+    </div>
+    
+    <div class="form-group">
+        <label>Site</label>
+        <input type="text" id="r_Site" placeholder="Site A">
+    </div>
+    
+    <div class="form-group">
+        <label>Status</label>
+        <select id="r_Status">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="On Leave">On Leave</option>
+        </select>
+    </div>
+    
+    <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
+        <button class="btn" onclick="addAgent()">+ Add Agent</button>
     </div>
 </div>
 <!-- DETAIL PANEL -->
@@ -1541,37 +1611,31 @@ function downloadCSV() {
 function addAgent() {
     const name = document.getElementById('r_Name').value.trim();
     const avaya = document.getElementById('r_Avaya').value.trim();
-    const coach = document.getElementById('r_Coach').value;
 
     if (!name || !avaya) {
         showToast("⚠️ Agent Name and Avaya ID are required", "#C8102E");
         return;
     }
 
-    // Check if agent already exists
-    const exists = roster.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
-    if (exists !== -1) {
-        showToast("⚠️ Agent already exists!", "#C8102E");
-        return;
-    }
+    const newAgent = {
+        "Agent Name": name,
+        "Avaya ID": avaya,
+        "AWS ID": document.getElementById('r_AWS').value.trim() || "—",
+        "eConnect ID": document.getElementById('r_eConnect').value.trim() || "—",
+        "GSFS ID": document.getElementById('r_GSFS').value.trim() || "—",
+        "Date of Hire": document.getElementById('r_Hire').value || new Date().toISOString().split('T')[0],
+        "Coach": document.getElementById('r_Coach').value,
+        "LOB": document.getElementById('r_LOB').value.trim() || "Tier 1",
+        "Site": document.getElementById('r_Site').value.trim() || "Site A",
+        "Status": document.getElementById('r_Status').value
+    };
 
-    // Add new agent
-    roster.push({
-        id: avaya,
-        name: name,
-        awsId: "AWS-" + avaya,
-        hire: new Date().toISOString().split('T')[0],
-        coach: coach,
-        lob: "Tier 1",
-        site: "Site A"
-    });
-
-    // Refresh table
+    roster.push(newAgent);
     populateRosterTable();
+    populateAgentSelect();
 
     // Clear form
-    document.getElementById('r_Name').value = '';
-    document.getElementById('r_Avaya').value = '';
+    document.querySelectorAll('#roster-view input, #roster-view select').forEach(el => el.value = '');
 
     showToast("✅ Agent added successfully!");
 }
