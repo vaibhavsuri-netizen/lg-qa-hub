@@ -3341,18 +3341,74 @@ function renderDBTable() {
 
     let rows = evaluationsDB || [];
 
-    // Fuzzy search using Fuse.js (if available)
-    if (search && typeof Fuse !== 'undefined') {
-        rebuildFuseIndex();
-        rows = _fuseIndex.search(search).map(r => r.item);
-    } else if (search) {
-        // Fallback simple search
-        rows = rows.filter(r => 
-            (r.cnn && r.cnn.toLowerCase().includes(search)) ||
-            (r.agent_name && r.agent_name.toLowerCase().includes(search)) ||
-            (r.coach && r.coach.toLowerCase().includes(search))
-        );
+    // Apply search
+    if (search) {
+        rows = rows.filter(r => {
+            const values = Object.values(r).join(' ').toLowerCase();
+            return values.includes(search);
+        });
     }
+
+    // Apply status filter
+    if (statusFilter !== 'All') {
+        rows = rows.filter(r => {
+            const score = parseFloat(r["Final Score"]) || 0;
+            const isAutoFail = r["Auto-Failed"] === "Yes";
+            if (statusFilter === 'Pass') return score >= threshold && !isAutoFail;
+            if (statusFilter === 'Fail') return score < threshold && !isAutoFail;
+            if (statusFilter === 'AutoFail') return isAutoFail;
+            return true;
+        });
+    }
+
+    const countEl = document.getElementById('dbRecordCount');
+    if (countEl) countEl.textContent = `${rows.length} records`;
+
+    table.innerHTML = '';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Date</th>
+            <th>CNN</th>
+            <th>Agent</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Coach</th>
+            <th>Site</th>
+            <th style="width:130px;text-align:center">Actions</th>
+        </tr>`;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7785">No records found</td></tr>`;
+    } else {
+        rows.forEach((rec, index) => {
+            const score = parseFloat(rec["Final Score"]) || 0;
+            const isAF = rec["Auto-Failed"] === "Yes";
+            let statusHTML = isAF ? `<span class="badge badge-red">Auto-Fail</span>` : 
+                            (score >= threshold ? `<span class="badge badge-green">Pass</span>` : `<span class="badge badge-yellow">Fail</span>`);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${rec["Eval Date"] || '-'}</td>
+                <td><strong>${rec["CNN"] || '-'}</strong></td>
+                <td>${rec["Agent Name"] || '-'}</td>
+                <td><strong>${score.toFixed(1)}%</strong></td>
+                <td>${statusHTML}</td>
+                <td>${rec["Coach"] || '-'}</td>
+                <td>${rec["Site"] || '-'}</td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button onclick="editRecord(${index})" style="background:#002b5e;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✏️</button>
+                    <button onclick="deleteRecord(${index})" style="background:#C8102E;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer">🗑️</button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+    table.appendChild(tbody);
+}
 
     // Apply status filter
     if (statusFilter !== 'All') {
