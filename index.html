@@ -1459,7 +1459,15 @@ async function saveEvaluation() {
     const afFlags = [1,2,3,4,5].some(i => document.getElementById(`af_${i}`).value === "Yes");
     for (let i = 1; i <= 5; i++) qaData[`AF_${i}`] = document.getElementById(`af_${i}`).value;
 
-    // === PAYLOAD FOR SUPABASE — uses the exact Title Case columns from your SQL schema ===
+    // === DYNAMIC PERSONALIZATION / UPSELL — only send the fields that apply ===
+    // The form hides rows conditionally; do the same for the DB payload so we don't
+    // store stale/misleading data from hidden rows.
+    const offerMade  = document.getElementById('up_OfferMade').value;        // Yes | No
+    const interested = document.getElementById('up_CustInterested').value;   // Yes | No
+
+    // Final Score must satisfy CHECK (>=0 AND <=100)
+    const clampedScore = Math.max(0, Math.min(100, Number(currentNumericalScore) || 0));
+
     const supabasePayload = {
         "Eval Date":       dateVal,
         "Month":           dateVal.substring(0, 7),
@@ -1472,19 +1480,22 @@ async function saveEvaluation() {
         "Product Type":    document.getElementById('f_Product').value  || null,
         "Call Type":       document.getElementById('f_CallType').value || null,
         "Hold Time (s)":   parseInt(document.getElementById('f_HoldTime').value) || 0,
-        "Final Score":     currentNumericalScore,
+        "Final Score":     clampedScore,
         "Auto-Failed":     afFlags ? "Yes" : "No",
-        "Sentiment_Compound": currentSentiment.compound || 0,
+        "Sentiment_Compound": Number(currentSentiment.compound) || 0,
         "Sentiment_Label": currentSentiment.label || "Neutral",
-        "Sentiment_Pos":   currentSentiment.pos || 0,
-        "Sentiment_Neg":   currentSentiment.neg || 0,
-        "Upsell_OfferMade":  document.getElementById('up_OfferMade').value     || null,
-        "Upsell_Type":       document.getElementById('up_OfferType').value     || null,
-        "Upsell_Quality":    document.getElementById('up_OfferQuality').value  || null,
-        "Upsell_OppExisted": document.getElementById('up_OppExisted').value    || null,
-        "Upsell_NoReason":   document.getElementById('up_NoReason').value      || null,
-        "Upsell_Interested": document.getElementById('up_CustInterested').value|| null,
-        "Upsell_Followup":   document.getElementById('up_FollowThrough').value || null,
+        "Sentiment_Pos":   Number(currentSentiment.pos) || 0,
+        "Sentiment_Neg":   Number(currentSentiment.neg) || 0,
+
+        // --- upsell: default everything to null, then fill in only what applies ---
+        "Upsell_OfferMade":  offerMade,
+        "Upsell_Type":       null,
+        "Upsell_Quality":    null,
+        "Upsell_OppExisted": null,
+        "Upsell_NoReason":   null,
+        "Upsell_Interested": null,
+        "Upsell_Followup":   null,
+
         upsell_notes:        document.getElementById('up_Notes').value || null,
         qa_details:          qaData,
         metadata: {
@@ -1493,6 +1504,24 @@ async function saveEvaluation() {
             agent_id:   sel.value
         }
     };
+
+    if (offerMade === "Yes") {
+        // An offer WAS made → Type, Quality, Customer Interested are relevant
+        supabasePayload["Upsell_Type"]       = document.getElementById('up_OfferType').value    || null;
+        supabasePayload["Upsell_Quality"]    = document.getElementById('up_OfferQuality').value || null;
+        supabasePayload["Upsell_Interested"] = interested;
+        // Follow-through only matters if the customer was actually interested
+        if (interested === "Yes") {
+            supabasePayload["Upsell_Followup"] = document.getElementById('up_FollowThrough').value || null;
+        }
+    } else {
+        // No offer was made → OppExisted and (if Yes) NoReason are relevant
+        const oppExisted = document.getElementById('up_OppExisted').value;
+        supabasePayload["Upsell_OppExisted"] = oppExisted;
+        if (oppExisted === "No") {
+            supabasePayload["Upsell_NoReason"] = document.getElementById('up_NoReason').value || null;
+        }
+    }
 
     // Local view (already-normalized snake_case shape used by dashboard/db views)
     const local = normalizeEval(supabasePayload);
@@ -1506,6 +1535,8 @@ async function saveEvaluation() {
         const btn = document.getElementById('saveBtn');
         btn.disabled = true; btn.textContent = "Saving...";
         try {
+            // For debugging: log the exact payload so the console shows what we sent
+            console.log("Saving evaluation to Supabase:", supabasePayload);
             const { data, error } = await supabaseClient
                 .from('evaluations')
                 .insert(supabasePayload)
@@ -1515,11 +1546,19 @@ async function saveEvaluation() {
             if (data && data.id) local.id = data.id;  // keep DB id for future edits
             showToast("✓ Saved to Supabase!");
         } catch (e) {
-            console.error("Supabase save error:", e);
-            const msg = (e && e.message) ? e.message
-                : (e && e.code === "23505") ? "Duplicate CNN — that case number already exists"
-                : "unknown error";
-            showToast("Saved locally — Supabase: " + msg, "#FFB612");
+            // Pull every field Supabase gives us so we can actually see the failure
+            console.error("Supabase save error — full object:", e);
+            console.error("Payload that failed:", supabasePayload);
+            const parts = [];
+            if (e && e.message) parts.push(e.message);
+            if (e && e.details) parts.push(e.details);
+            if (e && e.hint)    parts.push("Hint: " + e.hint);
+            if (e && e.code === "23505") parts.unshift("Duplicate CNN");
+            if (e && e.code === "23514") parts.unshift("Schema CHECK failed");
+            if (e && e.code === "23502") parts.unshift("NOT NULL violation");
+            if (e && e.code === "42703") parts.unshift("Unknown column");
+            const msg = parts.length ? parts.join(" — ") : "see console";
+            showToast("⚠️ Supabase save failed: " + msg, "#C8102E");
         } finally {
             btn.disabled = false; btn.textContent = "💾 Save Evaluation";
         }
