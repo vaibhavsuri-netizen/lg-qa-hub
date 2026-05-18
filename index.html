@@ -1015,8 +1015,6 @@ async function initApp() {
             ...(row.qa_details || {})
         }));
 
-        console.log(`Loaded ${evaluationsDB.length} evaluations from Supabase`);
-
         // Load agents from Supabase
         const { data: agentData, error: agentError } = await supabase
             .from('agents')
@@ -1026,22 +1024,22 @@ async function initApp() {
         if (agentError) throw agentError;
         roster = agentData || [];
 
-        console.log(`Loaded ${roster.length} agents from Supabase`);
-
     } catch (e) {
         console.error("Supabase load error:", e);
         evaluationsDB = [];
         roster = [];
     }
 
-    populateRosterTable();
+    // Populate everything
+    populateAgentSelect();           // ← NEW
+    populateRosterTable();           // ← NEW
     populateDashboardSlicers();
     initColumnToggles();
     calcScore();
     document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
     toggleUpsellFields();
 
-    // Auto-refresh every 10 seconds
+    // Auto-refresh
     setInterval(async () => {
         try {
             const { data } = await supabase
@@ -1121,6 +1119,44 @@ let roster = [
 ];
 
 function getRosterAgent(name) { return roster.find(r => r.name === name) || {}; }
+// ==================== POPULATE AGENT SELECT (Form) ====================
+function populateAgentSelect() {
+    const select = document.getElementById('agentSelect');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Select Agent...</option>';
+
+    roster.forEach(agent => {
+        const option = document.createElement('option');
+        option.value = agent.id || agent["Avaya ID"];
+        option.textContent = agent.name || agent["Agent Name"];
+        select.appendChild(option);
+    });
+}
+
+// ==================== POPULATE ROSTER TABLE ====================
+function populateRosterTable() {
+    const tbody = document.querySelector('#rosterTable tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    roster.forEach(agent => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${agent.name || agent["Agent Name"] || '-'}</td>
+            <td>${agent.id || agent["Avaya ID"] || '-'}</td>
+            <td>${agent.awsId || agent["AWS ID"] || '-'}</td>
+            <td>${agent.hire || agent["Date of Hire"] || '-'}</td>
+            <td>${agent.coach || agent["Coach"] || '-'}</td>
+            <td>${agent.lob || agent["LOB"] || '-'}</td>
+            <td>${agent.site || agent["Site"] || '-'}</td>
+            <td>${agent.status || agent["Status"] || 'Active'}</td>
+            <td>0</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
 
 // ============================================================
 // NAV
