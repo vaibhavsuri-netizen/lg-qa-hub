@@ -833,7 +833,7 @@
             <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="renderDBTable()">
+            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="debouncedSearch()">
             <select id="dbFilterStatus" onchange="renderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
@@ -1051,7 +1051,13 @@
 // LG QA HUB — Application Logic
 // ==================================================================
 'use strict';
-
+let searchTimeout;
+function debouncedSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        renderDBTable();
+    }, 300); // Waits 300 milliseconds after you stop typing to run the search
+}
 // ============================================================
 // CONFIG
 // ============================================================
@@ -2131,10 +2137,18 @@ function destroyChart(id) {
 }
 
 function makeChart(id, cfg) {
-    destroyChart(id);
     const canvas = document.getElementById(id);
     if (!canvas) return null;
-    chartInstances[id] = new Chart(canvas, cfg);
+
+    if (chartInstances[id]) {
+        // If chart exists, update it smoothly
+        chartInstances[id].data = cfg.data;
+        if (cfg.options) chartInstances[id].options = cfg.options;
+        chartInstances[id].update();
+    } else {
+        // Create new chart only if it doesn't exist yet
+        chartInstances[id] = new Chart(canvas, cfg);
+    }
     return chartInstances[id];
 }
 
