@@ -175,9 +175,11 @@
     .funnel-layer strong { font-size: 22px; margin-top: 4px; }
     .funnel-layer .pct { font-size: 10px; opacity: 0.85; margin-top: 2px; }
     .f-1 { width: 100%; background: linear-gradient(135deg, #002b5e, #003d82); border-radius: 8px 8px 4px 4px; }
-    .f-2 { width: 82%; background: linear-gradient(135deg, #003d82, #0056b3); border-radius: 4px; }
-    .f-3 { width: 64%; background: linear-gradient(135deg, #0056b3, #007ad9); border-radius: 4px; }
-    .f-4 { width: 46%; background: linear-gradient(135deg, var(--pass-green), var(--pass-green-light)); border-radius: 4px 4px 8px 8px; }
+    .f-2 { width: 86%; background: linear-gradient(135deg, #003d82, #0056b3); border-radius: 4px; }
+    .f-3 { width: 72%; background: linear-gradient(135deg, #0056b3, #1e8feb); border-radius: 4px; }
+    .f-4 { width: 58%; background: linear-gradient(135deg, #1e8feb, #2bb37e); border-radius: 4px; }
+    .f-5 { width: 44%; background: linear-gradient(135deg, var(--pass-green), var(--pass-green-light)); border-radius: 4px 4px 8px 8px; }
+    .funnel-layer:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
 
     /* INSIGHT CARDS */
     .insight-card { background: linear-gradient(135deg, #fff, #f8fafc); border-left: 4px solid var(--accent-cyan); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 10px; box-shadow: var(--shadow-sm); }
@@ -223,16 +225,25 @@
     .kpi-box.clickable:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
     .kpi-box.clickable::after { content: "↗"; position: absolute; top: 8px; right: 10px; font-size: 12px; opacity: 0.35; }
     .chart-wrapper canvas { cursor: pointer; }
-    .perf-item { cursor: pointer; padding: 8px 6px; border-radius: 6px; transition: background 0.12s; }
-    .perf-item:hover { background: var(--bg-main); }
-    .perf-item .perf-expand-icon { display: inline-block; font-size: 10px; margin-right: 6px; transition: transform 0.2s; color: var(--text-muted); }
-    .perf-item.expanded .perf-expand-icon { transform: rotate(90deg); }
-    .perf-questions { margin-top: 10px; padding: 10px 14px; background: var(--bg-main); border-radius: 6px; font-size: 12px; }
-    .perf-questions table { width: 100%; }
-    .perf-questions th { font-size: 10px; color: var(--text-muted); text-align: left; font-weight: 600; }
-    .perf-questions td { padding: 4px 0; }
-    .perf-question-bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--border-light); position: relative; vertical-align: middle; width: 100px; margin-right: 8px; }
+
+    /* PERF STRIP — wrapper is single column; each row is grid; expansion is a sibling block below */
+    .perf-strip { display: flex; flex-direction: column; gap: 4px; }
+    .perf-row { display: grid; grid-template-columns: 220px 1fr 100px; gap: 14px; align-items: center; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background 0.12s; }
+    .perf-row:hover { background: var(--bg-main); }
+    .perf-row .perf-label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--text-dark); }
+    .perf-row .perf-value { text-align: right; font-weight: 700; font-size: 13px; color: var(--text-dark); white-space: nowrap; }
+    .perf-row .perf-expand-icon { display: inline-block; font-size: 9px; transition: transform 0.2s; color: var(--text-muted); width: 10px; }
+    .perf-row.expanded .perf-expand-icon { transform: rotate(90deg); }
+    .perf-expansion { padding: 16px 18px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; margin: 4px 0 10px 0; border-left: 3px solid var(--header-blue); }
+    .perf-expansion h5 { margin: 0 0 12px; font-size: 11px; font-weight: 700; color: var(--header-blue); text-transform: uppercase; letter-spacing: 0.5px; }
+    .perf-expansion table { width: 100%; border-collapse: collapse; }
+    .perf-expansion th { font-size: 10px; color: var(--text-muted); text-align: left; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; padding: 4px 8px; border-bottom: 1px solid var(--border-light); }
+    .perf-expansion td { padding: 8px; font-size: 12px; border-bottom: 1px solid rgba(0,0,0,0.04); vertical-align: middle; }
+    .perf-expansion tr:last-child td { border-bottom: 0; }
+    .perf-question-bar { display: inline-block; height: 6px; border-radius: 3px; background: rgba(0,0,0,0.08); position: relative; vertical-align: middle; width: 100px; margin-right: 10px; }
     .perf-question-bar .fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
+    .perf-q-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+    .perf-q-meta strong { color: var(--text-dark); }
 
     /* COMPARE LAYOUT */
     .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -678,25 +689,36 @@
 
     <!-- UPSELL -->
     <div id="dash-upsell" class="dash-subview">
+        <!-- KPI tiles for upsell story -->
+        <div class="kpi-row" style="margin-bottom:18px;">
+            <div class="kpi-box indigo clickable" onclick="drillUpsell('opps')"><h3>Opportunity Rate</h3><div class="val" id="upOppRate">0%</div><div class="val-sub" id="upOppSub">0 / 0 calls</div></div>
+            <div class="kpi-box yellow clickable" onclick="drillUpsell('offers')"><h3>Offer Rate</h3><div class="val" id="upOfferRate">0%</div><div class="val-sub" id="upOfferSub">0 / 0 opps</div></div>
+            <div class="kpi-box green clickable" onclick="drillUpsell('accepted')"><h3>Acceptance Rate</h3><div class="val" id="upAcceptRate">0%</div><div class="val-sub" id="upAcceptSub">0 / 0 offers</div></div>
+            <div class="kpi-box purple clickable" onclick="drillUpsell('converted')"><h3>End-to-End Conversion</h3><div class="val" id="upConvRate">0%</div><div class="val-sub" id="upConvSub">0 / 0 calls</div></div>
+            <div class="kpi-box teal clickable" onclick="drillUpsell('properFU')"><h3>Follow-Through</h3><div class="val" id="upFollowRate">0%</div><div class="val-sub" id="upFollowSub">0 / 0 acceptances</div></div>
+            <div class="kpi-box red clickable" onclick="drillUpsell('missed')"><h3>Missed Opportunities</h3><div class="val" id="upMissedRate">0%</div><div class="val-sub" id="upMissedSub">0 of opp calls</div></div>
+        </div>
+
         <div class="dash-container">
             <div class="dash-col" style="flex:1;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Conversion Funnel<div class="dash-card-subtitle">Call → conversion flow</div></div></div>
+                    <div class="dash-card-header"><div>Conversion Funnel<div class="dash-card-subtitle">Call → conversion flow, with step-to-step conversion rates</div></div></div>
                     <div class="funnel-wrapper">
-                        <div class="funnel-layer f-1"><span>Total Calls</span><strong id="fnl1">0</strong><div class="pct">100%</div></div>
-                        <div class="funnel-layer f-2"><span>Opportunities</span><strong id="fnl2">0</strong><div class="pct" id="fnl2pct">0%</div></div>
-                        <div class="funnel-layer f-3"><span>Offers Made</span><strong id="fnl3">0</strong><div class="pct" id="fnl3pct">0%</div></div>
-                        <div class="funnel-layer f-4"><span>Conversions</span><strong id="fnl4">0</strong><div class="pct" id="fnl4pct">0%</div></div>
+                        <div class="funnel-layer f-1" onclick="drillUpsell('all')" style="cursor:pointer;"><span>Total Calls</span><strong id="fnl1">0</strong><div class="pct">100%</div></div>
+                        <div class="funnel-layer f-2" onclick="drillUpsell('opps')" style="cursor:pointer;"><span>Opportunities Existed</span><strong id="fnl2">0</strong><div class="pct" id="fnl2pct">0%</div></div>
+                        <div class="funnel-layer f-3" onclick="drillUpsell('offers')" style="cursor:pointer;"><span>Offers Made</span><strong id="fnl3">0</strong><div class="pct" id="fnl3pct">0%</div></div>
+                        <div class="funnel-layer f-4" onclick="drillUpsell('accepted')" style="cursor:pointer;"><span>Customer Interested</span><strong id="fnl4">0</strong><div class="pct" id="fnl4pct">0%</div></div>
+                        <div class="funnel-layer f-5" onclick="drillUpsell('converted')" style="cursor:pointer;"><span>Properly Followed Up</span><strong id="fnl5">0</strong><div class="pct" id="fnl5pct">0%</div></div>
                     </div>
                 </div>
             </div>
             <div class="dash-col" style="flex:1.2;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Offer Quality<div class="dash-card-subtitle">How agents present offers</div></div></div>
+                    <div class="dash-card-header"><div>Offer Quality<div class="dash-card-subtitle">How offers are being presented</div></div></div>
                     <div class="donut-wrapper"><canvas id="pieHow"></canvas></div>
                 </div>
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">After-offer quality</div></div></div>
+                    <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">What happens after a Yes</div></div></div>
                     <div class="donut-wrapper"><canvas id="pieExec"></canvas></div>
                 </div>
             </div>
@@ -704,14 +726,30 @@
         <div class="dash-container" style="margin-top:18px;">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Offer Types Distribution<div class="dash-card-subtitle">What's being offered most</div></div></div>
+                    <div class="dash-card-header"><div>Offer Types — Volume & Acceptance<div class="dash-card-subtitle">Click any bar to drill</div></div></div>
                     <div class="chart-wrapper"><canvas id="offerTypeChart"></canvas></div>
                 </div>
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Reasons for Missed Offers<div class="dash-card-subtitle">Why opportunities weren't taken</div></div></div>
+                    <div class="dash-card-header"><div>Reasons for No Offer<div class="dash-card-subtitle">Where opportunities went unaddressed</div></div></div>
                     <div class="chart-wrapper"><canvas id="missedChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Agent Upsell Performance<div class="dash-card-subtitle">Top & bottom performers by conversion · click any bar to drill</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="upsellAgentChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card" id="upsellInsightsCard">
+                    <div class="dash-card-header"><div>🔎 Auto-Generated Insights<div class="dash-card-subtitle">What the upsell data is telling you</div></div></div>
+                    <div id="upsellInsights" style="padding:4px 0;"></div>
                 </div>
             </div>
         </div>
@@ -2208,7 +2246,7 @@ function renderOverview(data, threshold, holdThr) {
                 if (!els.length) return;
                 const monthLabel = months[els[0].index];
                 const monthData = data.filter(r => (r.month || r.eval_date?.substring(0,7)) === monthLabel);
-                openDrillModal(`Records for ${monthLabel}`, `${monthData.length} record${monthData.length===1?'':'s'}`, monthData);
+                openMonthlyDrillModal(monthLabel, monthData);
             },
             scales: {
                 y: { position: 'left', min: 0, max: 100, title: { display: true, text: 'Avg Score %' } },
@@ -2317,6 +2355,9 @@ function renderSectionStrip(data) {
         const pct = st.total ? (st.passed/st.total*100) : 0;
         return { section: s, pct, passed: st.passed, total: st.total };
     }).sort((a,b) => a.pct - b.pct);
+
+    // Render each section as TWO sibling elements: the row, and an expansion
+    // panel directly below (initially hidden). This avoids the nested-grid layout bug.
     strip.innerHTML = items.map(it => {
         const color = it.pct >= 90 ? CHART_COLORS.green : it.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
         const safe = it.section.replace(/[^a-z0-9]/gi, '_');
@@ -2324,89 +2365,96 @@ function renderSectionStrip(data) {
                            getDisplayMode() === 'pct'   ? `${it.pct.toFixed(1)}%` :
                                                           `${it.pct.toFixed(1)}% (${it.passed}/${it.total})`;
         return `
-            <div class="perf-item" id="perf-${safe}" onclick="toggleSectionExpand('${safe}', '${it.section.replace(/'/g,"&#39;")}')">
-                <div style="display:flex; align-items:center;">
+            <div class="perf-row" id="perf-${safe}" onclick="toggleSectionExpand('${safe}', '${it.section.replace(/'/g,"&#39;")}')">
+                <div class="perf-label">
                     <span class="perf-expand-icon">▶</span>
-                    <div class="perf-label" style="flex:1;">${it.section}</div>
-                    <div class="perf-value">${valDisplay}</div>
+                    <span>${it.section}</span>
                 </div>
-                <div class="perf-bar-wrap" style="margin-top:6px;"><div class="perf-bar" style="width:${it.pct}%; background:${color};">${it.pct >= 15 ? it.pct.toFixed(0)+'%' : ''}</div></div>
-                <div class="perf-questions" id="perf-q-${safe}" style="display:none;"></div>
-            </div>`;
+                <div class="perf-bar-wrap"><div class="perf-bar" style="width:${it.pct}%; background:${color};">${it.pct >= 15 ? it.pct.toFixed(0)+'%' : ''}</div></div>
+                <div class="perf-value">${valDisplay}</div>
+            </div>
+            <div class="perf-expansion" id="perf-q-${safe}" style="display:none;"></div>`;
     }).join('');
 }
 
-// Expand/collapse a section to show its individual questions
+// Expand/collapse a section (close any other open one)
 function toggleSectionExpand(safeId, sectionName) {
-    const item = document.getElementById(`perf-${safeId}`);
-    const inner = document.getElementById(`perf-q-${safeId}`);
-    if (!item || !inner) return;
-    const isOpen = item.classList.contains('expanded');
-    // Close any other open sections first (only one at a time)
-    document.querySelectorAll('.perf-item.expanded').forEach(el => {
+    const row = document.getElementById(`perf-${safeId}`);
+    const exp = document.getElementById(`perf-q-${safeId}`);
+    if (!row || !exp) return;
+    const isOpen = row.classList.contains('expanded');
+    document.querySelectorAll('.perf-row.expanded').forEach(el => {
         el.classList.remove('expanded');
         const id = el.id.replace('perf-', '');
-        const inn = document.getElementById(`perf-q-${id}`);
-        if (inn) inn.style.display = 'none';
+        const e = document.getElementById(`perf-q-${id}`);
+        if (e) e.style.display = 'none';
     });
     if (!isOpen) {
-        item.classList.add('expanded');
-        inner.style.display = '';
-        inner.innerHTML = buildSectionQuestionsHtml(sectionName);
+        row.classList.add('expanded');
+        exp.style.display = '';
+        exp.innerHTML = buildSectionQuestionsHtml(sectionName);
     }
-    // Prevent the click from bubbling to anything else
     if (event) event.stopPropagation();
 }
 
 function buildSectionQuestionsHtml(sectionName) {
     const data = getFilteredData();
     const qs = qaQuestions.filter(q => q.section === sectionName);
-    const rows = qs.map(q => {
+
+    // Pre-compute everything per question
+    const perQ = qs.map(q => {
         let total = 0, passed = 0;
-        const failingCNNs = [];
+        const fails = [];
         data.forEach(r => {
             const ans = r.qa_details?.[`Q${q.id}_Answer`];
             if (ans !== undefined && ans !== null) {
                 total++;
-                if (ans === "Yes") passed++;
-                else failingCNNs.push(r);
+                if (ans === "Yes") passed++; else fails.push(r);
             }
         });
         const pct = total ? (passed/total*100) : 0;
-        const color = pct >= 90 ? CHART_COLORS.green : pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
-        const display = getDisplayMode() === 'count' ? `${passed}/${total}` :
-                        getDisplayMode() === 'pct'   ? `${pct.toFixed(1)}%` :
-                                                       `${passed}/${total} · ${pct.toFixed(1)}%`;
-        // top-3 failing agents on this question
         const agentFails = {};
-        failingCNNs.forEach(r => { agentFails[r.agent_name] = (agentFails[r.agent_name]||0)+1; });
-        const topAgents = Object.entries(agentFails).sort((a,b)=>b[1]-a[1]).slice(0,3)
-                              .map(([n,c]) => `${n} (${c})`).join(', ') || '—';
+        fails.forEach(r => { agentFails[r.agent_name] = (agentFails[r.agent_name]||0)+1; });
+        const topAgents = Object.entries(agentFails).sort((a,b)=>b[1]-a[1]).slice(0,3);
+        // Stash failing rows so the inline button can read them without recomputing
+        window[`__sectionDrill_q${q.id}`] = fails;
+        return { ...q, total, passed, pct, fails, topAgents };
+    });
+
+    const rows = perQ.map(q => {
+        const color = q.pct >= 90 ? CHART_COLORS.green : q.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
+        const display = getDisplayMode() === 'count' ? `${q.passed}/${q.total}` :
+                        getDisplayMode() === 'pct'   ? `${q.pct.toFixed(1)}%` :
+                                                       `${q.pct.toFixed(1)}% (${q.passed}/${q.total})`;
+        const topStr = q.topAgents.length
+            ? q.topAgents.map(([n,c]) => `${n} <span style="color:var(--text-muted);">(${c})</span>`).join(' · ')
+            : '<span style="color:var(--text-muted);">no fails</span>';
+        const btnDisabled = q.fails.length === 0 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : '';
         return `
             <tr>
-                <td style="vertical-align:top; padding-right:10px;">
-                    <strong style="color:var(--header-blue);">Q${q.id}.</strong> ${q.title}
-                    <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Weight: ${q.w}% · Top failing: ${topAgents}</div>
+                <td style="width:55%;">
+                    <div><strong style="color:var(--header-blue);">Q${q.id}.</strong> ${q.title}</div>
+                    <div class="perf-q-meta">Weight <strong>${q.w}%</strong> · Top failing: ${topStr}</div>
                 </td>
-                <td style="white-space:nowrap; text-align:right; vertical-align:top;">
-                    <span class="perf-question-bar"><span class="fill" style="width:${pct}%; background:${color};"></span></span>
-                    <strong>${display}</strong>
-                    <button class="btn btn-ghost btn-small" style="margin-left:8px; padding:2px 6px; font-size:10px;"
-                            onclick="event.stopPropagation(); openDrillModal('Q${q.id} fails: ${q.title.replace(/'/g,'&#39;')}', '${failingCNNs.length} record${failingCNNs.length===1?'':'s'}', window.__lastDrillData_q${q.id} || [])">
-                        🔍 View ${failingCNNs.length} fails
+                <td style="text-align:right; white-space:nowrap;">
+                    <span class="perf-question-bar"><span class="fill" style="width:${q.pct}%; background:${color};"></span></span>
+                    <strong style="font-size:12.5px;">${display}</strong>
+                </td>
+                <td style="text-align:right; width:130px;">
+                    <button class="btn btn-ghost btn-small" ${btnDisabled} style="padding:3px 10px; font-size:10.5px;"
+                            onclick="event.stopPropagation(); openDrillModal('Q${q.id} fails: ${q.title.replace(/'/g,'&#39;')}', '${q.fails.length} record${q.fails.length===1?'':'s'} · weight ${q.w}%', window.__sectionDrill_q${q.id} || [])">
+                        🔍 ${q.fails.length} fail${q.fails.length===1?'':'s'}
                     </button>
                 </td>
             </tr>`;
     }).join('');
-    // Stash failing-row sets so the inline buttons can read them without re-computing
-    qs.forEach(q => {
-        const fails = data.filter(r => r.qa_details?.[`Q${q.id}_Answer`] === 'No');
-        window[`__lastDrillData_q${q.id}`] = fails;
-    });
-    return `<table>
-        <thead><tr><th>Question</th><th style="text-align:right;">Pass Rate</th></tr></thead>
-        <tbody>${rows}</tbody>
-    </table>`;
+
+    return `
+        <h5>${sectionName} — Per-Question Breakdown</h5>
+        <table>
+            <thead><tr><th>Question</th><th style="text-align:right;">Pass Rate</th><th style="text-align:right;">Drill</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
 }
 
 // ---- TRENDS ----
@@ -2444,7 +2492,8 @@ function renderTrends(data, threshold) {
         weeks.push({
             label: `W${wStart.getMonth()+1}/${wStart.getDate()}`,
             avg: recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : 0,
-            count: recs.length
+            count: recs.length,
+            records: recs
         });
     }
     const best = weeks.reduce((b,w) => (w.count > 0 && w.avg > b.avg) ? w : b, { avg: -1, label: '—' });
@@ -2462,6 +2511,11 @@ function renderTrends(data, threshold) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const w = weeks[els[0].index];
+                openDrillModal(`Week of ${w.label}`, `${w.count} record${w.count===1?'':'s'} · avg ${w.avg.toFixed(1)}%`, w.records || []);
+            },
             scales: {
                 y: { position: 'left', min: 0, max: 100 },
                 y1: { position: 'right', min: 0, grid: { drawOnChartArea: false } }
@@ -2473,9 +2527,10 @@ function renderTrends(data, threshold) {
     const monthsAgg = {};
     data.forEach(r => {
         if (!r.month) return;
-        if (!monthsAgg[r.month]) monthsAgg[r.month] = { total: 0, sum: 0, af: 0, offers: 0, convs: 0 };
+        if (!monthsAgg[r.month]) monthsAgg[r.month] = { total: 0, sum: 0, af: 0, offers: 0, convs: 0, records: [] };
         monthsAgg[r.month].total++;
         monthsAgg[r.month].sum += r.final_score;
+        monthsAgg[r.month].records.push(r);
         if (r.auto_failed === "Yes") monthsAgg[r.month].af++;
         if (r.upsell_offer_made === "Yes") monthsAgg[r.month].offers++;
         if (r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes") monthsAgg[r.month].convs++;
@@ -2491,7 +2546,15 @@ function renderTrends(data, threshold) {
                 { label: 'Conv. %', data: ms.map(m => monthsAgg[m].offers ? +(monthsAgg[m].convs/monthsAgg[m].offers*100).toFixed(1) : 0), borderColor: CHART_COLORS.purple, tension: 0.3 }
             ]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 100 } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const mLbl = ms[els[0].index];
+                openMonthlyDrillModal(mLbl, monthsAgg[mLbl].records);
+            }
+        }
     });
 
     // Daily volume — last 30 days
@@ -2500,12 +2563,20 @@ function renderTrends(data, threshold) {
         const d = new Date(now.getTime() - i*day);
         const key = d.toISOString().substring(0,10);
         const recs = data.filter(r => r.eval_date === key);
-        days.push({ label: `${d.getMonth()+1}/${d.getDate()}`, count: recs.length, avg: recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : null });
+        days.push({ label: `${d.getMonth()+1}/${d.getDate()}`, key, count: recs.length, avg: recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : null, records: recs });
     }
     makeChart('dailyVolumeChart', {
         type: 'bar',
         data: { labels: days.map(d => d.label), datasets: [{ label: 'Audits', data: days.map(d => d.count), backgroundColor: CHART_COLORS.cyan }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const d = days[els[0].index];
+                if (!d.count) return;
+                openDrillModal(`Audits on ${d.label}`, `${d.count} record${d.count===1?'':'s'} · avg ${d.avg.toFixed(1)}%`, d.records);
+            }
+        }
     });
 
     // Rolling 7-day avg
@@ -2593,112 +2664,418 @@ function renderQADeepDive(data) {
         }
     });
 
-    // All 22 questions strip
+    // All 22 questions strip — clickable, shows failing records on click
     const allQ = qaQuestions.map(q => {
         let total = 0, passed = 0;
+        const failingRecs = [];
         data.forEach(r => {
             const ans = (r.qa_details || {})[`Q${q.id}_Answer`];
             if (ans !== undefined && ans !== null) {
                 total++;
                 if (ans === "Yes") passed++;
+                else failingRecs.push(r);
             }
         });
-        return { id: q.id, title: q.title, pct: total ? passed/total*100 : 0, total };
+        return { id: q.id, title: q.title, weight: q.w, pct: total ? passed/total*100 : 0, total, passed, fails: failingRecs };
     }).sort((a,b) => a.pct - b.pct);
+
+    // Stash for drilldowns
+    allQ.forEach(q => { window[`__allQ_q${q.id}`] = q.fails; });
+
     const strip = document.getElementById('allQuestionsStrip');
     strip.innerHTML = allQ.map(q => {
         const color = q.pct >= 90 ? CHART_COLORS.green : q.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
-        return `<div class="perf-item">
-            <div class="perf-label">Q${q.id}. ${q.title}</div>
+        const safeTitle = q.title.replace(/'/g,"&#39;");
+        return `<div class="perf-row" onclick="openDrillModal('Q${q.id} fails: ${safeTitle}', '${q.fails.length} record${q.fails.length===1?'':'s'} · weight ${q.weight}%', window.__allQ_q${q.id} || [])" title="Click to see ${q.fails.length} failing record${q.fails.length===1?'':'s'}">
+            <div class="perf-label">Q${q.id}. ${q.title} <span style="color:var(--text-muted); font-size:10.5px; margin-left:6px;">(w ${q.weight}%)</span></div>
             <div class="perf-bar-wrap"><div class="perf-bar" style="width:${q.pct}%; background:${color};">${q.pct >= 15 ? q.pct.toFixed(0)+'%' : ''}</div></div>
             <div class="perf-value">${q.pct.toFixed(1)}%</div>
         </div>`;
     }).join('');
 
-    // Auto-fail breakdown
+    // Auto-fail breakdown — drillable
     const afNames = ['Documentation Failure', 'Call Disconnection', 'Inappropriate Behavior', 'No Follow-up', 'Escalation Failure'];
     const afCounts = [0,0,0,0,0];
+    const afRecords = [[],[],[],[],[]];
     data.forEach(r => {
         const qa = r.qa_details || {};
-        for (let i = 1; i <= 5; i++) if (qa[`AF_${i}`] === "Yes") afCounts[i-1]++;
+        for (let i = 1; i <= 5; i++) if (qa[`AF_${i}`] === "Yes") { afCounts[i-1]++; afRecords[i-1].push(r); }
     });
     makeChart('afChart', {
         type: 'bar',
         data: { labels: afNames, datasets: [{ label: 'Occurrences', data: afCounts, backgroundColor: CHART_COLORS.red }] },
-        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const i = els[0].index;
+                openDrillModal(`Auto-Fail: "${afNames[i]}"`, `${afRecords[i].length} record${afRecords[i].length===1?'':'s'}`, afRecords[i]);
+            }
+        }
     });
 
-    // Weighted impact
+    // Weighted impact — drillable
     const impact = qaQuestions.map(q => {
-        let failed = 0;
-        data.forEach(r => { if ((r.qa_details || {})[`Q${q.id}_Answer`] === "No") failed++; });
-        return { id: q.id, impact: failed * q.w };
+        const failing = data.filter(r => (r.qa_details || {})[`Q${q.id}_Answer`] === "No");
+        return { id: q.id, title: q.title, weight: q.w, impact: failing.length * q.w, records: failing };
     }).sort((a,b) => b.impact - a.impact).slice(0, 10);
     makeChart('weightedImpactChart', {
         type: 'bar',
-        data: { labels: impact.map(i => `Q${i.id}`), datasets: [{ label: 'Score Points Lost', data: impact.map(i => i.impact.toFixed(1)), backgroundColor: CHART_COLORS.orange }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        data: { labels: impact.map(i => `Q${i.id}`), datasets: [{ label: 'Score Points Lost', data: impact.map(i => +i.impact.toFixed(1)), backgroundColor: CHART_COLORS.orange }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const im = impact[els[0].index];
+                openDrillModal(`Q${im.id} score-impact drill`, `${im.records.length} fails × weight ${im.weight}% = ${im.impact.toFixed(1)} pts lost`, im.records);
+            }
+        }
     });
 }
 
 // ---- UPSELL ----
 function renderUpsell(data) {
     const total = data.length;
-    const opps = data.filter(r => r.upsell_offer_made === "Yes" || r.upsell_opp_existed === "Yes").length;
-    const offers = data.filter(r => r.upsell_offer_made === "Yes").length;
-    const convs = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").length;
-    document.getElementById('fnl1').textContent = total;
-    document.getElementById('fnl2').textContent = opps;   document.getElementById('fnl2pct').textContent = total ? ((opps/total)*100).toFixed(0)+'%' : '0%';
-    document.getElementById('fnl3').textContent = offers; document.getElementById('fnl3pct').textContent = total ? ((offers/total)*100).toFixed(0)+'%' : '0%';
-    document.getElementById('fnl4').textContent = convs;  document.getElementById('fnl4pct').textContent = total ? ((convs/total)*100).toFixed(0)+'%' : '0%';
+    // Definitions
+    //   Opportunity existed = (offer was made) OR (no offer but opp was declared)
+    //   Offers made          = offer_made === Yes
+    //   Customer interested  = offer_made === Yes AND interested === Yes
+    //   Properly followed up = above AND followup === 'Properly Followed Up'
+    const oppRecords     = data.filter(r => r.upsell_offer_made === "Yes" || r.upsell_opp_existed === "Yes");
+    const offerRecords   = data.filter(r => r.upsell_offer_made === "Yes");
+    const acceptRecords  = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes");
+    const convertRecords = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes" && r.upsell_followup === "Properly Followed Up");
+    const missedRecords  = data.filter(r => r.upsell_opp_existed === "Yes" && r.upsell_offer_made !== "Yes");
 
-    // How (offer quality)
+    const opps    = oppRecords.length;
+    const offers  = offerRecords.length;
+    const accepts = acceptRecords.length;
+    const convs   = convertRecords.length;
+    const missed  = missedRecords.length;
+
+    // Stash for drill-downs
+    window.__upsellDrill = {
+        all:       data,
+        opps:      oppRecords,
+        offers:    offerRecords,
+        accepted:  acceptRecords,
+        converted: convertRecords,
+        missed:    missedRecords,
+        properFU:  convertRecords
+    };
+
+    // KPI tiles — respect display mode
+    const mode = getDisplayMode();
+    const fmt = (count, denom, denomLabel) => {
+        const pct = denom ? (count/denom*100) : 0;
+        const valEl  = mode === 'count' ? String(count) : pct.toFixed(1) + '%';
+        const subEl  = mode === 'pct'   ? denomLabel : `${count} / ${denom} ${denomLabel}`;
+        return { val: valEl, sub: subEl };
+    };
+    let k;
+    k = fmt(opps, total, 'calls');        document.getElementById('upOppRate').textContent = k.val;    document.getElementById('upOppSub').textContent = k.sub;
+    k = fmt(offers, opps, 'opps');        document.getElementById('upOfferRate').textContent = k.val;  document.getElementById('upOfferSub').textContent = k.sub;
+    k = fmt(accepts, offers, 'offers');   document.getElementById('upAcceptRate').textContent = k.val; document.getElementById('upAcceptSub').textContent = k.sub;
+    k = fmt(convs, total, 'calls');       document.getElementById('upConvRate').textContent = k.val;   document.getElementById('upConvSub').textContent = k.sub;
+    k = fmt(convs, accepts, 'acceptances'); document.getElementById('upFollowRate').textContent = k.val; document.getElementById('upFollowSub').textContent = k.sub;
+    k = fmt(missed, opps, 'of opp calls'); document.getElementById('upMissedRate').textContent = k.val; document.getElementById('upMissedSub').textContent = k.sub;
+
+    // 5-step Funnel: show step-to-step conversion rates
+    document.getElementById('fnl1').textContent = total;
+    document.getElementById('fnl2').textContent = opps;
+    document.getElementById('fnl2pct').textContent = total ? `${((opps/total)*100).toFixed(0)}% of total · drop ${total-opps}` : '0%';
+    document.getElementById('fnl3').textContent = offers;
+    document.getElementById('fnl3pct').textContent = opps ? `${((offers/opps)*100).toFixed(0)}% of opps · drop ${opps-offers}` : '0%';
+    document.getElementById('fnl4').textContent = accepts;
+    document.getElementById('fnl4pct').textContent = offers ? `${((accepts/offers)*100).toFixed(0)}% of offers · drop ${offers-accepts}` : '0%';
+    document.getElementById('fnl5').textContent = convs;
+    document.getElementById('fnl5pct').textContent = accepts ? `${((convs/accepts)*100).toFixed(0)}% of acceptances · drop ${accepts-convs}` : '0%';
+
+    // Offer Quality donut — drill to records by quality bucket
     const howCounts = { 'Adding Value': 0, 'Indifferent': 0, 'Pushy / Sales-y': 0 };
-    data.filter(r => r.upsell_offer_made === "Yes").forEach(r => {
+    const howRecords = { 'Adding Value': [], 'Indifferent': [], 'Pushy / Sales-y': [] };
+    offerRecords.forEach(r => {
         const q = r.upsell_quality || 'Adding Value';
-        if (howCounts[q] !== undefined) howCounts[q]++;
+        if (howCounts[q] !== undefined) { howCounts[q]++; howRecords[q].push(r); }
     });
+    const howLabels = Object.keys(howCounts);
     makeChart('pieHow', {
         type: 'doughnut',
-        data: { labels: Object.keys(howCounts), datasets: [{ data: Object.values(howCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
-        options: { responsive: true, maintainAspectRatio: false }
+        data: { labels: howLabels, datasets: [{ data: Object.values(howCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const lbl = howLabels[els[0].index];
+                openDrillModal(`Offers presented as: "${lbl}"`, `${howRecords[lbl].length} record${howRecords[lbl].length===1?'':'s'}`, howRecords[lbl]);
+            }
+        }
     });
 
-    // Exec (follow-through)
+    // Follow-Through donut
     const execCounts = { 'Properly Followed Up': 0, 'Partially Addressed': 0, 'Left Hanging': 0 };
-    data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").forEach(r => {
+    const execRecords = { 'Properly Followed Up': [], 'Partially Addressed': [], 'Left Hanging': [] };
+    acceptRecords.forEach(r => {
         const f = r.upsell_followup || 'Properly Followed Up';
-        if (execCounts[f] !== undefined) execCounts[f]++;
+        if (execCounts[f] !== undefined) { execCounts[f]++; execRecords[f].push(r); }
     });
+    const execLabels = Object.keys(execCounts);
     makeChart('pieExec', {
         type: 'doughnut',
-        data: { labels: Object.keys(execCounts), datasets: [{ data: Object.values(execCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
-        options: { responsive: true, maintainAspectRatio: false }
+        data: { labels: execLabels, datasets: [{ data: Object.values(execCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const lbl = execLabels[els[0].index];
+                openDrillModal(`Follow-through: "${lbl}"`, `${execRecords[lbl].length} record${execRecords[lbl].length===1?'':'s'}`, execRecords[lbl]);
+            }
+        }
     });
 
-    // Offer types
-    const typeCounts = {};
-    data.filter(r => r.upsell_offer_made === "Yes").forEach(r => {
+    // Offer Types — stacked bar of total offers vs accepted (much richer than just total counts)
+    const typeBuckets = {};
+    offerRecords.forEach(r => {
         const t = r.upsell_type || 'Other';
-        typeCounts[t] = (typeCounts[t] || 0) + 1;
+        if (!typeBuckets[t]) typeBuckets[t] = { total: [], accepted: [] };
+        typeBuckets[t].total.push(r);
+        if (r.upsell_interested === 'Yes') typeBuckets[t].accepted.push(r);
     });
+    const typeLabels = Object.keys(typeBuckets).sort((a,b) => typeBuckets[b].total.length - typeBuckets[a].total.length);
     makeChart('offerTypeChart', {
         type: 'bar',
-        data: { labels: Object.keys(typeCounts), datasets: [{ label: 'Offers', data: Object.values(typeCounts), backgroundColor: PALETTE }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        data: {
+            labels: typeLabels,
+            datasets: [
+                { label: 'Declined', data: typeLabels.map(t => typeBuckets[t].total.length - typeBuckets[t].accepted.length), backgroundColor: CHART_COLORS.red,   stack: 's' },
+                { label: 'Accepted', data: typeLabels.map(t => typeBuckets[t].accepted.length),                                  backgroundColor: CHART_COLORS.green, stack: 's' }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Offer count' } } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const lbl = typeLabels[els[0].index];
+                const wantAccepted = els[0].datasetIndex === 1;
+                const subset = wantAccepted ? typeBuckets[lbl].accepted : typeBuckets[lbl].total.filter(r => r.upsell_interested !== 'Yes');
+                openDrillModal(`${wantAccepted ? 'Accepted' : 'Declined'}: "${lbl}"`, `${subset.length} record${subset.length===1?'':'s'}`, subset);
+            }
+        }
     });
 
-    // Missed reasons
-    const reasonCounts = {};
+    // Reasons for No Offer — group by reason
+    const reasonBuckets = {};
     data.filter(r => r.upsell_offer_made === "No").forEach(r => {
-        const reason = r.upsell_no_reason || (r.upsell_opp_existed === "Yes" ? 'Missed Opportunity' : 'No Opportunity');
-        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+        let reason;
+        if (r.upsell_opp_existed === 'Yes') {
+            reason = r.upsell_no_reason || 'Missed Opportunity (reason not given)';
+        } else {
+            reason = 'No Opportunity Existed';
+        }
+        if (!reasonBuckets[reason]) reasonBuckets[reason] = [];
+        reasonBuckets[reason].push(r);
     });
+    const reasonLabels = Object.keys(reasonBuckets).sort((a,b) => reasonBuckets[b].length - reasonBuckets[a].length);
     makeChart('missedChart', {
         type: 'bar',
-        data: { labels: Object.keys(reasonCounts), datasets: [{ label: 'Count', data: Object.values(reasonCounts), backgroundColor: CHART_COLORS.orange }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        data: { labels: reasonLabels, datasets: [{ label: 'Calls', data: reasonLabels.map(l => reasonBuckets[l].length), backgroundColor: reasonLabels.map(l => l === 'No Opportunity Existed' ? CHART_COLORS.cyan : CHART_COLORS.orange) }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const lbl = reasonLabels[els[0].index];
+                openDrillModal(`Reason: "${lbl}"`, `${reasonBuckets[lbl].length} record${reasonBuckets[lbl].length===1?'':'s'}`, reasonBuckets[lbl]);
+            }
+        }
     });
+
+    // Agent Upsell Performance — conversion rate per agent (min 2 offers to qualify)
+    const byAgent = {};
+    data.forEach(r => {
+        if (!byAgent[r.agent_name]) byAgent[r.agent_name] = { offers: 0, accepted: 0, converted: 0, records: [] };
+        byAgent[r.agent_name].records.push(r);
+        if (r.upsell_offer_made === 'Yes') {
+            byAgent[r.agent_name].offers++;
+            if (r.upsell_interested === 'Yes') {
+                byAgent[r.agent_name].accepted++;
+                if (r.upsell_followup === 'Properly Followed Up') byAgent[r.agent_name].converted++;
+            }
+        }
+    });
+    const agentEntries = Object.entries(byAgent)
+        .filter(([_, v]) => v.offers >= 2)   // need volume to be meaningful
+        .map(([name, v]) => ({
+            name,
+            offers: v.offers,
+            convRate: v.offers ? (v.accepted/v.offers*100) : 0,
+            records: v.records.filter(r => r.upsell_offer_made === 'Yes')
+        }))
+        .sort((a,b) => b.convRate - a.convRate);
+    if (agentEntries.length) {
+        makeChart('upsellAgentChart', {
+            type: 'bar',
+            data: {
+                labels: agentEntries.map(a => `${a.name} (${a.offers})`),
+                datasets: [{ label: 'Acceptance %', data: agentEntries.map(a => +a.convRate.toFixed(1)), backgroundColor: agentEntries.map(a => a.convRate >= 50 ? CHART_COLORS.green : a.convRate >= 25 ? CHART_COLORS.yellow : CHART_COLORS.red) }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                scales: { x: { min: 0, max: 100, title: { display: true, text: 'Acceptance rate (%)' } } },
+                plugins: { legend: { display: false } },
+                onClick: (ev, els) => {
+                    if (!els.length) return;
+                    const ag = agentEntries[els[0].index];
+                    openDrillModal(`${ag.name} — upsell records`, `${ag.records.length} offer${ag.records.length===1?'':'s'} · ${ag.convRate.toFixed(1)}% acceptance`, ag.records);
+                }
+            }
+        });
+    } else {
+        // Clear canvas if nothing qualifies
+        const inst = chartInstances['upsellAgentChart'];
+        if (inst) { inst.destroy(); delete chartInstances['upsellAgentChart']; }
+        const ctx = document.getElementById('upsellAgentChart');
+        if (ctx) ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);
+    }
+
+    // Auto-Generated Insights
+    renderUpsellInsights({ data, total, opps, offers, accepts, convs, missed, howCounts, execCounts, reasonBuckets, byAgent, agentEntries });
+}
+
+// ============================================================
+// UPSELL DRILL-DOWN — used by KPI tile clicks and funnel layers
+// ============================================================
+function drillUpsell(kind) {
+    const subset = (window.__upsellDrill && window.__upsellDrill[kind]) || [];
+    const titles = {
+        all: 'All calls in filter window',
+        opps: 'Calls where an opportunity existed',
+        offers: 'Calls where an offer was made',
+        accepted: 'Offers the customer accepted',
+        converted: 'End-to-end conversions (offer → accept → follow-up)',
+        properFU: 'Properly followed-up acceptances',
+        missed: 'Missed opportunities (opp existed but no offer)'
+    };
+    openDrillModal(titles[kind] || 'Upsell records', `${subset.length} record${subset.length===1?'':'s'}`, subset);
+}
+
+// ============================================================
+// AUTO-INSIGHTS PANEL — narrative bullets pulled from the upsell numbers
+// ============================================================
+function renderUpsellInsights(s) {
+    const el = document.getElementById('upsellInsights');
+    if (!el) return;
+    if (!s.total) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">No data in the current filter window.</div>';
+        return;
+    }
+    const bullets = [];
+
+    // Helper to format an insight pill
+    const pill = (color, icon, headline, body) => `
+        <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; background:white; border-left:3px solid ${color}; border-radius:6px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+            <div style="font-size:18px;">${icon}</div>
+            <div style="flex:1;">
+                <div style="font-weight:700; font-size:13px; color:var(--text-dark); margin-bottom:2px;">${headline}</div>
+                <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">${body}</div>
+            </div>
+        </div>`;
+
+    // 1) Offer rate vs opportunity — leakage
+    if (s.opps > 0) {
+        const offerRate = s.offers/s.opps*100;
+        if (offerRate < 60) {
+            bullets.push(pill('#C8102E', '⚠️',
+                `Low offer rate: only <strong>${offerRate.toFixed(1)}%</strong> of opportunities resulted in an offer`,
+                `Agents identified <strong>${s.opps}</strong> opportunities but only made <strong>${s.offers}</strong> offers. That's <strong>${s.missed} missed opportunities</strong> — the single biggest revenue leak in the funnel. Focus coaching on recognition-to-pitch conversion.`));
+        } else if (offerRate >= 85) {
+            bullets.push(pill('#00843D', '✅',
+                `Strong offer execution: <strong>${offerRate.toFixed(1)}%</strong> of opportunities became offers`,
+                `Agents are converting recognition into action well. Of <strong>${s.opps}</strong> opportunities, <strong>${s.offers}</strong> resulted in an offer.`));
+        }
+    }
+
+    // 2) Acceptance rate
+    if (s.offers > 0) {
+        const acceptRate = s.accepts/s.offers*100;
+        if (acceptRate < 25) {
+            bullets.push(pill('#C8102E', '📉',
+                `Low acceptance rate: <strong>${acceptRate.toFixed(1)}%</strong> of offers accepted`,
+                `${s.accepts} of ${s.offers} customers said yes. Common causes: offers feel pushy, mistimed in the call, or not aligned to customer need. Check the "Offer Quality" donut on the right.`));
+        } else if (acceptRate >= 50) {
+            bullets.push(pill('#00843D', '🎯',
+                `Healthy acceptance: <strong>${acceptRate.toFixed(1)}%</strong> of offers accepted`,
+                `${s.accepts} of ${s.offers} customers said yes — well above typical call-center conversion benchmarks.`));
+        }
+    }
+
+    // 3) Pushy offers
+    const pushy = s.howCounts['Pushy / Sales-y'] || 0;
+    if (pushy > 0 && s.offers > 0) {
+        const pushyPct = pushy/s.offers*100;
+        if (pushyPct >= 15) {
+            bullets.push(pill('#FFB612', '🚨',
+                `<strong>${pushy} offer${pushy===1?'':'s'} (${pushyPct.toFixed(1)}%)</strong> graded as pushy / sales-y`,
+                `When offers feel pushy, they damage CSAT even if they convert. Pushy offers carry a <strong>−5% QA penalty</strong>. Review these recordings during your next 1-on-1.`));
+        }
+    }
+
+    // 4) Left hanging
+    const hanging = s.execCounts['Left Hanging'] || 0;
+    if (hanging > 0 && s.accepts > 0) {
+        const hangPct = hanging/s.accepts*100;
+        bullets.push(pill(hangPct >= 15 ? '#C8102E' : '#FFB612', '🪂',
+            `<strong>${hanging} accepted offer${hanging===1?'':'s'}</strong> (${hangPct.toFixed(1)}%) left hanging`,
+            `Customers said yes but the agent never followed through. These are <strong>guaranteed lost revenue</strong> — the customer already wanted it. This carries the highest upsell penalty (−5%).`));
+    }
+
+    // 5) Top performer
+    if (s.agentEntries.length >= 2) {
+        const top = s.agentEntries[0];
+        const bot = s.agentEntries[s.agentEntries.length - 1];
+        if (top.convRate - bot.convRate >= 20) {
+            bullets.push(pill('#0056b3', '🌟',
+                `Big spread between top and bottom: <strong>${top.name}</strong> (${top.convRate.toFixed(0)}%) vs <strong>${bot.name}</strong> (${bot.convRate.toFixed(0)}%)`,
+                `${(top.convRate - bot.convRate).toFixed(0)} percentage-point gap. Have ${top.name} shadow ${bot.name} or share a recent winning call. Calibration session candidate.`));
+        }
+    }
+
+    // 6) Best offer type
+    const typeBuckets = {};
+    s.data.forEach(r => {
+        if (r.upsell_offer_made !== 'Yes') return;
+        const t = r.upsell_type || 'Other';
+        if (!typeBuckets[t]) typeBuckets[t] = { total: 0, accepted: 0 };
+        typeBuckets[t].total++;
+        if (r.upsell_interested === 'Yes') typeBuckets[t].accepted++;
+    });
+    const typeArr = Object.entries(typeBuckets).filter(([_,v]) => v.total >= 3).map(([t,v]) => ({ type: t, rate: v.accepted/v.total*100, n: v.total }));
+    if (typeArr.length >= 2) {
+        typeArr.sort((a,b) => b.rate - a.rate);
+        const best = typeArr[0], worst = typeArr[typeArr.length - 1];
+        if (best.rate - worst.rate >= 20) {
+            bullets.push(pill('#0056b3', '🧩',
+                `<strong>"${best.type}"</strong> converts ${best.rate.toFixed(0)}%, <strong>"${worst.type}"</strong> only ${worst.rate.toFixed(0)}%`,
+                `Lead with ${best.type} when the opportunity allows. Consider reviewing the ${worst.type} pitch or its targeting criteria.`));
+        }
+    }
+
+    // 7) Top "no reason" — what's blocking offers
+    const topNoReason = Object.entries(s.reasonBuckets || {})
+        .filter(([r]) => r !== 'No Opportunity Existed')
+        .sort((a,b) => b[1].length - a[1].length)[0];
+    if (topNoReason && topNoReason[1].length >= 3) {
+        bullets.push(pill('#8b5cf6', '🤔',
+            `Top reason offers aren't made: <strong>${topNoReason[0]}</strong> (${topNoReason[1].length} cases)`,
+            `This is what's most often blocking your agents from pitching. Is it a real blocker, or a habit?`));
+    }
+
+    if (!bullets.length) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:14px;">📊 Upsell numbers are within normal ranges — no specific actions stand out. Adjust the date range or filters to dig deeper.</div>';
+    } else {
+        el.innerHTML = bullets.join('');
+    }
 }
 
 // ---- AGENTS ----
@@ -2759,7 +3136,8 @@ function renderAgents(data, threshold) {
     const tbody = document.getElementById('agentTbody');
     tbody.innerHTML = agents.map((a, i) => {
         const sentLabel = a.sentiment > 0.2 ? '😊' : a.sentiment < -0.2 ? '😠' : '😐';
-        return `<tr>
+        const safeName = (a.name || '').replace(/'/g, "&#39;");
+        return `<tr style="cursor:pointer;" onclick="openDrillModal('All audits: ${safeName}', '${a.audits} record${a.audits===1?'':'s'} · avg ${a.avg.toFixed(1)}%', evaluationsDB.filter(r => r.agent_name === '${safeName}'))" title="Click to drill into ${a.name}">
             <td><strong>${i+1}</strong></td>
             <td>${a.name}</td>
             <td>${a.coach || '—'}</td>
@@ -2781,37 +3159,53 @@ function renderSegments(data, holdThr) {
         const g = {};
         data.forEach(r => {
             const k = r[key] || '—';
-            if (!g[k]) g[k] = { sum: 0, count: 0 };
+            if (!g[k]) g[k] = { sum: 0, count: 0, records: [] };
             g[k].sum += r.final_score; g[k].count++;
+            g[k].records.push(r);
         });
-        return Object.entries(g).map(([k,v]) => ({ k, avg: v.sum/v.count, count: v.count })).sort((a,b) => b.avg - a.avg);
+        return Object.entries(g).map(([k,v]) => ({ k, avg: v.sum/v.count, count: v.count, records: v.records })).sort((a,b) => b.avg - a.avg);
     };
-    const renderBar = (id, items, color) => {
+    const renderBar = (id, items, color, segLabel, segKey) => {
         makeChart(id, {
             type: 'bar',
             data: { labels: items.map(i => i.k), datasets: [{ label: 'Avg Score', data: items.map(i => +i.avg.toFixed(1)), backgroundColor: color }] },
-            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                scales: { x: { min: 0, max: 100 } },
+                plugins: { legend: { display: false } },
+                onClick: (ev, els) => {
+                    if (!els.length) return;
+                    const it = items[els[0].index];
+                    openDrillModal(`${segLabel}: ${it.k}`, `${it.count} record${it.count===1?'':'s'} · avg ${it.avg.toFixed(1)}%`, it.records);
+                }
+            }
         });
     };
-    renderBar('coachChart',    groupBy('coach'),        CHART_COLORS.blue);
-    renderBar('siteChart',     groupBy('site'),         CHART_COLORS.cyan);
-    renderBar('productChart',  groupBy('product_type'), CHART_COLORS.purple);
-    renderBar('callTypeChart', groupBy('call_type'),    CHART_COLORS.teal);
+    renderBar('coachChart',    groupBy('coach'),        CHART_COLORS.blue,  'Coach',        'coach');
+    renderBar('siteChart',     groupBy('site'),         CHART_COLORS.cyan,  'Site',         'site');
+    renderBar('productChart',  groupBy('product_type'), CHART_COLORS.purple,'Product Type', 'product_type');
+    renderBar('callTypeChart', groupBy('call_type'),    CHART_COLORS.teal,  'Call Type',    'call_type');
 
-    // Hold time by agent
+    // Hold time by agent — drillable
     const byAgent = {};
     data.forEach(r => {
         if (r.hold_time > 0) {
-            if (!byAgent[r.agent_name]) byAgent[r.agent_name] = [];
-            byAgent[r.agent_name].push(r.hold_time);
+            if (!byAgent[r.agent_name]) byAgent[r.agent_name] = { holds: [], records: [] };
+            byAgent[r.agent_name].holds.push(r.hold_time);
+            byAgent[r.agent_name].records.push(r);
         }
     });
-    const items = Object.entries(byAgent).map(([k,v]) => ({ k, avg: v.reduce((s,x)=>s+x,0)/v.length })).sort((a,b) => b.avg - a.avg);
+    const items = Object.entries(byAgent).map(([k,v]) => ({ k, avg: v.holds.reduce((s,x)=>s+x,0)/v.holds.length, records: v.records })).sort((a,b) => b.avg - a.avg);
     makeChart('holdTimeChart', {
         type: 'bar',
         data: { labels: items.map(i => i.k), datasets: [{ label: 'Avg Hold (s)', data: items.map(i => Math.round(i.avg)), backgroundColor: items.map(i => i.avg > holdThr ? CHART_COLORS.red : CHART_COLORS.green) }] },
         options: {
             responsive: true, maintainAspectRatio: false,
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const it = items[els[0].index];
+                openDrillModal(`${it.k} — hold time records`, `${it.records.length} record${it.records.length===1?'':'s'} · avg ${Math.round(it.avg)}s`, it.records);
+            },
             plugins: { legend: { display: false }, annotation: { annotations: { line: { type: 'line', yMin: holdThr, yMax: holdThr, borderColor: CHART_COLORS.yellow, borderWidth: 2, borderDash: [5,5], label: { content: `Threshold ${holdThr}s`, enabled: true } } } } }
         }
     });
@@ -3872,6 +4266,138 @@ function drillKPI(kind) {
         default:          subset = data; title = 'Filtered records';
     }
     openDrillModal(title, `${subset.length} of ${data.length} record${data.length===1?'':'s'}`, subset);
+}
+
+// ============================================================
+// MONTHLY → WEEKLY drill: click a month bar → modal with weekly bars,
+// click a week → tabular drill modal with those records.
+// ============================================================
+function openMonthlyDrillModal(monthLabel, monthData) {
+    if (!monthData || !monthData.length) {
+        openDrillModal(`Records for ${monthLabel}`, '0 records', []);
+        return;
+    }
+    const threshold = getPassThreshold();
+
+    // Group by ISO-ish week within the month (Mon–Sun)
+    const weeks = {};   // key -> { label, range, records }
+    monthData.forEach(r => {
+        const d = new Date(r.eval_date);
+        if (isNaN(d)) return;
+        // First-day-of-week (Sunday=0). Snap to Mon to make weeks human-friendly.
+        const dow = (d.getDay() + 6) % 7;  // 0 = Monday
+        const mon = new Date(d); mon.setDate(d.getDate() - dow); mon.setHours(0,0,0,0);
+        const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+        const key = mon.toISOString().substring(0, 10);
+        if (!weeks[key]) {
+            weeks[key] = {
+                label: `Wk of ${mon.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
+                range: `${mon.toLocaleDateString()} – ${sun.toLocaleDateString()}`,
+                records: []
+            };
+        }
+        weeks[key].records.push(r);
+    });
+    const weekKeys = Object.keys(weeks).sort();
+
+    // Render the drill modal with a chart canvas
+    document.getElementById('drillTitle').textContent = `📅 ${monthLabel} — Weekly Breakdown`;
+    document.getElementById('drillSubtitle').textContent = `${monthData.length} record${monthData.length===1?'':'s'} across ${weekKeys.length} week${weekKeys.length===1?'':'s'} · Click any week bar to drill further`;
+
+    // Compute KPIs per week
+    const weekStats = weekKeys.map(k => {
+        const rs = weeks[k].records;
+        const t = rs.length;
+        const avg = t ? rs.reduce((s,r)=>s+r.final_score,0)/t : 0;
+        const auto = rs.filter(r=>r.auto_failed==='Yes').length;
+        const passed = rs.filter(r=>r.auto_failed!=='Yes' && r.final_score>=threshold).length;
+        const offers = rs.filter(r=>r.upsell_offer_made==='Yes').length;
+        return { key: k, label: weeks[k].label, range: weeks[k].range, t, avg, auto, passed, offers, records: rs };
+    });
+
+    // Headline numbers for the month
+    const mTotal = monthData.length;
+    const mAvg = monthData.reduce((s,r)=>s+r.final_score, 0) / mTotal;
+    const mAuto = monthData.filter(r=>r.auto_failed==='Yes').length;
+    const mPass = monthData.filter(r=>r.auto_failed!=='Yes' && r.final_score>=threshold).length;
+
+    document.getElementById('drillBody').innerHTML = `
+        <div style="display:flex; gap:14px; padding:14px 16px; background:#f8fafc; border-radius:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+            <div><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Audits</div><strong style="font-size:18px;">${mTotal}</strong></div>
+            <div style="border-left:1px solid #e2e8f0; padding-left:14px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Avg Score</div><strong style="font-size:18px; color:${mAvg>=threshold?'#00843D':'#C8102E'};">${mAvg.toFixed(1)}%</strong></div>
+            <div style="border-left:1px solid #e2e8f0; padding-left:14px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Pass Rate</div><strong style="font-size:18px;">${((mPass/mTotal)*100).toFixed(1)}%</strong></div>
+            <div style="border-left:1px solid #e2e8f0; padding-left:14px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Auto-Fails</div><strong style="font-size:18px; color:#C8102E;">${mAuto}</strong></div>
+            <div style="margin-left:auto;">
+                <button class="btn btn-small" onclick="closeDrillModal(); openDrillModal('All records in ${monthLabel}', '${mTotal} record${mTotal===1?'':'s'}', window.__monthlyDrillAllRecords || [])">📋 See all ${mTotal} records</button>
+            </div>
+        </div>
+
+        <div class="dash-card" style="margin:0;">
+            <div class="dash-card-header"><div>Weekly Audit Volume & Score<div class="dash-card-subtitle">Click any week to see records · Bar = audit count, Line = avg score</div></div></div>
+            <div class="chart-wrapper" style="height:280px;"><canvas id="monthlyDrillChart"></canvas></div>
+        </div>
+
+        <div class="dash-card" style="margin-top:14px;">
+            <div class="dash-card-header"><div>Weekly Detail Table</div></div>
+            <table style="width:100%; font-size:13px;">
+                <thead><tr><th>Week</th><th style="text-align:right;">Audits</th><th style="text-align:right;">Avg Score</th><th style="text-align:right;">Pass Rate</th><th style="text-align:right;">Auto-Fails</th><th style="text-align:right;">Offers</th><th></th></tr></thead>
+                <tbody>${weekStats.map((w,i) => `
+                    <tr style="cursor:pointer;" onclick="window.__drillWeekIdx=${i}; const ws=window.__monthlyDrillWeekStats[${i}]; closeDrillModal(); openDrillModal('Records: '+ws.label+' ('+ws.range+')', ws.t+' record'+(ws.t===1?'':'s'), ws.records);">
+                        <td><strong>${w.label}</strong><div style="font-size:10px; color:var(--text-muted);">${w.range}</div></td>
+                        <td style="text-align:right; font-weight:700;">${w.t}</td>
+                        <td style="text-align:right; color:${w.avg>=threshold?'#00843D':'#C8102E'}; font-weight:700;">${w.avg.toFixed(1)}%</td>
+                        <td style="text-align:right;">${w.t ? ((w.passed/w.t)*100).toFixed(1) : 0}%</td>
+                        <td style="text-align:right; color:${w.auto>0?'#C8102E':'inherit'};">${w.auto}</td>
+                        <td style="text-align:right;">${w.offers}</td>
+                        <td style="text-align:right;"><span style="font-size:10px; color:var(--text-muted);">→</span></td>
+                    </tr>`).join('')}</tbody>
+            </table>
+        </div>
+    `;
+    // Stash for the click handlers
+    window.__monthlyDrillWeekStats = weekStats;
+    window.__monthlyDrillAllRecords = monthData;
+    document.getElementById('drillModal').classList.add('active');
+
+    // Build the weekly chart after the modal is visible
+    setTimeout(() => {
+        const ctx = document.getElementById('monthlyDrillChart');
+        if (!ctx) return;
+        const t = getScoreTarget();
+        new Chart(ctx, {
+            data: {
+                labels: weekStats.map(w => w.label),
+                datasets: [
+                    { type: 'bar',  label: 'Audits',     data: weekStats.map(w => w.t),   backgroundColor: CHART_COLORS.blue,  yAxisID: 'y', borderRadius: 4 },
+                    { type: 'line', label: 'Avg Score',  data: weekStats.map(w => +w.avg.toFixed(1)), borderColor: CHART_COLORS.green, backgroundColor: 'rgba(0,132,61,0.1)', yAxisID: 'y1', tension: 0.3, fill: false, borderWidth: 3, pointRadius: 5, pointBackgroundColor: CHART_COLORS.green },
+                    { type: 'bar',  label: 'Auto-Fails', data: weekStats.map(w => w.auto), backgroundColor: CHART_COLORS.red,  yAxisID: 'y', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                onClick: (ev, els) => {
+                    if (!els.length) return;
+                    const i = els[0].index;
+                    const ws = weekStats[i];
+                    closeDrillModal();
+                    openDrillModal(`Records: ${ws.label} (${ws.range})`, `${ws.t} record${ws.t===1?'':'s'}`, ws.records);
+                },
+                scales: {
+                    y:  { position: 'left',  beginAtZero: true, title: { display: true, text: 'Audits / Fails' } },
+                    y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Avg Score %' } }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+                    annotation: {
+                        annotations: {
+                            target: { type: 'line', yMin: t, yMax: t, yScaleID: 'y1', borderColor: CHART_COLORS.green, borderWidth: 1.5, borderDash: [4,4],
+                                label: { display: true, content: `Target ${t}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 9 }, padding: 3 } }
+                        }
+                    }
+                }
+            }
+        });
+    }, 50);
 }
 
 // ============================================================
