@@ -4,20 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LG Quality Evaluation & Performance Hub</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- External libraries: load Supabase FIRST so it's available when our scripts run -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
     :root {
         --lg-red: #a50034; --lg-red-dark: #800028;
-        --lg-dark: #1a1a1a; --bg-main: #f5f7fa; --bg-card: #ffffff;
+        --bg-main: #f5f7fa; --bg-card: #ffffff;
         --header-blue: #002b5e; --header-blue-light: #003d82;
         --accent-cyan: #00aeef; --accent-purple: #8b5cf6; --accent-teal: #14b8a6;
         --pass-green: #00843D; --pass-green-light: #00a84d;
         --fail-red: #C8102E; --warn-yellow: #FFB612; --warn-orange: #ff8a00;
         --text-dark: #1a2332; --text-muted: #6b7785;
         --border-light: #e4e8ed; --border-medium: #d0d6dd;
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 4px 12px rgba(0,0,0,0.08); --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
         --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
     }
@@ -30,7 +35,7 @@
     .sidebar-header small { display: block; font-size: 10px; font-weight: 400; opacity: 0.85; margin-top: 4px; letter-spacing: 0.5px; }
     .nav-section { padding: 15px 0; }
     .nav-section-label { font-size: 10px; padding: 0 20px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; font-weight: 600; }
-    .nav-link { padding: 13px 20px; cursor: pointer; transition: all 0.2s; font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 12px; border-left: 3px solid transparent; }
+    .nav-link { padding: 13px 20px; cursor: pointer; transition: all 0.2s; font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 12px; border-left: 3px solid transparent; user-select: none; }
     .nav-link:hover { background: rgba(255,255,255,0.06); }
     .nav-link.active { background: rgba(165,0,52,0.2); border-left-color: var(--lg-red); }
     .sidebar-footer { margin-top: auto; padding: 16px 20px; font-size: 11px; opacity: 0.5; border-top: 1px solid rgba(255,255,255,0.08); }
@@ -66,8 +71,8 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
     .form-group { display: flex; flex-direction: column; }
     .form-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-group input, .form-group select { padding: 10px 12px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-family: var(--font-family); font-size: 13.5px; background: white; transition: border 0.2s, box-shadow 0.2s; }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--header-blue); box-shadow: 0 0 0 3px rgba(0,43,94,0.1); }
+    .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-family: var(--font-family); font-size: 13.5px; background: white; transition: border 0.2s, box-shadow 0.2s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--header-blue); box-shadow: 0 0 0 3px rgba(0,43,94,0.1); }
     .form-group input[readonly] { background: #f8fafc; color: var(--text-muted); cursor: not-allowed; }
     .agent-info-badge { background: linear-gradient(135deg, #eef3fa, #f8fafc); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--header-blue); font-weight: 600; display: flex; align-items: center; gap: 6px; }
 
@@ -105,44 +110,9 @@
     .toggle-btn.active { background: var(--header-blue); color: white; box-shadow: 0 1px 4px rgba(0,43,94,0.25); }
     .settings-sep { width: 1px; height: 24px; background: var(--border-light); }
 
-    /* DRILL-DOWN BAR */
-    .drilldown-bar { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #eef3fa, #f0f7ff); border: 1px solid var(--accent-cyan); border-radius: var(--radius-sm); padding: 10px 16px; margin-bottom: 14px; }
-    .drilldown-bar .drill-label { font-size: 12px; font-weight: 700; color: var(--header-blue); }
-    .drilldown-bar .drill-crumb { background: var(--header-blue); color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-    .drilldown-bar .drill-clear { background: var(--lg-red); color: white; padding: 4px 12px; border-radius: var(--radius-sm); border: none; font-size: 11px; font-weight: 700; cursor: pointer; margin-left: auto; }
-
-    /* DETAIL PANEL */
-    .detail-panel { position: fixed; right: 0; top: 0; height: 100vh; width: 480px; background: white; box-shadow: -4px 0 24px rgba(0,0,0,0.15); z-index: 150; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; }
-    .detail-panel.open { transform: translateX(0); }
-    .detail-panel-header { padding: 18px 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: var(--header-blue); color: white; }
-    .detail-panel-title { font-size: 15px; font-weight: 700; }
-    .detail-panel-close { background: rgba(255,255,255,0.15); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-    .detail-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
-    .detail-panel-footer { padding: 16px 20px; border-top: 1px solid var(--border-light); display: flex; gap: 10px; }
-
-    /* CONTEXT MENU */
-    .ctx-menu { position: fixed; background: white; border: 1px solid var(--border-light); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 999; min-width: 200px; overflow: hidden; display: none; }
-    .ctx-menu.open { display: block; animation: fadeIn 0.15s; }
-    .ctx-item { padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
-    .ctx-item:hover { background: var(--bg-main); color: var(--header-blue); }
-    .ctx-item.danger:hover { background: rgba(200,16,46,0.05); color: var(--fail-red); }
-    .ctx-sep { height: 1px; background: var(--border-light); margin: 4px 0; }
-
-    /* DOWNLOAD CHOICE MODAL */
-    .dl-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 998; align-items: center; justify-content: center; }
-    .dl-modal.open { display: flex; animation: fadeIn 0.2s; }
-    .dl-modal-box { background: white; border-radius: var(--radius-md); padding: 28px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); }
-    .dl-modal-box h3 { color: var(--header-blue); font-size: 17px; margin-bottom: 6px; }
-    .dl-modal-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
-    .dl-option { border: 2px solid var(--border-medium); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
-    .dl-option:hover { border-color: var(--header-blue); background: #eef3fa; }
-    .dl-option strong { display: block; font-size: 13px; color: var(--text-dark); margin-bottom: 3px; }
-    .dl-option span { font-size: 11.5px; color: var(--text-muted); }
-    .dl-cancel { background: none; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); padding: 8px 18px; cursor: pointer; font-size: 13px; color: var(--text-muted); margin-top: 6px; width: 100%; }
-
     /* TABS */
     .dash-tabs { display: flex; gap: 4px; margin-bottom: 18px; background: white; padding: 6px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); overflow-x: auto; }
-    .dash-tab { padding: 10px 16px; background: transparent; font-weight: 600; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12.5px; white-space: nowrap; }
+    .dash-tab { padding: 10px 16px; background: transparent; font-weight: 600; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; font-size: 12.5px; white-space: nowrap; border: none; }
     .dash-tab:hover { color: var(--header-blue); background: var(--bg-main); }
     .dash-tab.active { background: var(--header-blue); color: white; box-shadow: 0 2px 8px rgba(0,43,94,0.25); }
     .dash-subview { display: none; }
@@ -151,29 +121,14 @@
     /* LAYOUT */
     .dash-container { display: flex; gap: 18px; flex-wrap: wrap; }
     .dash-col { flex: 1; display: flex; flex-direction: column; gap: 18px; min-width: 360px; }
-    .dash-card { background: white; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; position: relative; }
+    .dash-card { background: white; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: box-shadow 0.2s; position: relative; display: flex; flex-direction: column; }
     .dash-card:hover { box-shadow: var(--shadow-md); }
     .dash-card-header { font-size: 13px; font-weight: 700; color: var(--header-blue); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: flex-start; text-transform: uppercase; letter-spacing: 0.5px; gap: 10px; }
     .dash-card-subtitle { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-top: 2px; }
-    .card-ctx-btn { background: none; border: 1px solid var(--border-medium); border-radius: 4px; cursor: pointer; font-size: 14px; padding: 2px 8px; color: var(--text-muted); transition: all 0.2s; flex-shrink: 0; }
-    .card-ctx-btn:hover { background: var(--bg-main); color: var(--header-blue); }
 
     /* KPI */
     .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
-    .kpi-box { 
-        padding: 18px 20px; 
-        border-radius: var(--radius-md); 
-        background: white; 
-        border: 1px solid var(--border-light); 
-        box-shadow: var(--shadow-sm); 
-        position: relative; 
-        overflow: hidden; 
-        transition: transform 0.2s, box-shadow 0.2s; 
-        cursor: context-menu;
-        display: flex;
-        flex-direction: column;
-        min-height: 140px;
-    }
+    .kpi-box { padding: 18px 20px; border-radius: var(--radius-md); background: white; border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; min-height: 110px; }
     .kpi-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .kpi-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
     .kpi-box.green::before { background: var(--pass-green); }
@@ -186,39 +141,27 @@
     .kpi-box.orange::before { background: var(--warn-orange); }
     .kpi-box h3 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.8px; font-weight: 600; }
     .kpi-box .val { font-size: 30px; font-weight: 800; color: var(--text-dark); line-height: 1; margin-bottom: 6px; }
-    .kpi-box .val-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .delta { display: inline-flex; align-items: center; gap: 2px; font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 10px; }
-    .delta.up { color: var(--pass-green); background: rgba(0,132,61,0.1); }
-    .delta.down { color: var(--fail-red); background: rgba(200,16,46,0.1); }
-    .delta.neutral { color: var(--text-muted); background: var(--bg-main); }
-    .mini-spark { 
-        height: 28px !important; 
-        max-height: 28px !important; 
-        width: 100%; 
-        display: block;
-        margin-top: 6px;
-    }
+    .kpi-box .val-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
 
     /* PERF BARS */
     .perf-strip { display: flex; flex-direction: column; gap: 10px; }
-    .perf-item { display: grid; grid-template-columns: 180px 1fr 80px; gap: 12px; align-items: center; }
-    .perf-label { font-size: 12px; font-weight: 600; color: var(--text-dark); }
+    .perf-item { display: grid; grid-template-columns: 200px 1fr 80px; gap: 12px; align-items: center; }
+    .perf-label { font-size: 12px; font-weight: 600; color: var(--text-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .perf-bar-wrap { background: var(--bg-main); height: 22px; border-radius: 4px; overflow: hidden; }
-    .perf-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease-out; display: flex; align-items: center; padding-left: 8px; color: white; font-size: 11px; font-weight: 700; }
+    .perf-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease-out; display: flex; align-items: center; padding-left: 8px; color: white; font-size: 11px; font-weight: 700; min-width: 4px; }
     .perf-value { font-size: 13px; font-weight: 700; color: var(--header-blue); text-align: right; }
 
     /* LEADERBOARD */
     .leaderboard { display: flex; flex-direction: column; gap: 8px; }
-    .leader-row { display: grid; grid-template-columns: 32px 1fr 80px 60px; gap: 12px; align-items: center; padding: 10px 12px; background: var(--bg-main); border-radius: var(--radius-sm); transition: all 0.2s; }
-    .leader-row:hover { background: #eef3fa; transform: translateX(2px); }
+    .leader-row { display: grid; grid-template-columns: 32px 1fr 80px; gap: 12px; align-items: center; padding: 10px 12px; background: var(--bg-main); border-radius: var(--radius-sm); transition: all 0.2s; }
+    .leader-row:hover { background: #eef3fa; }
     .leader-rank { width: 28px; height: 28px; border-radius: 50%; background: var(--header-blue); color: white; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; }
     .leader-row:nth-child(1) .leader-rank { background: #ffd700; color: #4a3500; }
     .leader-row:nth-child(2) .leader-rank { background: #c0c0c0; color: #404040; }
     .leader-row:nth-child(3) .leader-rank { background: #cd7f32; color: white; }
-    .leader-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+    .leader-name { font-size: 13px; font-weight: 600; color: var(--text-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .leader-meta { font-size: 11px; color: var(--text-muted); }
     .leader-score { font-size: 14px; font-weight: 700; color: var(--pass-green); text-align: right; }
-    .leader-count { font-size: 11px; color: var(--text-muted); text-align: right; }
 
     /* FUNNEL */
     .funnel-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
@@ -231,12 +174,6 @@
     .f-3 { width: 64%; background: linear-gradient(135deg, #0056b3, #007ad9); border-radius: 4px; }
     .f-4 { width: 46%; background: linear-gradient(135deg, var(--pass-green), var(--pass-green-light)); border-radius: 4px 4px 8px 8px; }
 
-    /* HEATMAP */
-    .heatmap-grid { display: grid; gap: 4px; font-size: 11px; }
-    .heatmap-cell { padding: 8px 6px; border-radius: 4px; text-align: center; color: white; font-weight: 600; cursor: pointer; transition: transform 0.15s; }
-    .heatmap-cell:hover { transform: scale(1.08); z-index: 2; }
-    .heatmap-label { padding: 8px 6px; font-weight: 600; color: var(--text-dark); font-size: 11.5px; }
-
     /* INSIGHT CARDS */
     .insight-card { background: linear-gradient(135deg, #fff, #f8fafc); border-left: 4px solid var(--accent-cyan); padding: 14px 16px; border-radius: var(--radius-sm); margin-bottom: 10px; box-shadow: var(--shadow-sm); }
     .insight-card.warn { border-left-color: var(--warn-yellow); }
@@ -246,13 +183,14 @@
     .insight-card .ins-body { font-size: 13px; color: var(--text-dark); line-height: 1.5; }
 
     /* BUTTONS */
-    .btn { background: linear-gradient(135deg, var(--lg-red), var(--lg-red-dark)); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 13px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(165,0,52,0.25); }
+    .btn { background: linear-gradient(135deg, var(--lg-red), var(--lg-red-dark)); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 13px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(165,0,52,0.25); font-family: inherit; }
     .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(165,0,52,0.35); }
     .btn-secondary { background: linear-gradient(135deg, var(--header-blue), var(--header-blue-light)); box-shadow: 0 2px 8px rgba(0,43,94,0.25); }
     .btn-secondary:hover { box-shadow: 0 4px 12px rgba(0,43,94,0.35); }
     .btn-small { padding: 7px 14px; font-size: 12px; }
     .btn-ghost { background: white; color: var(--header-blue); border: 1px solid var(--border-medium); box-shadow: none; }
     .btn-ghost:hover { background: var(--bg-main); box-shadow: var(--shadow-sm); }
+    .btn-danger { background: linear-gradient(135deg, var(--fail-red), #800028); }
 
     /* DATABASE */
     .db-table-wrapper { overflow: auto; max-height: 70vh; border-radius: var(--radius-sm); border: 1px solid var(--border-light); }
@@ -291,37 +229,25 @@
     .detail-item .dvalue { font-size: 13px; font-weight: 600; color: var(--text-dark); }
 
     /* CHART WRAPPERS */
-    .chart-wrapper { 
-        position: relative; 
-        height: 240px; 
-        width: 100%;
-        min-height: 200px;
-        overflow: hidden;
-        flex-shrink: 0;
-    }
+    .chart-wrapper { position: relative; height: 240px; width: 100%; min-height: 200px; overflow: hidden; flex-shrink: 0; }
     .chart-wrapper.short { height: 180px; }
     .chart-wrapper.tall { height: 300px; }
     .chart-wrapper.x-tall { height: 380px; }
-    .chart-wrapper canvas { 
-        max-height: 100% !important; 
-        width: 100% !important;
-        display: block !important;
-    }
+    .chart-wrapper canvas { max-height: 100% !important; width: 100% !important; display: block !important; }
     .donut-wrapper { position: relative; height: 220px; display: flex; align-items: center; justify-content: center; }
 
-    .dash-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-    }
-    .dash-card > .chart-wrapper {
-        flex: 1 1 auto;
-        min-height: 200px;
-    }
-
     /* TOAST */
-    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--pass-green); color: white; padding: 14px 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 400; font-weight: 600; font-size: 13px; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--pass-green); color: white; padding: 14px 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 400; font-weight: 600; font-size: 13px; transform: translateY(100px); opacity: 0; transition: all 0.3s; pointer-events: none; }
     .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* LOGIN OVERLAY */
+    .login-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #001f47 0%, #002b5e 50%, #800028 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-box { background: white; padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); max-width: 380px; width: 90%; }
+    .login-box h1 { color: var(--header-blue); font-size: 22px; margin-bottom: 8px; text-align: center; }
+    .login-box p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; text-align: center; }
+    .login-box input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; }
+    .login-box button { width: 100%; }
+    .login-error { color: var(--fail-red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
 
     .hidden { display: none !important; }
 
@@ -333,21 +259,32 @@
 </head>
 <body>
 
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+        <h1>🔒 LG QA Hub</h1>
+        <p>Enter your access password to continue</p>
+        <input type="password" id="loginPwd" placeholder="Password" onkeyup="if(event.key==='Enter') checkLogin()">
+        <button class="btn" onclick="checkLogin()">Sign In</button>
+        <div class="login-error" id="loginError"></div>
+    </div>
+</div>
+
 <div class="sidebar">
     <div class="sidebar-header">LG QA HUB<small>Quality Assurance Platform</small></div>
     <div class="nav-section">
         <div class="nav-section-label">Main</div>
-        <div class="nav-link active" onclick="switchView('form-view', this)"><span>📝</span>Quality Evaluation</div>
-        <div class="nav-link" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
-        <div class="nav-link" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
-        <div class="nav-link" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
+        <div class="nav-link active" data-view="form-view" onclick="switchView('form-view', this)"><span>📝</span>Quality Evaluation</div>
+        <div class="nav-link" data-view="dashboard-view" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
+        <div class="nav-link" data-view="database-view" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
+        <div class="nav-link" data-view="roster-view" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
     </div>
-    <div class="sidebar-footer">LG QA Hub v4.0<br>© 2026 LG Electronics</div>
+    <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
 </div>
 
 <div class="main-content">
 
-<!-- EVALUATION FORM -->
+<!-- ========== EVALUATION FORM ========== -->
 <div id="form-view" class="view-section active">
     <div class="sticky-score-wrapper">
         <div class="score-display" id="scoreDisplay">
@@ -409,7 +346,7 @@
                 <input type="text" id="f_Eval" placeholder="QA Name">
             </div>
         </div>
-        <div id="agentInfoStrip" class="hidden" style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+        <div id="agentInfoStrip" class="hidden" style="margin-top: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
             <div class="agent-info-badge">🆔 AWS: <span id="ai_aws">—</span></div>
             <div class="agent-info-badge">📅 Hired: <span id="ai_hire">—</span></div>
             <div class="agent-info-badge">👤 Coach: <span id="ai_coach">—</span></div>
@@ -420,76 +357,15 @@
 
     <div class="card">
         <div class="section-title"><span class="section-num">2</span>Evaluation Criteria · Yes = Pass · No = Fail</div>
-        <table id="criteriaTable">
+        <table>
             <thead><tr>
                 <th style="width:48%;">Quality Parameter</th>
                 <th style="width:14%;">Score</th>
                 <th style="width:30%;">Feedback / Observation</th>
                 <th style="width:8%; text-align:center;">Weight</th>
             </tr></thead>
-            <tbody id="qBody"></tbody>
+            <tbody id="qBody"><!-- populated by JS --></tbody>
         </table>
-    <script>
-    // This builds the 22 questions table
-    const qaQuestions = [
-        { id:1, section:"Greeting / Opening", title:"Greeting Statement", w:4.0 },
-        { id:2, section:"", title:"Probing Questions", w:4.0 },
-        { id:3, section:"", title:"Clarity & Efficiency", w:4.0 },
-        { id:4, section:"Rapport", title:"Acknowledgment Statements", w:5.0 },
-        { id:5, section:"", title:"Empathy", w:5.0 },
-        { id:6, section:"Ownership", title:"Positive Engagement", w:5.0 },
-        { id:7, section:"Issue Resolution", title:"Issue Resolution", w:15.0 },
-        { id:8, section:"", title:"Expectations", w:5.0 },
-        { id:9, section:"", title:"Proper Tools Usage", w:5.0 },
-        { id:10, section:"Clear Communication", title:"Clear & Direct Communication", w:7.0 },
-        { id:11, section:"", title:"Grammar Structure", w:4.0 },
-        { id:12, section:"", title:"Jargon", w:3.0 },
-        { id:13, section:"", title:"Tone / Pacing", w:4.0 },
-        { id:14, section:"Closing", title:"Offer Further Assistance", w:2.0 },
-        { id:15, section:"", title:"Reference Number", w:2.0 },
-        { id:16, section:"", title:"Survey Flow", w:2.0 },
-        { id:17, section:"", title:"Closing Statement", w:2.0 },
-        { id:18, section:"Documentation", title:"Case Notes", w:3.5 },
-        { id:19, section:"", title:"Case Tagging", w:3.5 },
-        { id:20, section:"Time Management", title:"Hold Time Protocol", w:5.0 },
-        { id:21, section:"", title:"Unnecessary Information", w:5.0 },
-        { id:22, section:"", title:"Mute / Dead Air", w:5.0 }
-    ];
-
-    const tbody = document.getElementById('qBody');
-    let currentSection = "";
-
-    qaQuestions.forEach(q => {
-        if (q.section && q.section !== currentSection) {
-            currentSection = q.section;
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `<td colspan="4" class="row-header">▶ ${q.section}</td>`;
-            tbody.appendChild(headerRow);
-        }
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <div class="q-title">
-                    <span class="q-number">${q.id}</span>${q.title}
-                </div>
-            </td>
-            <td>
-                <select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()">
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                </select>
-            </td>
-            <td>
-                <input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note...">
-            </td>
-            <td style="text-align:center;">
-                <span class="weight-badge">${q.w.toFixed(1)}%</span>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-</script>
     </div>
 
     <div class="card" style="border-left: 4px solid var(--header-blue);">
@@ -547,16 +423,17 @@
     </div>
 
     <div style="text-align:right; padding: 10px 0 30px;">
-        <button class="btn" onclick="saveEvaluation()">💾 Save Evaluation to Database</button>
+        <button class="btn btn-ghost" onclick="resetForm()" style="margin-right: 10px;">↻ Clear Form</button>
+        <button class="btn" id="saveBtn" onclick="saveEvaluation()">💾 Save Evaluation</button>
     </div>
 </div>
 
-<!-- DASHBOARD -->
+<!-- ========== DASHBOARD ========== -->
 <div id="dashboard-view" class="view-section">
     <div class="dash-header-bar">
         <div>
             <h2>📊 Analytics Hub</h2>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Real-time insights · <span id="filterCountLabel">0 records</span></div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;"><span id="filterCountLabel">0 records</span></div>
         </div>
         <div class="slicer-group">
             <div class="slicer-item"><label>Period</label>
@@ -566,9 +443,6 @@
                     <option value="ThisMonth">This Month</option><option value="LastMonth">Last Month</option>
                     <option value="L3M">Last 3 Months</option>
                 </select>
-            </div>
-            <div class="slicer-item"><label>Month</label>
-                <select id="slicerMonth" onchange="updateDashboard()"><option value="All">All Months</option></select>
             </div>
             <div class="slicer-item"><label>Agent</label>
                 <select id="slicerAgent" onchange="updateDashboard()"><option value="All">All Agents</option></select>
@@ -587,8 +461,8 @@
             </div>
             <div class="slicer-item"><label>Status</label>
                 <select id="slicerStatus" onchange="updateDashboard()">
-                    <option value="All">All</option><option value="Pass">Passed (≥88%)</option>
-                    <option value="Fail">Failed (&lt;88%)</option><option value="AutoFail">Auto-Failed</option>
+                    <option value="All">All</option><option value="Pass">Passed</option>
+                    <option value="Fail">Failed</option><option value="AutoFail">Auto-Failed</option>
                 </select>
             </div>
             <div class="slicer-item"><label>&nbsp;</label>
@@ -598,55 +472,41 @@
     </div>
 
     <div class="display-settings-bar">
-        <label>⚙️ Chart Display:</label>
-        <div class="toggle-group">
-            <button class="toggle-btn active" id="dispPct" onclick="setDisplayMode('pct')">% Only</button>
-            <button class="toggle-btn" id="dispCount" onclick="setDisplayMode('count')">Count Only</button>
-            <button class="toggle-btn" id="dispBoth" onclick="setDisplayMode('both')">Both</button>
-        </div>
+        <label>Pass Threshold:</label>
+        <input type="number" id="passThreshold" value="88" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <span style="font-size:12px; color:var(--text-muted);">%</span>
         <div class="settings-sep"></div>
         <label>Hold Time Threshold:</label>
         <input type="number" id="holdThreshold" value="120" min="0" style="width:80px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
         <span style="font-size:12px; color:var(--text-muted);">seconds</span>
-        <div class="settings-sep"></div>
-        <label>Pass Threshold:</label>
-        <input type="number" id="passThreshold" value="88" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
-        <span style="font-size:12px; color:var(--text-muted);">%</span>
-    </div>
-
-    <div class="drilldown-bar hidden" id="drilldownBar">
-        <span class="drill-label">🔍 Drill-down active:</span>
-        <span class="drill-crumb" id="drillCrumb">—</span>
-        <button class="drill-clear" onclick="clearDrilldown()">✕ Clear</button>
     </div>
 
     <div class="dash-tabs">
-        <div class="dash-tab active" onclick="switchDashTab('dash-overview', this)">🎯 Overview</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-trends', this)">📈 Trends</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-qa', this)">🔍 QA Deep Dive</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-upsell', this)">💼 Upsell</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-agents', this)">🏆 Agents & Leaderboard</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-segment', this)">🗂️ Segments</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-heatmap', this)">🗓️ Heatmaps</div>
-        <div class="dash-tab" onclick="switchDashTab('dash-insights', this)">💡 Insights</div>
+        <button class="dash-tab active" data-tab="dash-overview" onclick="switchDashTab('dash-overview', this)">🎯 Overview</button>
+        <button class="dash-tab" data-tab="dash-trends" onclick="switchDashTab('dash-trends', this)">📈 Trends</button>
+        <button class="dash-tab" data-tab="dash-qa" onclick="switchDashTab('dash-qa', this)">🔍 QA Deep Dive</button>
+        <button class="dash-tab" data-tab="dash-upsell" onclick="switchDashTab('dash-upsell', this)">💼 Upsell</button>
+        <button class="dash-tab" data-tab="dash-agents" onclick="switchDashTab('dash-agents', this)">🏆 Agents</button>
+        <button class="dash-tab" data-tab="dash-segment" onclick="switchDashTab('dash-segment', this)">🗂️ Segments</button>
+        <button class="dash-tab" data-tab="dash-insights" onclick="switchDashTab('dash-insights', this)">💡 Insights</button>
     </div>
 
     <!-- OVERVIEW -->
     <div id="dash-overview" class="dash-subview active">
         <div class="kpi-row">
-            <div class="kpi-box green" oncontextmenu="showCtxMenu(event,'avg_score_data')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub"><span class="delta neutral" id="kpiAvgDelta">—</span> vs prior</div><canvas class="mini-spark" id="sparkScore"></canvas></div>
-            <div class="kpi-box indigo" oncontextmenu="showCtxMenu(event,'all_data')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub"><span class="delta neutral" id="kpiTotalDelta">—</span> vs prior</div><canvas class="mini-spark" id="sparkTotal"></canvas></div>
-            <div class="kpi-box red" oncontextmenu="showCtxMenu(event,'autofail_data')"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub"><span id="kpiAutoCount">0 cases</span></div><canvas class="mini-spark" id="sparkAF"></canvas></div>
-            <div class="kpi-box yellow" oncontextmenu="showCtxMenu(event,'offer_data')"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub"><span id="kpiOfferCount">0 offers</span></div></div>
-            <div class="kpi-box purple" oncontextmenu="showCtxMenu(event,'conversion_data')"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub"><span id="kpiConvCount">0 successes</span></div></div>
-            <div class="kpi-box blue" oncontextmenu="showCtxMenu(event,'pass_data')"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub"><span id="kpiPassCount">0/0</span></div></div>
-            <div class="kpi-box teal" oncontextmenu="showCtxMenu(event,'all_data')"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub"><span id="kpiStdDev">σ 0</span></div></div>
-            <div class="kpi-box orange" oncontextmenu="showCtxMenu(event,'hold_data')"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub"><span id="kpiHoldOver">0 over threshold</span></div></div>
+            <div class="kpi-box green"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
+            <div class="kpi-box indigo"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
+            <div class="kpi-box red"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub" id="kpiAutoCount">0 cases</div></div>
+            <div class="kpi-box yellow"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub" id="kpiOfferCount">0 offers</div></div>
+            <div class="kpi-box purple"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub" id="kpiConvCount">0 wins</div></div>
+            <div class="kpi-box blue"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub" id="kpiPassCount">0/0</div></div>
+            <div class="kpi-box teal"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub" id="kpiStdDev">σ 0</div></div>
+            <div class="kpi-box orange"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub" id="kpiHoldOver">0 over threshold</div></div>
         </div>
         <div class="dash-container">
             <div class="dash-col" style="flex:1.5;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score Trend<div class="dash-card-subtitle">Monthly avg score & auto-fail rate</div></div><button class="card-ctx-btn" oncontextmenu="showCtxMenu(event,'all_data')" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score Trend<div class="dash-card-subtitle">Monthly avg score & auto-fail rate</div></div></div>
                     <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
@@ -660,7 +520,7 @@
         <div class="dash-container" style="margin-top:18px;">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score Distribution<div class="dash-card-subtitle">Calls across score ranges</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score Distribution<div class="dash-card-subtitle">Calls across score ranges</div></div></div>
                     <div class="chart-wrapper"><canvas id="distChart"></canvas></div>
                 </div>
             </div>
@@ -676,33 +536,24 @@
     <!-- TRENDS -->
     <div id="dash-trends" class="dash-subview">
         <div class="kpi-row">
-            <div class="kpi-box green"><h3>This Week vs Last</h3><div class="val" id="wowScore">0%</div><div class="val-sub"><span class="delta neutral" id="wowDelta">—</span></div></div>
-            <div class="kpi-box indigo"><h3>This Month vs Last</h3><div class="val" id="momScore">0%</div><div class="val-sub"><span class="delta neutral" id="momDelta">—</span></div></div>
-            <div class="kpi-box blue"><h3>Audits This Week</h3><div class="val" id="wowCount">0</div><div class="val-sub"><span class="delta neutral" id="wowCountDelta">—</span> vs last week</div></div>
+            <div class="kpi-box green"><h3>This Week</h3><div class="val" id="wowScore">0%</div><div class="val-sub" id="wowDelta">—</div></div>
+            <div class="kpi-box indigo"><h3>This Month</h3><div class="val" id="momScore">0%</div><div class="val-sub" id="momDelta">—</div></div>
+            <div class="kpi-box blue"><h3>Audits This Week</h3><div class="val" id="wowCount">0</div><div class="val-sub" id="wowCountDelta">—</div></div>
             <div class="kpi-box yellow"><h3>Best Week (12W)</h3><div class="val" id="bestWeek">—</div><div class="val-sub" id="bestWeekDate">—</div></div>
         </div>
         <div class="dash-container">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Week-Over-Week<div class="dash-card-subtitle">Last 12 weeks</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Week-Over-Week<div class="dash-card-subtitle">Last 12 weeks</div></div></div>
                     <div class="chart-wrapper tall"><canvas id="wowChart"></canvas></div>
                 </div>
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Month-Over-Month<div class="dash-card-subtitle">Score, AF rate, conversion</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Month-Over-Month<div class="dash-card-subtitle">Score, AF rate, conversion</div></div></div>
                     <div class="chart-wrapper tall"><canvas id="momChart"></canvas></div>
                 </div>
             </div>
-        </div>
-        <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header">
-                <div>Question-Level Trend<div class="dash-card-subtitle">Track individual question pass rate over time</div></div>
-                <select id="slicerQuestion" onchange="updateDashboard()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border-medium); border-radius:6px; font-weight:600; color:var(--header-blue);">
-                    <option value="AvgScore">Overall Average Score</option>
-                </select>
-            </div>
-            <div class="chart-wrapper"><canvas id="momQuestionChart"></canvas></div>
         </div>
         <div class="dash-container" style="margin-top:18px;">
             <div class="dash-col">
@@ -725,13 +576,13 @@
         <div class="dash-container">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Section Performance<div class="dash-card-subtitle">Pass rate by section</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Section Performance<div class="dash-card-subtitle">Pass rate by section</div></div></div>
                     <div class="chart-wrapper"><canvas id="sectionBarChart"></canvas></div>
                 </div>
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Top Defects (Pareto)<div class="dash-card-subtitle">Most failed questions</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Top Defects (Pareto)<div class="dash-card-subtitle">Most failed questions</div></div></div>
                     <div class="chart-wrapper"><canvas id="paretoChart"></canvas></div>
                 </div>
             </div>
@@ -745,7 +596,7 @@
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Auto-Fail Breakdown<div class="dash-card-subtitle">By category</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'autofail_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Auto-Fail Breakdown<div class="dash-card-subtitle">By category</div></div></div>
                     <div class="chart-wrapper"><canvas id="afChart"></canvas></div>
                 </div>
                 <div class="dash-card">
@@ -761,7 +612,7 @@
         <div class="dash-container">
             <div class="dash-col" style="flex:1;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Conversion Funnel<div class="dash-card-subtitle">Call → conversion flow</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Conversion Funnel<div class="dash-card-subtitle">Call → conversion flow</div></div></div>
                     <div class="funnel-wrapper">
                         <div class="funnel-layer f-1"><span>Total Calls</span><strong id="fnl1">0</strong><div class="pct">100%</div></div>
                         <div class="funnel-layer f-2"><span>Opportunities</span><strong id="fnl2">0</strong><div class="pct" id="fnl2pct">0%</div></div>
@@ -772,11 +623,11 @@
             </div>
             <div class="dash-col" style="flex:1.2;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Offer Quality (The HOW)<div class="dash-card-subtitle">How agents present offers</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Offer Quality<div class="dash-card-subtitle">How agents present offers</div></div></div>
                     <div class="donut-wrapper"><canvas id="pieHow"></canvas></div>
                 </div>
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">After-offer quality</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">After-offer quality</div></div></div>
                     <div class="donut-wrapper"><canvas id="pieExec"></canvas></div>
                 </div>
             </div>
@@ -784,86 +635,63 @@
         <div class="dash-container" style="margin-top:18px;">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Offer Types Distribution<div class="dash-card-subtitle">What's being offered most</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Offer Types Distribution<div class="dash-card-subtitle">What's being offered most</div></div></div>
                     <div class="chart-wrapper"><canvas id="offerTypeChart"></canvas></div>
                 </div>
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Reasons for Missed Offers<div class="dash-card-subtitle">Why opportunities weren't taken</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Reasons for Missed Offers<div class="dash-card-subtitle">Why opportunities weren't taken</div></div></div>
                     <div class="chart-wrapper"><canvas id="missedChart"></canvas></div>
                 </div>
             </div>
-        </div>
-        <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Upsell Trend Over Time<div class="dash-card-subtitle">Offer rate and conversion by month</div></div></div>
-            <div class="chart-wrapper"><canvas id="upsellTrendChart"></canvas></div>
         </div>
     </div>
 
     <!-- AGENTS -->
     <div id="dash-agents" class="dash-subview">
         <div class="dash-card">
-            <div class="dash-card-header"><div>Agent Leaderboard<div class="dash-card-subtitle">Sorted by avg QA score · Click bar to drill down</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+            <div class="dash-card-header"><div>Agent Leaderboard<div class="dash-card-subtitle">Sorted by avg QA score</div></div></div>
             <div class="chart-wrapper tall"><canvas id="agentChart"></canvas></div>
         </div>
         <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Detailed Agent Metrics<div class="dash-card-subtitle">Per-agent breakdown</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
-            <table id="agentTable">
-                <thead><tr><th>Rank</th><th>Agent</th><th>Coach</th><th>Site</th><th>LOB</th><th>Audits</th><th>Avg Score</th><th>Auto-Fails</th><th>Offer Rate</th><th>Conv. Rate</th><th>Avg Hold(s)</th><th>Trend</th><th>Consistency</th><th>Sentiment</th><th>Improvement</th></tr></thead>
-                <tbody id="agentTbody"></tbody>
-            </table>
-        </div>
-        <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Top vs Bottom · Radar<div class="dash-card-subtitle">Section comparison</div></div></div>
-            <div class="chart-wrapper x-tall"><canvas id="agentRadarChart"></canvas></div>
+            <div class="dash-card-header"><div>Detailed Agent Metrics<div class="dash-card-subtitle">Per-agent breakdown</div></div></div>
+            <div style="overflow-x:auto;">
+                <table id="agentTable">
+                    <thead><tr><th>Rank</th><th>Agent</th><th>Coach</th><th>Site</th><th>Audits</th><th>Avg Score</th><th>Auto-Fails</th><th>Offer Rate</th><th>Conv. Rate</th><th>Avg Hold(s)</th><th>Sentiment</th></tr></thead>
+                    <tbody id="agentTbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <!-- SEGMENTS -->
     <div id="dash-segment" class="dash-subview">
-        <div class="kpi-row" id="segmentKPIs"></div>
         <div class="dash-container">
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score by Coach<div class="dash-card-subtitle">Avg QA score per coach · click to drill</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score by Coach<div class="dash-card-subtitle">Avg QA score per coach</div></div></div>
                     <div class="chart-wrapper"><canvas id="coachChart"></canvas></div>
                 </div>
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score by Site<div class="dash-card-subtitle">Avg QA score per site</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score by Site<div class="dash-card-subtitle">Avg QA score per site</div></div></div>
                     <div class="chart-wrapper"><canvas id="siteChart"></canvas></div>
                 </div>
             </div>
             <div class="dash-col">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score by Product Type<div class="dash-card-subtitle">HA vs HE vs Other</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score by Product Type<div class="dash-card-subtitle">HA vs HE vs Other</div></div></div>
                     <div class="chart-wrapper"><canvas id="productChart"></canvas></div>
                 </div>
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score by Call Type<div class="dash-card-subtitle">Troubleshooting vs Registration vs Repair</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="dash-card-header"><div>Score by Call Type<div class="dash-card-subtitle">By call category</div></div></div>
                     <div class="chart-wrapper"><canvas id="callTypeChart"></canvas></div>
                 </div>
             </div>
         </div>
         <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Hold Time Analysis<div class="dash-card-subtitle">Avg hold time by agent · threshold line shown</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'hold_data')">⋯</button></div>
+            <div class="dash-card-header"><div>Hold Time Analysis<div class="dash-card-subtitle">Avg hold time by agent</div></div></div>
             <div class="chart-wrapper"><canvas id="holdTimeChart"></canvas></div>
-        </div>
-    </div>
-
-    <!-- HEATMAPS -->
-    <div id="dash-heatmap" class="dash-subview">
-        <div class="dash-card">
-            <div class="dash-card-header"><div>Agent × Section Heatmap<div class="dash-card-subtitle">Pass rate · green = high · red = low</div></div></div>
-            <div id="heatmapContainer" style="overflow-x:auto;"></div>
-        </div>
-        <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Monthly Score Heatmap<div class="dash-card-subtitle">Agent performance across months</div></div></div>
-            <div id="monthHeatmapContainer" style="overflow-x:auto;"></div>
-        </div>
-        <div class="dash-card" style="margin-top:18px;">
-            <div class="dash-card-header"><div>Coach × Section Heatmap<div class="dash-card-subtitle">Pass rate by coach team</div></div></div>
-            <div id="coachHeatmapContainer" style="overflow-x:auto;"></div>
         </div>
     </div>
 
@@ -890,7 +718,7 @@
     </div>
 </div>
 
-<!-- DATABASE VIEW -->
+<!-- ========== DATABASE VIEW ========== -->
 <div id="database-view" class="view-section">
     <div class="page-header">
         <div>
@@ -903,9 +731,7 @@
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
-            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">
-                ⬇ Download CSV
-            </button>        
+            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
         </div>
     </div>
     <div class="col-toggle-panel" id="colTogglePanel">
@@ -923,95 +749,85 @@
         <div class="db-table-wrapper"><table id="dbTable"></table></div>
     </div>
 </div>
-<!-- ROSTER VIEW -->
+
+<!-- ========== ROSTER VIEW ========== -->
 <div id="roster-view" class="view-section">
     <div class="page-header">
         <div>
             <div class="page-title">👥 Agent Roster</div>
-            <div class="page-subtitle">Manage active agents</div>
+            <div class="page-subtitle"><span id="rosterCount">0 agents</span></div>
         </div>
     </div>
 
     <div class="card">
-        <div class="section-title"><span class="section-num">+</span> Add New Agent</div>
+        <div class="section-title"><span class="section-num">+</span>Add New Agent</div>
+        <div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="form-group">
+                <label>Agent Name *</label>
+                <input type="text" id="r_Name" placeholder="Last, First">
+            </div>
+            <div class="form-group">
+                <label>Avaya ID *</label>
+                <input type="text" id="r_Avaya" placeholder="e.g. 1926225">
+            </div>
+            <div class="form-group">
+                <label>AWS ID</label>
+                <input type="text" id="r_AWS" placeholder="AWS-001">
+            </div>
+            <div class="form-group">
+                <label>eConnect ID</label>
+                <input type="text" id="r_eConnect" placeholder="EC-88291">
+            </div>
+            <div class="form-group">
+                <label>GSFS ID</label>
+                <input type="text" id="r_GSFS" placeholder="GSFS-4412">
+            </div>
+            <div class="form-group">
+                <label>Date of Hire</label>
+                <input type="date" id="r_Hire">
+            </div>
+            <div class="form-group">
+                <label>Coach</label>
+                <select id="r_Coach">
+                    <option value="Coach A">Coach A</option>
+                    <option value="Coach B">Coach B</option>
+                    <option value="Coach C">Coach C</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>LOB</label>
+                <input type="text" id="r_LOB" placeholder="Tier 1">
+            </div>
+            <div class="form-group">
+                <label>Site</label>
+                <input type="text" id="r_Site" placeholder="Site A">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="r_Status">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="On Leave">On Leave</option>
+                </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1; text-align: right; align-self: end;">
+                <button class="btn" onclick="addAgent()">+ Add Agent</button>
+            </div>
+        </div>
+    </div>
 
-<!-- Add New Agent Form -->
-<div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-    
-    <div class="form-group">
-        <label>Agent Name</label>
-        <input type="text" id="r_Name" placeholder="Last, First">
-    </div>
-    
-    <div class="form-group">
-        <label>Avaya ID</label>
-        <input type="text" id="r_Avaya" placeholder="Avaya ID">
-    </div>
-    
-    <div class="form-group">
-        <label>AWS ID</label>
-        <input type="text" id="r_AWS" placeholder="AWS-001">
-    </div>
-    
-    <div class="form-group">
-        <label>eConnect ID</label>
-        <input type="text" id="r_eConnect" placeholder="EC-88291">
-    </div>
-    
-    <div class="form-group">
-        <label>GSFS ID</label>
-        <input type="text" id="r_GSFS" placeholder="GSFS-4412">
-    </div>
-    
-    <div class="form-group">
-        <label>Date of Hire</label>
-        <input type="date" id="r_Hire">
-    </div>
-    
-    <div class="form-group">
-        <label>Coach</label>
-        <select id="r_Coach">
-            <option value="Coach A">Coach A</option>
-            <option value="Coach B">Coach B</option>
-            <option value="Coach C">Coach C</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label>LOB</label>
-        <input type="text" id="r_LOB" placeholder="Tier 1">
-    </div>
-    
-    <div class="form-group">
-        <label>Site</label>
-        <input type="text" id="r_Site" placeholder="Site A">
-    </div>
-    
-    <div class="form-group">
-        <label>Status</label>
-        <select id="r_Status">
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="On Leave">On Leave</option>
-        </select>
-    </div>
-    
-    <div class="form-group" style="grid-column: 1 / -1; text-align: right;">
-        <button class="btn" onclick="addAgent()">+ Add Agent</button>
+    <div class="card">
+        <div class="section-title"><span class="section-num">📋</span>Active Roster</div>
+        <div style="overflow-x:auto;">
+            <table id="rosterTable">
+                <thead><tr><th>Name</th><th>Avaya ID</th><th>AWS ID</th><th>Hire Date</th><th>Coach</th><th>LOB</th><th>Site</th><th>Status</th><th>Audits</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
-<!-- DETAIL PANEL -->
-<div class="detail-panel" id="detailPanel">
-    <div class="detail-panel-header">
-        <div class="detail-panel-title" id="detailPanelTitle">Detail View</div>
-        <button class="detail-panel-close" onclick="closeDetailPanel()">×</button>
-    </div>
-    <div class="detail-panel-body" id="detailPanelBody"></div>
-    <div class="detail-panel-footer">
-        <button class="btn btn-small btn-secondary" onclick="downloadDetailRecords()">⬇ Download These Records</button>
-        <button class="btn btn-small btn-ghost" onclick="closeDetailPanel()">Close</button>
-    </div>
-</div>
+
+</div><!-- /main-content -->
 
 <!-- RECORD DETAIL MODAL -->
 <div class="modal-overlay" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
@@ -1023,324 +839,385 @@
         <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
-<!-- CONTEXT MENU -->
-<div class="ctx-menu" id="ctxMenu">
-    <div class="ctx-item" onclick="ctxDrillDown()">🔍 Drill down into this</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-item" onclick="ctxDownloadChoice('visual')">⬇ Download this visual's records</div>
-    <div class="ctx-item" onclick="ctxDownloadChoice('filtered')">⬇ Download all filtered records</div>
-    <div class="ctx-item" onclick="ctxDownloadChoice('choose')">⬇ Let me choose...</div>
-</div>
-
-<!-- DOWNLOAD CHOICE MODAL -->
-<div class="dl-modal" id="dlModal">
-    <div class="dl-modal-box">
-        <h3>📥 Download Records</h3>
-        <p>Choose which records to export as CSV:</p>
-        <div class="dl-option" onclick="execDownload('visual')">
-            <strong>This visual's records</strong>
-            <span id="dlVisualCount">Records matching this specific data point</span>
-        </div>
-        <div class="dl-option" onclick="execDownload('filtered')">
-            <strong>All currently filtered records</strong>
-            <span id="dlFilteredCount">All records matching dashboard filters</span>
-        </div>
-        <div class="dl-option" onclick="execDownload('all')">
-            <strong>All records (full database)</strong>
-            <span id="dlAllCount">Complete unfiltered database</span>
-        </div>
-        <button class="dl-cancel" onclick="closeDlModal()">Cancel</button>
-    </div>
-</div>
 
 <div class="toast" id="toast">✓ Done</div>
 
 <script>
-// Simple password protection
-const correctPassword = "lgqa2026";   // Change this password if you want
-const entered = prompt("Enter password to access LG QA Hub:");
-if (entered !== correctPassword) {
-  document.body.innerHTML = "<h1>Access Denied</h1>";
-  throw new Error("Wrong password");
-}
-// ==================== SUPABASE CONFIG ====================
-const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";          // ← CHANGE THIS
-const SUPABASE_ANON_KEY = "sb_publishable_r02NeNyDQ4xLiC_cHyTC2w_GmEPBDnn"; // ← CHANGE THIS with your anon key
+// ==================================================================
+// LG QA HUB — Application Logic
+// ==================================================================
+'use strict';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ==================== UPDATED initApp() ====================
-async function initApp() {
-    try {
-        // Load evaluations from Supabase
-        const { data: evalData, error: evalError } = await supabase
-            .from('evaluations')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (evalError) throw evalError;
-
-        evaluationsDB = (evalData || []).map(row => ({
-            ...row,
-            ...(row.qa_details || {})
-        }));
-
-        // Load agents from Supabase
-        const { data: agentData, error: agentError } = await supabase
-            .from('agents')
-            .select('*')
-            .order('"Agent Name"');
-
-        if (agentError) throw agentError;
-        roster = agentData || [];
-
-    } catch (e) {
-        console.error("Supabase load error:", e);
-        evaluationsDB = [];
-        roster = [];
-    }
-
-    // Populate everything
-    populateAgentSelect();           // ← NEW
-    populateRosterTable();           // ← NEW
-    populateDashboardSlicers();
-    initColumnToggles();
-    calcScore();
-    document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
-    toggleUpsellFields();
-
-    // Auto-refresh
-    setInterval(async () => {
-        try {
-            const { data } = await supabase
-                .from('evaluations')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            evaluationsDB = (data || []).map(row => ({
-                ...row,
-                ...(row.qa_details || {})
-            }));
-
-            if (document.getElementById('dashboard-view').classList.contains('active')) {
-                updateDashboard();
-            }
-        } catch (e) {}
-    }, 10000);
-}
 // ============================================================
-// QUESTIONS DATA
+// CONFIG
+// ============================================================
+// NOTE: client-side password gate is convenience only — not real security.
+// For real access control use Supabase Auth + Row Level Security.
+const APP_PASSWORD = "lgqa2026";
+
+const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_r02NeNyDQ4xLiC_cHyTC2w_GmEPBDnn";
+
+// Will be created in initApp if the Supabase library loaded
+let supabaseClient = null;
+let supabaseEnabled = false;
+
+// ============================================================
+// LOGIN
+// ============================================================
+function checkLogin() {
+    const pwd = document.getElementById('loginPwd').value;
+    const errEl = document.getElementById('loginError');
+    if (pwd === APP_PASSWORD) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        initApp();
+    } else {
+        errEl.textContent = "Incorrect password. Try again.";
+        document.getElementById('loginPwd').value = '';
+    }
+}
+
+// ============================================================
+// QUESTIONS — single source of truth
 // ============================================================
 const qaQuestions = [
-    { id:1, section:"Greeting / Opening", title:"Greeting Statement", w:4.0 },
-    { id:2, section:"", title:"Probing Questions", w:4.0 },
-    { id:3, section:"", title:"Clarity & Efficiency", w:4.0 },
-    { id:4, section:"Rapport", title:"Acknowledgment Statements", w:5.0 },
-    { id:5, section:"", title:"Empathy", w:5.0 },
-    { id:6, section:"Ownership", title:"Positive Engagement", w:5.0 },
-    { id:7, section:"Issue Resolution", title:"Issue Resolution", w:15.0 },
-    { id:8, section:"", title:"Expectations", w:5.0 },
-    { id:9, section:"", title:"Proper Tools Usage", w:5.0 },
+    { id:1,  section:"Greeting / Opening",  title:"Greeting Statement",       w:4.0 },
+    { id:2,  section:"Greeting / Opening",  title:"Probing Questions",        w:4.0 },
+    { id:3,  section:"Greeting / Opening",  title:"Clarity & Efficiency",     w:4.0 },
+    { id:4,  section:"Rapport",             title:"Acknowledgment Statements",w:5.0 },
+    { id:5,  section:"Rapport",             title:"Empathy",                  w:5.0 },
+    { id:6,  section:"Ownership",           title:"Positive Engagement",      w:5.0 },
+    { id:7,  section:"Issue Resolution",    title:"Issue Resolution",         w:15.0 },
+    { id:8,  section:"Issue Resolution",    title:"Expectations",             w:5.0 },
+    { id:9,  section:"Issue Resolution",    title:"Proper Tools Usage",       w:5.0 },
     { id:10, section:"Clear Communication", title:"Clear & Direct Communication", w:7.0 },
-    { id:11, section:"", title:"Grammar Structure", w:4.0 },
-    { id:12, section:"", title:"Jargon", w:3.0 },
-    { id:13, section:"", title:"Tone / Pacing", w:4.0 },
-    { id:14, section:"Closing", title:"Offer Further Assistance", w:2.0 },
-    { id:15, section:"", title:"Reference Number", w:2.0 },
-    { id:16, section:"", title:"Survey Flow", w:2.0 },
-    { id:17, section:"", title:"Closing Statement", w:2.0 },
-    { id:18, section:"Documentation", title:"Case Notes", w:3.5 },
-    { id:19, section:"", title:"Case Tagging", w:3.5 },
-    { id:20, section:"Time Management", title:"Hold Time Protocol", w:5.0 },
-    { id:21, section:"", title:"Unnecessary Information", w:5.0 },
-    { id:22, section:"", title:"Mute / Dead Air", w:5.0 }
+    { id:11, section:"Clear Communication", title:"Grammar Structure",        w:4.0 },
+    { id:12, section:"Clear Communication", title:"Jargon",                   w:3.0 },
+    { id:13, section:"Clear Communication", title:"Tone / Pacing",            w:4.0 },
+    { id:14, section:"Closing",             title:"Offer Further Assistance", w:2.0 },
+    { id:15, section:"Closing",             title:"Reference Number",         w:2.0 },
+    { id:16, section:"Closing",             title:"Survey Flow",              w:2.0 },
+    { id:17, section:"Closing",             title:"Closing Statement",        w:2.0 },
+    { id:18, section:"Documentation",       title:"Case Notes",               w:3.5 },
+    { id:19, section:"Documentation",       title:"Case Tagging",             w:3.5 },
+    { id:20, section:"Time Management",     title:"Hold Time Protocol",       w:5.0 },
+    { id:21, section:"Time Management",     title:"Unnecessary Information",  w:5.0 },
+    { id:22, section:"Time Management",     title:"Mute / Dead Air",          w:5.0 }
 ];
 
-const tbody = document.getElementById('qBody');
-qaQuestions.forEach(q => {
-    if(q.section) { const r = document.createElement('tr'); r.innerHTML = `<td colspan="4" class="row-header">▶ ${q.section}</td>`; tbody.appendChild(r); }
-    const tr = document.createElement('tr');
-    tr.className = 'eval-row'; tr.setAttribute('data-weight', q.w); tr.setAttribute('data-section', q.section || "Misc");
-    tr.innerHTML = `<td><div class="q-title"><span class="q-number">${q.id}</span>${q.title}</div></td>
-        <td><select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()"><option value="Yes">Yes</option><option value="No">No</option></select></td>
-        <td><input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note..."></td>
-        <td style="text-align:center;"><span class="weight-badge">${q.w.toFixed(1)}%</span></td>`;
-    tbody.appendChild(tr);
-});
+const SECTIONS = [...new Set(qaQuestions.map(q => q.section))];
 
-const questionSections = {}, questionTitles = {};
-let curSec = "Greeting / Opening";
-qaQuestions.forEach(q => { if(q.section) curSec = q.section; questionSections[q.id] = curSec; questionTitles[q.id] = q.title; });
-
-const qSlicer = document.getElementById('slicerQuestion');
-qaQuestions.forEach(q => { qSlicer.innerHTML += `<option value="Q${q.id}">Q${q.id} · ${q.title}</option>`; });
-
-// ============================================================
-// ROSTER DATA
-// ============================================================
-let roster = [
-    { id:"1926225", awsId:"AWS-001", name:"Dacut, Andrea",   hire:"2023-03-15", coach:"Coach A", lob:"Tier 1", site:"Site A" },
-    { id:"1926226", awsId:"AWS-002", name:"Smith, John",     hire:"2022-07-01", coach:"Coach A", lob:"Tier 1", site:"Site A" },
-    { id:"1926227", awsId:"AWS-003", name:"Miller, Sarah",   hire:"2023-09-20", coach:"Coach B", lob:"Tier 1", site:"Site B" },
-    { id:"1926228", awsId:"AWS-004", name:"Johnson, Michael",hire:"2021-11-05", coach:"Coach B", lob:"Tier 1", site:"Site B" },
-    { id:"1926229", awsId:"AWS-005", name:"Williams, Emma",  hire:"2024-01-10", coach:"Coach C", lob:"Tier 1", site:"Site C" },
-    { id:"1926230", awsId:"AWS-006", name:"Brown, David",    hire:"2022-04-22", coach:"Coach C", lob:"Tier 1", site:"Site C" },
-    { id:"1926231", awsId:"AWS-007", name:"Garcia, Sofia",   hire:"2023-06-30", coach:"Coach A", lob:"Tier 1", site:"Site A" }
-];
-
-function getRosterAgent(name) { return roster.find(r => r.name === name) || {}; }
-// ==================== NAVIGATION ====================
-function switchView(viewId, el) {
-    // Hide all views
-    document.querySelectorAll('.view-section').forEach(section => {
-        section.classList.remove('active');
-    });
-
-    // Remove active class from all nav links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-
-    // Show selected view
-    const target = document.getElementById(viewId);
-    if (target) {
-        target.classList.add('active');
-    }
-
-    // Highlight clicked nav
-    if (el) {
-        el.classList.add('active');
-    }
-
-    // Auto refresh when opening certain pages
-    if (viewId === 'dashboard-view' && typeof updateDashboard === 'function') {
-        updateDashboard();
-    }
-
-    if (viewId === 'roster-view' && typeof populateRosterTable === 'function') {
-        populateRosterTable();
-    }
-
-    if (viewId === 'database-view' && typeof renderDBTable === 'function') {
-        renderDBTable();
-    }
-}
-// ==================== POPULATE AGENT SELECT (Form) ====================
-function populateAgentSelect() {
-    const select = document.getElementById('agentSelect');
-    if (!select) return;
-
-    select.innerHTML = '<option value="">Select Agent...</option>';
-
-    roster.forEach(agent => {
-        const option = document.createElement('option');
-        option.value = agent.id || agent["Avaya ID"];
-        option.textContent = agent.name || agent["Agent Name"];
-        select.appendChild(option);
-    });
-}
-
-// ==================== POPULATE ROSTER TABLE ====================
-function populateRosterTable() {
-    const tbody = document.querySelector('#rosterTable tbody');
-    if (!tbody) return;
-
+function buildQuestionsTable() {
+    const tbody = document.getElementById('qBody');
     tbody.innerHTML = '';
-
-    roster.forEach(agent => {
+    let lastSection = "";
+    qaQuestions.forEach(q => {
+        if (q.section !== lastSection) {
+            lastSection = q.section;
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = `<td colspan="4" class="row-header">▶ ${q.section}</td>`;
+            tbody.appendChild(headerRow);
+        }
         const row = document.createElement('tr');
+        row.className = 'eval-row';
+        row.setAttribute('data-weight', q.w);
+        row.setAttribute('data-section', q.section);
         row.innerHTML = `
-            <td>${agent.name || agent["Agent Name"] || '-'}</td>
-            <td>${agent.id || agent["Avaya ID"] || '-'}</td>
-            <td>${agent.awsId || agent["AWS ID"] || '-'}</td>
-            <td>${agent.hire || agent["Date of Hire"] || '-'}</td>
-            <td>${agent.coach || agent["Coach"] || '-'}</td>
-            <td>${agent.lob || agent["LOB"] || '-'}</td>
-            <td>${agent.site || agent["Site"] || '-'}</td>
-            <td>${agent.status || agent["Status"] || 'Active'}</td>
-            <td>0</td>
-        `;
+            <td><div class="q-title"><span class="q-number">${q.id}</span>${q.title}</div></td>
+            <td><select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()">
+                <option value="Yes">Yes</option><option value="No">No</option>
+            </select></td>
+            <td><input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note..."></td>
+            <td style="text-align:center;"><span class="weight-badge">${q.w.toFixed(1)}%</span></td>`;
         tbody.appendChild(row);
     });
 }
 
 // ============================================================
-// NAV
+// ROSTER — internal canonical shape uses lowercase keys
 // ============================================================
-function switchView(viewId, el) {
-    // Hide all views
-    document.querySelectorAll('.view-section').forEach(section => {
-        section.classList.remove('active');
-    });
+let roster = [
+    { id:"1926225", name:"Dacut, Andrea",    awsId:"AWS-001", econnect:"EC-88291", gsfs:"GSFS-4412", hire:"2023-03-15", coach:"Coach A", lob:"Tier 1", site:"Site A", status:"Active" },
+    { id:"1926226", name:"Smith, John",      awsId:"AWS-002", econnect:"",         gsfs:"",          hire:"2022-07-01", coach:"Coach A", lob:"Tier 1", site:"Site A", status:"Active" },
+    { id:"1926227", name:"Miller, Sarah",    awsId:"AWS-003", econnect:"",         gsfs:"",          hire:"2023-09-20", coach:"Coach B", lob:"Tier 1", site:"Site B", status:"Active" },
+    { id:"1926228", name:"Johnson, Michael", awsId:"AWS-004", econnect:"",         gsfs:"",          hire:"2021-11-05", coach:"Coach B", lob:"Tier 1", site:"Site B", status:"Active" },
+    { id:"1926229", name:"Williams, Emma",   awsId:"AWS-005", econnect:"",         gsfs:"",          hire:"2024-01-10", coach:"Coach C", lob:"Tier 1", site:"Site C", status:"Active" },
+    { id:"1926230", name:"Brown, David",     awsId:"AWS-006", econnect:"",         gsfs:"",          hire:"2022-04-22", coach:"Coach C", lob:"Tier 1", site:"Site C", status:"Active" },
+    { id:"1926231", name:"Garcia, Sofia",    awsId:"AWS-007", econnect:"",         gsfs:"",          hire:"2023-06-30", coach:"Coach A", lob:"Tier 1", site:"Site A", status:"Active" }
+];
 
-    // Remove active class from all nav links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
+// Normalize roster row from Supabase (handles both snake_case and legacy "Title Case" keys)
+function normalizeAgent(r) {
+    if (!r) return null;
+    return {
+        id:       r.id       || r.avaya_id || r["Avaya ID"]  || "",
+        name:     r.name     || r["Agent Name"] || "",
+        awsId:    r.awsId    || r.aws_id   || r["AWS ID"]    || "",
+        econnect: r.econnect || r.econnect_id || r["eConnect ID"] || "",
+        gsfs:     r.gsfs     || r.gsfs_id  || r["GSFS ID"]   || "",
+        hire:     r.hire     || r.hire_date|| r["Date of Hire"] || "",
+        coach:    r.coach    || r["Coach"] || "",
+        lob:      r.lob      || r["LOB"]   || "",
+        site:     r.site     || r["Site"]  || "",
+        status:   r.status   || r["Status"]|| "Active"
+    };
+}
 
-    // Show the selected view
-    const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.add('active');
-    }
+function getRosterAgentByName(name) {
+    return roster.find(r => r.name === name) || null;
+}
+function getRosterAgentById(id) {
+    return roster.find(r => r.id === id) || null;
+}
 
-    // Highlight the clicked nav link
-    if (el) {
-        el.classList.add('active');
-    }
+// ============================================================
+// EVALUATIONS DATA — canonical shape uses snake_case
+// ============================================================
+let evaluationsDB = [];
 
-    // Refresh dashboard when opening it
-    if (viewId === 'dashboard-view') {
-        updateDashboard();
-    }
+// Normalize evaluation row (handles old "Title Case" payloads too)
+function normalizeEval(r) {
+    if (!r) return null;
+    const qa = r.qa_details || {};
+    return {
+        id:              r.id,
+        eval_date:       r.eval_date       || r["Eval Date"]      || "",
+        month:           r.month           || r["Month"]          || (r.eval_date ? r.eval_date.substring(0,7) : ""),
+        cnn:             r.cnn             || r["CNN"]            || "",
+        qa_name:         r.qa_name         || r["QA Name"]        || "—",
+        agent_name:      r.agent_name      || r["Agent Name"]     || "—",
+        coach:           r.coach           || r["Coach"]          || "—",
+        lob:             r.lob             || r["LOB"]            || "—",
+        site:            r.site            || r["Site"]           || "—",
+        product_type:    r.product_type    || r["Product Type"]   || "—",
+        call_type:       r.call_type       || r["Call Type"]      || "—",
+        hold_time:       Number(r.hold_time      ?? r["Hold Time (s)"] ?? 0),
+        final_score:     Number(r.final_score    ?? r["Final Score"]   ?? 0),
+        auto_failed:     (r.auto_failed   ?? r["Auto-Failed"]   ?? "No"),
+        sentiment_compound: Number(r.sentiment_compound ?? r["Sentiment_Compound"] ?? 0),
+        sentiment_label: r.sentiment_label  || r["Sentiment_Label"] || "Neutral",
+        sentiment_pos:   Number(r.sentiment_pos ?? r["Sentiment_Pos"] ?? 0),
+        sentiment_neg:   Number(r.sentiment_neg ?? r["Sentiment_Neg"] ?? 0),
+        upsell_offer_made:   r.upsell_offer_made   || r["Upsell_OfferMade"]   || "No",
+        upsell_type:         r.upsell_type         || r["Upsell_Type"]        || "",
+        upsell_quality:      r.upsell_quality      || r["Upsell_Quality"]     || "",
+        upsell_opp_existed:  r.upsell_opp_existed  || r["Upsell_OppExisted"]  || "No",
+        upsell_no_reason:    r.upsell_no_reason    || r["Upsell_NoReason"]    || "",
+        upsell_interested:   r.upsell_interested   || r["Upsell_Interested"]  || "",
+        upsell_followup:     r.upsell_followup     || r["Upsell_Followup"]    || "",
+        upsell_notes:        r.upsell_notes        || "",
+        created_at:          r.created_at || new Date().toISOString(),
+        qa_details: qa
+    };
+}
 
-    // Refresh database and roster when opening those views
-    if (viewId === 'database-view') {
-        initColumnToggles();
-        renderDBTable();
-    }
+// ============================================================
+// SCORE CALCULATION
+// ============================================================
+let currentNumericalScore = 100;
+let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
 
-    if (viewId === 'roster-view') {
-        populateRosterTable();
+function colorSelect(sel, goodValue) {
+    sel.className = "select-yes-no " + (sel.value === goodValue ? "yes" : "no");
+}
+
+function toggleUpsellFields() {
+    const offerMade = document.getElementById('up_OfferMade').value;
+    const interested = document.getElementById('up_CustInterested').value;
+    const rType = document.getElementById('row_OfferType');
+    const rQual = document.getElementById('row_OfferQuality');
+    const rCust = document.getElementById('row_CustomerInterested');
+    const rFoll = document.getElementById('row_FollowThrough');
+    const rOpp  = document.getElementById('row_OppExisted');
+    const rReas = document.getElementById('row_NoReason');
+    if (offerMade === "Yes") {
+        [rType, rQual, rCust].forEach(r => r.classList.remove('hidden'));
+        [rOpp, rReas].forEach(r => r.classList.add('hidden'));
+        if (interested === "Yes") {
+            rFoll.classList.remove('hidden');
+        } else {
+            rFoll.classList.add('hidden');
+            document.getElementById('up_FollowThrough').value = "Properly Followed Up";
+        }
+    } else {
+        [rType, rQual, rCust, rFoll].forEach(r => r.classList.add('hidden'));
+        [rOpp, rReas].forEach(r => r.classList.remove('hidden'));
     }
 }
+
+function calcScore() {
+    let score = 100, failedItems = 0, autoFails = 0;
+    for (let i = 1; i <= 22; i++) {
+        const sel = document.getElementById(`q_${i}_ans`);
+        if (!sel) continue;
+        colorSelect(sel, "Yes");
+        if (sel.value === "No") {
+            const row = sel.closest('tr');
+            score -= parseFloat(row.getAttribute('data-weight'));
+            failedItems++;
+        }
+    }
+    const oMade = document.getElementById('up_OfferMade'); colorSelect(oMade, "Yes");
+    const oQual = document.getElementById('up_OfferQuality');
+    const cInt  = document.getElementById('up_CustInterested'); colorSelect(cInt, "Yes");
+    const fThr  = document.getElementById('up_FollowThrough');
+    const oOpp  = document.getElementById('up_OppExisted'); colorSelect(oOpp, "No");
+
+    let upStr = "Pending";
+    if (oMade.value === "Yes") {
+        oQual.className = "select-yes-no " + (oQual.value === "Adding Value" ? "yes" : "no");
+        fThr.className  = "select-yes-no " + (fThr.value === "Properly Followed Up" ? "yes" : "no");
+        if (oQual.value === "Pushy / Sales-y") score -= 5;
+        if (oQual.value === "Indifferent")     score -= 3;
+        if (cInt.value === "Yes") {
+            if (fThr.value === "Left Hanging")        score -= 5;
+            if (fThr.value === "Partially Addressed") score -= 2.5;
+        }
+        upStr = `Done — ${oQual.value}`;
+    } else {
+        if (oOpp.value === "Yes") { score -= 10; upStr = "No Offer — Missed Opp (-10%)"; }
+        else upStr = "No Offer — N/A";
+    }
+    for (let i = 1; i <= 5; i++) {
+        const s = document.getElementById(`af_${i}`);
+        colorSelect(s, "No");
+        if (s.value === "Yes") autoFails++;
+    }
+    if (autoFails > 0) score = 0;
+    if (score < 0) score = 0;
+
+    currentNumericalScore = score;
+    const threshold = getPassThreshold();
+    const sDiv = document.getElementById('scoreDisplay');
+    sDiv.className = "score-display " + (score >= threshold ? "pass" : "fail");
+    document.getElementById('finalScore').innerText = score.toFixed(1);
+    document.getElementById('scoreDetails').innerHTML =
+        `<strong>Failed Items:</strong> ${failedItems}/22<br>` +
+        `<strong>Auto-Fails:</strong> ${autoFails}<br>` +
+        `<strong>Personalization:</strong> ${upStr}`;
+}
+
+function getPassThreshold() {
+    const el = document.getElementById('passThreshold');
+    return el ? (parseFloat(el.value) || 88) : 88;
+}
+function getHoldThreshold() {
+    const el = document.getElementById('holdThreshold');
+    return el ? (parseFloat(el.value) || 120) : 120;
+}
+
+// ============================================================
+// SENTIMENT
+// ============================================================
+function analyzeCustomerSentiment(text) {
+    if (!text || text.trim().length < 3) {
+        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+    }
+    const positive = ['good','great','excellent','happy','satisfied','thank','appreciate','resolved','helpful','perfect','love','amazing','quick','easy','professional','friendly','patient'];
+    const negative = ['bad','terrible','frustrated','angry','upset','horrible','worst','refund','escalate','disappointed','slow','rude','unhelpful','issue','problem','waste','confused','annoyed'];
+    const intensifiers = ['very','really','extremely','so','too','highly','incredibly'];
+    const words = text.toLowerCase().split(/\s+/);
+    let posScore = 0, negScore = 0;
+    for (let i = 0; i < words.length; i++) {
+        const w = words[i].replace(/[^a-z]/g, '');
+        let mult = 1;
+        if (i > 0 && intensifiers.includes(words[i-1])) mult = 1.7;
+        if (positive.includes(w)) posScore += mult;
+        if (negative.includes(w)) negScore += mult;
+    }
+    const total = words.length || 1;
+    const compound = Math.max(-1, Math.min(1, (posScore - negScore) / total * 2.8));
+    let label = "Neutral";
+    if (compound > 0.28) label = "Positive";
+    else if (compound < -0.28) label = "Negative";
+    return {
+        compound: parseFloat(compound.toFixed(3)),
+        label,
+        pos: parseFloat(((posScore / total) * 100).toFixed(1)) || 0,
+        neg: parseFloat(((negScore / total) * 100).toFixed(1)) || 0,
+        neu: parseFloat(Math.max(0, (100 - ((posScore + negScore) / total * 100))).toFixed(1)) || 100
+    };
+}
+
+function updateSentimentDisplay() {
+    const text = document.getElementById('sentimentText').value;
+    currentSentiment = analyzeCustomerSentiment(text);
+    const container = document.getElementById('sentimentResult');
+    const res = currentSentiment;
+    const color = res.label === "Positive" ? "#00843D" : (res.label === "Negative" ? "#C8102E" : "#FFB612");
+    const emoji = res.label === "Positive" ? "😊" : (res.label === "Negative" ? "😠" : "😐");
+    container.innerHTML = `
+        <span style="background:${color}; color:white; padding:3px 9px; border-radius:9999px; font-size:11px; font-weight:700;">${emoji} ${res.label}</span>
+        <span style="font-size:16px; font-weight:800; color:${color};">${res.compound}</span>
+        <span style="font-size:10.5px; color:#6b7785;">pos ${res.pos}% / neg ${res.neg}%</span>
+    `;
+}
+
+function analyzeAndApplySentiment() {
+    const text = document.getElementById('sentimentText').value.trim();
+    if (!text) { showToast("Please enter feedback text first", "#FFB612"); return; }
+    updateSentimentDisplay();
+    if (currentSentiment.compound > 0.5 && currentNumericalScore < 95) {
+        currentNumericalScore = Math.min(100, currentNumericalScore + 4);
+        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+        showToast("Positive sentiment boosted score +4%");
+    } else if (currentSentiment.compound < -0.5 && currentNumericalScore > 20) {
+        currentNumericalScore = Math.max(0, currentNumericalScore - 4);
+        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+        showToast("Negative sentiment adjusted score -4%", "#FFB612");
+    } else {
+        showToast("Sentiment recorded", "#0056b3");
+    }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchView(viewId, el) {
+    document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    const target = document.getElementById(viewId);
+    if (target) target.classList.add('active');
+    if (el) el.classList.add('active');
+
+    if (viewId === 'dashboard-view') updateDashboard();
+    if (viewId === 'database-view')  { initColumnToggles(); renderDBTable(); }
+    if (viewId === 'roster-view')    populateRosterTable();
+}
+
 function switchDashTab(tabId, el) {
     document.querySelectorAll('.dash-subview').forEach(d => d.classList.remove('active'));
     document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    el.classList.add('active');
+    if (el) el.classList.add('active');
     updateDashboard();
 }
 
 // ============================================================
-// DISPLAY MODE
+// AGENT SELECT POPULATION
 // ============================================================
-let displayMode = 'pct';
-function setDisplayMode(m) {
-    displayMode = m;
-    ['dispPct','dispCount','dispBoth'].forEach(id => document.getElementById(id).classList.remove('active'));
-    document.getElementById('disp' + m.charAt(0).toUpperCase() + m.slice(1)).classList.add('active');
-    updateDashboard();
+function populateAgentSelect() {
+    const select = document.getElementById('agentSelect');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">Select Agent...</option>';
+    roster
+        .filter(a => (a.status || "Active") === "Active")
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent.id;
+            option.textContent = agent.name;
+            select.appendChild(option);
+        });
+    if (current) select.value = current;
 }
-function getPassThreshold() { return parseFloat(document.getElementById('passThreshold').value) || 88; }
-function getHoldThreshold() { return parseFloat(document.getElementById('holdThreshold').value) || 120; }
 
-function fmtVal(count, total, pct) {
-    const p = pct !== undefined ? pct : (total ? (count/total*100) : 0);
-    if(displayMode === 'pct') return p.toFixed(1) + '%';
-    if(displayMode === 'count') return count;
-    return `${p.toFixed(1)}% (${count}/${total || 0})`;
-}
-
-// ============================================================
-// FORM — AGENT AUTO-POPULATE
-// ============================================================
 function onAgentSelected() {
     const sel = document.getElementById('agentSelect');
-    const agentId = sel.value;
-    const agent = roster.find(r => r.id === agentId);
+    const agent = getRosterAgentById(sel.value);
     const strip = document.getElementById('agentInfoStrip');
-    if(agent) {
+    if (agent) {
         document.getElementById('ai_aws').textContent   = agent.awsId || '—';
         document.getElementById('ai_hire').textContent  = agent.hire  || '—';
         document.getElementById('ai_coach').textContent = agent.coach || '—';
@@ -1354,356 +1231,1248 @@ function onAgentSelected() {
 }
 
 // ============================================================
-// SCORE CALCULATION
+// ROSTER TABLE
 // ============================================================
-let currentNumericalScore = 100;
-let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0 };
+function populateRosterTable() {
+    const tbody = document.querySelector('#rosterTable tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    // Count audits per agent
+    const auditsByAgent = {};
+    evaluationsDB.forEach(e => {
+        auditsByAgent[e.agent_name] = (auditsByAgent[e.agent_name] || 0) + 1;
+    });
 
-function colorSelect(sel, goodValue) { sel.className = "select-yes-no " + (sel.value === goodValue ? "yes" : "no"); }
-function toggleUpsellFields() {
-    const offerMade = document.getElementById('up_OfferMade').value;
-    const interested = document.getElementById('up_CustInterested').value;
-    const ids = ['row_OfferType','row_OfferQuality','row_CustomerInterested','row_FollowThrough','row_OppExisted','row_NoReason'];
-    const [rType,rQual,rCust,rFoll,rOpp,rReas] = ids.map(id => document.getElementById(id));
-    if(offerMade === "Yes") {
-        [rType,rQual,rCust].forEach(r => r.classList.remove('hidden'));
-        [rOpp,rReas].forEach(r => r.classList.add('hidden'));
-        if(interested === "Yes") rFoll.classList.remove('hidden');
-        else { rFoll.classList.add('hidden'); document.getElementById('up_FollowThrough').value = "Properly Followed Up"; }
-    } else {
-        [rType,rQual,rCust,rFoll].forEach(r => r.classList.add('hidden'));
-        [rOpp,rReas].forEach(r => r.classList.remove('hidden'));
-    }
-}
-function calcScore() {
-    let score = 100, failedItems = 0, autoFails = 0;
-    for(let i=1; i<=22; i++) {
-        const sel = document.getElementById(`q_${i}_ans`); colorSelect(sel,"Yes");
-        if(sel.value==="No") { score -= parseFloat(sel.closest('tr').getAttribute('data-weight')); failedItems++; }
-    }
-    const oMade = document.getElementById('up_OfferMade'); colorSelect(oMade,"Yes");
-    const oQual = document.getElementById('up_OfferQuality');
-    const cInt  = document.getElementById('up_CustInterested'); colorSelect(cInt,"Yes");
-    const fThr  = document.getElementById('up_FollowThrough');
-    const oOpp  = document.getElementById('up_OppExisted'); colorSelect(oOpp,"No");
-    let upStr = "Pending";
-    if(oMade.value==="Yes") {
-        oQual.className = "select-yes-no " + (oQual.value==="Adding Value" ? "yes" : "no");
-        fThr.className  = "select-yes-no " + (fThr.value==="Properly Followed Up" ? "yes" : "no");
-        if(oQual.value==="Pushy / Sales-y") score -= 5; if(oQual.value==="Indifferent") score -= 3;
-        if(cInt.value==="Yes") { if(fThr.value==="Left Hanging") score -= 5; if(fThr.value==="Partially Addressed") score -= 2.5; }
-        upStr = `Done — ${oQual.value}`;
-    } else {
-        if(oOpp.value==="Yes") { score -= 10; upStr = "No Offer — Missed Opp (-10%)"; } else upStr = "No Offer — N/A";
-    }
-    for(let i=1; i<=5; i++) { const s = document.getElementById(`af_${i}`); colorSelect(s,"No"); if(s.value==="Yes") autoFails++; }
-    if(autoFails > 0) score = 0; if(score < 0) score = 0;
-    currentNumericalScore = score;
-    const threshold = getPassThreshold();
-    const sDiv = document.getElementById('scoreDisplay');
-    sDiv.className = "score-display " + (score >= threshold ? "pass" : "fail");
-    document.getElementById('finalScore').innerText = score.toFixed(1);
-    document.getElementById('scoreDetails').innerHTML = `<strong>Failed Items:</strong> ${failedItems}/22<br><strong>Auto-Fails:</strong> ${autoFails}<br><strong>Personalization:</strong> ${upStr}`;
+    roster.forEach((agent, idx) => {
+        const row = document.createElement('tr');
+        const statusBadge = agent.status === 'Active' ? 'badge-green'
+                          : agent.status === 'Inactive' ? 'badge-red' : 'badge-yellow';
+        row.innerHTML = `
+            <td><strong>${agent.name || '—'}</strong></td>
+            <td>${agent.id || '—'}</td>
+            <td>${agent.awsId || '—'}</td>
+            <td>${agent.hire || '—'}</td>
+            <td>${agent.coach || '—'}</td>
+            <td>${agent.lob || '—'}</td>
+            <td>${agent.site || '—'}</td>
+            <td><span class="badge ${statusBadge}">${agent.status || 'Active'}</span></td>
+            <td>${auditsByAgent[agent.name] || 0}</td>
+            <td>
+                <button class="btn btn-ghost btn-small" onclick="removeAgent(${idx})" title="Remove">✕</button>
+            </td>`;
+        tbody.appendChild(row);
+    });
+    document.getElementById('rosterCount').textContent = `${roster.length} agents`;
 }
 
-// ============================================================
-// SENTIMENT ANALYSIS
-// ============================================================
-function analyzeCustomerSentiment(text) {
-    if (!text || text.trim().length < 3) {
-        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
-    }
-    const positive = ['good','great','excellent','happy','satisfied','thank','appreciate','resolved','helpful','perfect','love','amazing','quick','easy','professional','friendly','patient'];
-    const negative = ['bad','terrible','frustrated','angry','upset','horrible','worst','refund','escalate','disappointed','slow','rude','unhelpful','issue','problem','not working','waste','confused','annoyed'];
-    const intensifiers = ['very','really','extremely','so','too','highly','incredibly'];
-    
-    const words = text.toLowerCase().split(/\s+/);
-    let posScore = 0, negScore = 0;
-    
-    for (let i = 0; i < words.length; i++) {
-        let w = words[i].replace(/[^a-z]/g, '');
-        let mult = 1;
-        if (i > 0 && intensifiers.includes(words[i-1])) mult = 1.7;
-        if (positive.includes(w)) posScore += mult;
-        if (negative.includes(w)) negScore += mult;
-    }
-    const total = words.length || 1;
-    const compound = Math.max(-1, Math.min(1, (posScore - negScore) / total * 2.8));
-    let label = "Neutral";
-    if (compound > 0.28) label = "Positive";
-    else if (compound < -0.28) label = "Negative";
-    
-    return {
-        compound: parseFloat(compound.toFixed(3)),
-        label,
-        pos: parseFloat(((posScore / total) * 100).toFixed(1)) || 0,
-        neg: parseFloat(((negScore / total) * 100).toFixed(1)) || 0,
-        neu: parseFloat((100 - ((posScore + negScore) / total * 100)).toFixed(1)) || 100
+async function addAgent() {
+    const name = document.getElementById('r_Name').value.trim();
+    const avaya = document.getElementById('r_Avaya').value.trim();
+    if (!name || !avaya) { showToast("Name and Avaya ID are required", "#C8102E"); return; }
+    if (roster.some(r => r.id === avaya)) { showToast("That Avaya ID already exists", "#C8102E"); return; }
+
+    const newAgent = {
+        id:       avaya,
+        name:     name,
+        awsId:    document.getElementById('r_AWS').value.trim()      || "",
+        econnect: document.getElementById('r_eConnect').value.trim() || "",
+        gsfs:     document.getElementById('r_GSFS').value.trim()     || "",
+        hire:     document.getElementById('r_Hire').value            || new Date().toISOString().split('T')[0],
+        coach:    document.getElementById('r_Coach').value,
+        lob:      document.getElementById('r_LOB').value.trim()      || "Tier 1",
+        site:     document.getElementById('r_Site').value.trim()     || "Site A",
+        status:   document.getElementById('r_Status').value
     };
+    roster.push(newAgent);
+
+    // Try to persist to Supabase (best-effort; works locally even if it fails)
+    if (supabaseEnabled) {
+        try {
+            await supabaseClient.from('agents').insert({
+                avaya_id: newAgent.id, name: newAgent.name, aws_id: newAgent.awsId,
+                econnect_id: newAgent.econnect, gsfs_id: newAgent.gsfs, hire_date: newAgent.hire,
+                coach: newAgent.coach, lob: newAgent.lob, site: newAgent.site, status: newAgent.status
+            });
+        } catch (e) { console.warn("Supabase agent insert failed:", e); }
+    }
+
+    populateRosterTable();
+    populateAgentSelect();
+    document.querySelectorAll('#roster-view input').forEach(el => el.value = '');
+    showToast("✅ Agent added");
 }
 
-function updateSentimentDisplay() {
-    const text = document.getElementById('sentimentText').value;
-    const res = analyzeCustomerSentiment(text);
-    currentSentiment = res;
-    
-    const container = document.getElementById('sentimentResult');
-    const color = res.label === "Positive" ? "#00843D" : (res.label === "Negative" ? "#C8102E" : "#FFB612");
-    const emoji = res.label === "Positive" ? "😊" : (res.label === "Negative" ? "😠" : "😐");
-    
-    container.innerHTML = `
-        <span style="background:${color}; color:white; padding:3px 9px; border-radius:9999px; font-size:11px; font-weight:700;">${emoji} ${res.label}</span>
-        <span style="font-size:16px; font-weight:800; color:${color};">${res.compound}</span>
-        <span style="font-size:10.5px; color:#6b7785;">pos ${res.pos}% / neg ${res.neg}%</span>
-    `;
-}
-
-function analyzeAndApplySentiment() {
-    const text = document.getElementById('sentimentText').value.trim();
-    if (!text) {
-        alert("Please enter some customer feedback or transcript text first.");
-        return;
+function removeAgent(idx) {
+    if (!confirm(`Remove ${roster[idx].name} from roster?`)) return;
+    const removed = roster.splice(idx, 1)[0];
+    populateRosterTable();
+    populateAgentSelect();
+    if (supabaseEnabled) {
+        supabaseClient.from('agents').delete().eq('avaya_id', removed.id)
+            .then(() => {}, e => console.warn(e));
     }
-    updateSentimentDisplay();
-    if (currentSentiment.compound > 0.5 && currentNumericalScore < 95) {
-        currentNumericalScore = Math.min(100, currentNumericalScore + 4);
-        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
-        showToast("Positive sentiment boosted score +4%");
-    } else if (currentSentiment.compound < -0.5 && currentNumericalScore > 20) {
-        currentNumericalScore = Math.max(0, currentNumericalScore - 4);
-        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
-        showToast("Negative sentiment adjusted score -4%");
-    }
+    showToast("Agent removed", "#FFB612");
 }
 
 // ============================================================
-// DATABASE
+// SAVE EVALUATION
 // ============================================================
-let evaluationsDB = [];
-
-function showToast(msg, color='#00843D') {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.style.background = color;
-    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+function resetForm() {
+    if (!confirm("Clear all form fields?")) return;
+    document.getElementById('agentSelect').value = '';
+    document.getElementById('agentInfoStrip').classList.add('hidden');
+    document.getElementById('f_CNN').value = '';
+    document.getElementById('f_HoldTime').value = '';
+    document.getElementById('f_Product').value = '';
+    document.getElementById('f_CallType').value = '';
+    document.getElementById('f_Eval').value = '';
+    document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
+    for (let i = 1; i <= 22; i++) {
+        document.getElementById(`q_${i}_ans`).value = 'Yes';
+        document.getElementById(`q_${i}_note`).value = '';
+    }
+    for (let i = 1; i <= 5; i++) document.getElementById(`af_${i}`).value = 'No';
+    document.getElementById('up_OfferMade').value = 'Yes';
+    document.getElementById('up_OfferQuality').value = 'Adding Value';
+    document.getElementById('up_CustInterested').value = 'Yes';
+    document.getElementById('up_FollowThrough').value = 'Properly Followed Up';
+    document.getElementById('up_OppExisted').value = 'No';
+    document.getElementById('up_Notes').value = '';
+    document.getElementById('sentimentText').value = '';
+    document.getElementById('sentimentResult').innerHTML = '';
+    currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+    toggleUpsellFields();
+    calcScore();
+    showToast("Form cleared", "#0056b3");
 }
-// ==================== SAVE EVALUATION (SUPABASE) ====================
+
 async function saveEvaluation() {
     const sel = document.getElementById('agentSelect');
-    if (!sel.value) return showToast("⚠️ Select an Agent first", "#C8102E");
-
+    if (!sel.value) { showToast("⚠️ Select an Agent first", "#C8102E"); return; }
     const cnnVal = document.getElementById('f_CNN').value.trim();
-    if (!cnnVal) return showToast("⚠️ CNN / Case Number is required", "#C8102E");
+    if (!cnnVal) { showToast("⚠️ CNN / Case Number is required", "#C8102E"); return; }
 
     const agent = sel.options[sel.selectedIndex].text;
-    const agentInfo = getRosterAgent(agent);
+    const agentInfo = getRosterAgentById(sel.value);
     const dateVal = document.getElementById('f_Date').value || new Date().toISOString().split('T')[0];
 
-    // Build qa_details JSONB
+    // Build qa_details (per-question answers and notes)
     const qaData = {};
     for (let i = 1; i <= 22; i++) {
         qaData[`Q${i}_Answer`] = document.getElementById(`q_${i}_ans`).value;
-        qaData[`Q${i}_Note`] = document.getElementById(`q_${i}_note`).value || "";
+        qaData[`Q${i}_Note`]   = document.getElementById(`q_${i}_note`).value || "";
     }
+    // Auto-fail flags
+    const afFlags = [1,2,3,4,5].some(i => document.getElementById(`af_${i}`).value === "Yes");
+    for (let i = 1; i <= 5; i++) qaData[`AF_${i}`] = document.getElementById(`af_${i}`).value;
 
     const record = {
-        "Eval Date": dateVal,
-        "Month": dateVal.substring(0, 7),
-        "CNN": cnnVal,
-        "QA Name": document.getElementById('f_Eval').value || "—",
-        "Agent Name": agent,
-        "Coach": agentInfo.coach || "—",
-        "LOB": agentInfo.lob || "—",
-        "Site": agentInfo.site || "—",
-        "Product Type": document.getElementById('f_Product').value || "—",
-        "Call Type": document.getElementById('f_CallType').value || "—",
-        "Hold Time (s)": parseInt(document.getElementById('f_HoldTime').value) || 0,
-        "Final Score": currentNumericalScore,
-        "Auto-Failed": document.querySelectorAll('#af_1, #af_2, #af_3, #af_4, #af_5').some(el => el.value === "Yes") ? "Yes" : "No",
-        "Sentiment_Compound": currentSentiment.compound || 0,
-        "Sentiment_Label": currentSentiment.label || "Neutral",
-        "Sentiment_Pos": currentSentiment.pos || 0,
-        "Sentiment_Neg": currentSentiment.neg || 0,
-        "Upsell_OfferMade": document.getElementById('up_OfferMade').value,
-        "Upsell_Type": document.getElementById('up_OfferType').value,
-        "Upsell_Quality": document.getElementById('up_OfferQuality').value,
-        "Upsell_OppExisted": document.getElementById('up_OppExisted').value,
-        "Upsell_NoReason": document.getElementById('up_NoReason').value,
-        "Upsell_Interested": document.getElementById('up_CustInterested').value,
-        "Upsell_Followup": document.getElementById('up_FollowThrough').value,
-        upsell_notes: document.getElementById('up_Notes').value || "",
-        qa_details: qaData
+        eval_date:       dateVal,
+        month:           dateVal.substring(0, 7),
+        cnn:             cnnVal,
+        qa_name:         document.getElementById('f_Eval').value || "—",
+        agent_name:      agent,
+        coach:           agentInfo ? agentInfo.coach : "—",
+        lob:             agentInfo ? agentInfo.lob   : "—",
+        site:            agentInfo ? agentInfo.site  : "—",
+        product_type:    document.getElementById('f_Product').value || "—",
+        call_type:       document.getElementById('f_CallType').value || "—",
+        hold_time:       parseInt(document.getElementById('f_HoldTime').value) || 0,
+        final_score:     currentNumericalScore,
+        auto_failed:     afFlags ? "Yes" : "No",
+        sentiment_compound: currentSentiment.compound || 0,
+        sentiment_label: currentSentiment.label || "Neutral",
+        sentiment_pos:   currentSentiment.pos || 0,
+        sentiment_neg:   currentSentiment.neg || 0,
+        upsell_offer_made:   document.getElementById('up_OfferMade').value,
+        upsell_type:         document.getElementById('up_OfferType').value,
+        upsell_quality:      document.getElementById('up_OfferQuality').value,
+        upsell_opp_existed:  document.getElementById('up_OppExisted').value,
+        upsell_no_reason:    document.getElementById('up_NoReason').value,
+        upsell_interested:   document.getElementById('up_CustInterested').value,
+        upsell_followup:     document.getElementById('up_FollowThrough').value,
+        upsell_notes:        document.getElementById('up_Notes').value || "",
+        qa_details:          qaData,
+        created_at:          new Date().toISOString()
     };
 
-    evaluationsDB.unshift({ ...record, ...qaData });
-    if (document.getElementById('dashboard-view').classList.contains('active')) {
-        updateDashboard();
-    }
+    // Add locally first for instant feedback
+    const local = normalizeEval(record);
+    evaluationsDB.unshift(local);
 
-    try {
-        const { error } = await supabase.from('evaluations').insert(record);
-        if (error) throw error;
-        showToast("✓ Evaluation saved to Supabase!");
-    } catch (error) {
-        showToast("⚠️ Failed to save to Supabase", "#C8102E");
-        console.error(error);
-    }
-}
-// ==================== IMPORT / EXPORT FIXES ====================
+    // Update dashboard if open
+    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+    if (document.getElementById('database-view').classList.contains('active'))  renderDBTable();
 
-let currentImportType = '';
-
-function showImportModal(type) {
-    currentImportType = type;
-    document.getElementById('importModalTitle').innerText = 
-        type === 'agents' ? 'Import Agents' : 'Import Evaluations';
-    document.getElementById('importModal').classList.add('active');
-}
-
-function closeImportModal() {
-    document.getElementById('importModal').classList.remove('active');
-}
-
-function downloadSampleTemplate() {
-    let csv = '';
-    let filename = '';
-
-    if (currentImportType === 'agents') {
-        csv = `name,avayaId,awsId,hire,coach,lob,site\nDacut, Andrea,1926225,AWS-001,2023-03-15,Coach A,Tier 1,Site A`;
-        filename = 'LG_Agents_Sample.csv';
+    if (supabaseEnabled) {
+        try {
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true; btn.textContent = "Saving...";
+            const { error } = await supabaseClient.from('evaluations').insert(record);
+            btn.disabled = false; btn.textContent = "💾 Save Evaluation";
+            if (error) throw error;
+            showToast("✓ Saved to Supabase!");
+        } catch (e) {
+            console.error("Supabase save error:", e);
+            showToast("Saved locally — Supabase failed", "#FFB612");
+        }
     } else {
-        csv = `Eval Date,Month,CNN,Agent Name,Coach,Final Score,Auto-Failed\n2026-05-15,2026-05,CNN-123456,Dacut, Andrea,Coach A,92,No`;
-        filename = 'LG_Evaluations_Sample.csv';
+        showToast("✓ Saved locally (Supabase offline)", "#FFB612");
     }
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    showToast("✅ Sample template downloaded!");
 }
 
-function triggerFileUpload() {
-    closeImportModal();
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.csv,.json';
-    
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, color = '#00843D') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = color;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                let newData = file.name.endsWith('.json') 
-                    ? JSON.parse(event.target.result)
-                    : parseCSV(event.target.result);
-
-                if (currentImportType === 'agents') {
-                    newData.forEach(agent => {
-                        const exists = roster.findIndex(a => a.name === agent.name);
-                        if (exists === -1) roster.push(agent);
-                    });
-                    populateRosterTable();
-                    showToast(`✅ ${newData.length} agents imported!`);
-                } else {
-                    // For evaluations - save to Supabase
-                    for (const rec of newData) {
-                        await supabase.from('evaluations').insert(rec);
-                    }
-                    const { data } = await supabase.from('evaluations').select('*');
-                    evaluationsDB = (data || []).map(row => ({ ...row, ...(row.qa_details || {}) }));
-                    updateDashboard();
-                    renderDBTable();
-                    showToast(`✅ ${newData.length} evaluations imported!`);
-                }
-            } catch (err) {
-                showToast("❌ Invalid file format", "#C8102E");
-            }
-        };
-        reader.readAsText(file);
+// ============================================================
+// DASHBOARD — FILTERING
+// ============================================================
+function populateDashboardSlicers() {
+    const fill = (id, vals) => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        const first = sel.options[0]; // "All ..."
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        [...new Set(vals.filter(Boolean))].sort().forEach(v => {
+            const o = document.createElement('option');
+            o.value = v; o.textContent = v;
+            sel.appendChild(o);
+        });
+        if (current && [...sel.options].some(o => o.value === current)) sel.value = current;
     };
-    input.click();
+    fill('slicerAgent',   evaluationsDB.map(e => e.agent_name).concat(roster.map(r => r.name)));
+    fill('slicerCoach',   evaluationsDB.map(e => e.coach).concat(roster.map(r => r.coach)));
+    fill('slicerLOB',     evaluationsDB.map(e => e.lob).concat(roster.map(r => r.lob)));
+    fill('slicerProduct', evaluationsDB.map(e => e.product_type));
+    fill('slicerSite',    evaluationsDB.map(e => e.site).concat(roster.map(r => r.site)));
 }
 
-function parseCSV(csvText) {
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    const result = [];
-    for (let i = 1; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        const obj = {};
-        const values = lines[i].split(',');
-        headers.forEach((header, index) => {
-            obj[header] = values[index] || '';
-        });
-        result.push(obj);
-    }
-    return result;
+function getFilteredData() {
+    const period  = document.getElementById('slicerPeriod').value;
+    const agent   = document.getElementById('slicerAgent').value;
+    const coach   = document.getElementById('slicerCoach').value;
+    const lob     = document.getElementById('slicerLOB').value;
+    const product = document.getElementById('slicerProduct').value;
+    const site    = document.getElementById('slicerSite').value;
+    const status  = document.getElementById('slicerStatus').value;
+    const threshold = getPassThreshold();
+
+    const now = new Date();
+    const day = 86400000;
+    const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const lastWeekStart = new Date(startOfWeek.getTime() - 7*day);
+
+    return evaluationsDB.filter(e => {
+        if (!e.eval_date) return false;
+        const d = new Date(e.eval_date);
+        if (isNaN(d)) return false;
+
+        if (period === "ThisWeek"  && d < startOfWeek) return false;
+        if (period === "LastWeek"  && (d < lastWeekStart || d >= startOfWeek)) return false;
+        if (period === "L4W"       && (now - d) > 28*day) return false;
+        if (period === "ThisMonth" && (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth())) return false;
+        if (period === "LastMonth") {
+            const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+            if (d.getFullYear() !== lm.getFullYear() || d.getMonth() !== lm.getMonth()) return false;
+        }
+        if (period === "L3M" && (now - d) > 90*day) return false;
+
+        if (agent   !== "All" && e.agent_name   !== agent)   return false;
+        if (coach   !== "All" && e.coach        !== coach)   return false;
+        if (lob     !== "All" && e.lob          !== lob)     return false;
+        if (product !== "All" && e.product_type !== product) return false;
+        if (site    !== "All" && e.site         !== site)    return false;
+
+        if (status === "Pass"     && (e.auto_failed === "Yes" || e.final_score < threshold)) return false;
+        if (status === "Fail"     && (e.auto_failed === "Yes" || e.final_score >= threshold)) return false;
+        if (status === "AutoFail" && e.auto_failed !== "Yes") return false;
+
+        return true;
+    });
 }
 
-// FIXED Download CSV
-function downloadCSV() {
-    if (!evaluationsDB || evaluationsDB.length === 0) {
-        showToast("No data to export!", "#C8102E");
-        return;
+function resetFilters() {
+    ['slicerPeriod','slicerAgent','slicerCoach','slicerLOB','slicerProduct','slicerSite','slicerStatus']
+        .forEach(id => document.getElementById(id).value = 'All');
+    updateDashboard();
+}
+
+// ============================================================
+// CHART INSTANCES — track for cleanup
+// ============================================================
+const chartInstances = {};
+
+function destroyChart(id) {
+    if (chartInstances[id]) {
+        chartInstances[id].destroy();
+        delete chartInstances[id];
     }
+}
 
-    const headers = Object.keys(evaluationsDB[0]);
-    let csvContent = headers.join(",") + "\n";
+function makeChart(id, cfg) {
+    destroyChart(id);
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    chartInstances[id] = new Chart(canvas, cfg);
+    return chartInstances[id];
+}
 
-    evaluationsDB.forEach(row => {
-        const values = headers.map(header => {
-            let val = row[header] || "";
-            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
-                val = `"${val.replace(/"/g, '""')}"`;
+const CHART_COLORS = {
+    blue:   '#002b5e',
+    cyan:   '#00aeef',
+    green:  '#00843D',
+    red:    '#C8102E',
+    yellow: '#FFB612',
+    purple: '#8b5cf6',
+    teal:   '#14b8a6',
+    orange: '#ff8a00'
+};
+const PALETTE = ['#002b5e','#00aeef','#00843D','#C8102E','#FFB612','#8b5cf6','#14b8a6','#ff8a00','#a50034','#003d82'];
+
+// ============================================================
+// DASHBOARD — MAIN UPDATER
+// ============================================================
+function updateDashboard() {
+    populateDashboardSlicers();
+    const data = getFilteredData();
+    const threshold = getPassThreshold();
+    const holdThr = getHoldThreshold();
+
+    document.getElementById('filterCountLabel').textContent =
+        `${data.length} record${data.length === 1 ? '' : 's'}`;
+
+    // Which tab is active?
+    const activeTab = document.querySelector('.dash-subview.active')?.id || 'dash-overview';
+
+    if (activeTab === 'dash-overview') renderOverview(data, threshold, holdThr);
+    if (activeTab === 'dash-trends')   renderTrends(data, threshold);
+    if (activeTab === 'dash-qa')       renderQADeepDive(data);
+    if (activeTab === 'dash-upsell')   renderUpsell(data);
+    if (activeTab === 'dash-agents')   renderAgents(data, threshold);
+    if (activeTab === 'dash-segment')  renderSegments(data, holdThr);
+    if (activeTab === 'dash-insights') renderInsights(data, threshold, holdThr);
+}
+
+// ---- OVERVIEW ----
+function renderOverview(data, threshold, holdThr) {
+    const total = data.length;
+    const avg = total ? data.reduce((s,r) => s + r.final_score, 0) / total : 0;
+    const autoFails = data.filter(r => r.auto_failed === "Yes").length;
+    const passed = data.filter(r => r.final_score >= threshold && r.auto_failed !== "Yes").length;
+    const offers = data.filter(r => r.upsell_offer_made === "Yes").length;
+    const convs = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").length;
+    const scores = data.map(r => r.final_score).sort((a,b) => a-b);
+    const median = scores.length ? (scores.length%2 ? scores[(scores.length-1)/2] : (scores[scores.length/2-1] + scores[scores.length/2])/2) : 0;
+    const variance = total ? scores.reduce((s,v) => s + (v-avg)**2, 0) / total : 0;
+    const stddev = Math.sqrt(variance);
+    const holdTimes = data.map(r => r.hold_time).filter(h => h > 0);
+    const avgHold = holdTimes.length ? holdTimes.reduce((s,h) => s+h, 0) / holdTimes.length : 0;
+    const overHold = data.filter(r => r.hold_time > holdThr).length;
+
+    document.getElementById('kpiAvgScore').textContent = avg.toFixed(1) + '%';
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiAuto').textContent = total ? ((autoFails/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiAutoCount').textContent = `${autoFails} cases`;
+    document.getElementById('kpiOffer').textContent = total ? ((offers/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiOfferCount').textContent = `${offers} offers`;
+    document.getElementById('kpiConv').textContent = offers ? ((convs/offers)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiConvCount').textContent = `${convs} wins`;
+    document.getElementById('kpiPass').textContent = total ? ((passed/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiPassCount').textContent = `${passed}/${total}`;
+    document.getElementById('kpiMedian').textContent = median.toFixed(1) + '%';
+    document.getElementById('kpiStdDev').textContent = `σ ${stddev.toFixed(1)}`;
+    document.getElementById('kpiHoldTime').textContent = Math.round(avgHold) + 's';
+    document.getElementById('kpiHoldOver').textContent = `${overHold} over threshold`;
+
+    // TREND CHART (monthly)
+    const byMonth = {};
+    data.forEach(r => {
+        const m = r.month || (r.eval_date ? r.eval_date.substring(0,7) : '');
+        if (!m) return;
+        if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, autoFails: 0 };
+        byMonth[m].total++;
+        byMonth[m].sum += r.final_score;
+        if (r.auto_failed === "Yes") byMonth[m].autoFails++;
+    });
+    const months = Object.keys(byMonth).sort();
+    makeChart('trendChart', {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                { label: 'Avg Score', data: months.map(m => +(byMonth[m].sum/byMonth[m].total).toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.1)', yAxisID: 'y', tension: 0.3, fill: true },
+                { label: 'Auto-Fail %', data: months.map(m => +(byMonth[m].autoFails/byMonth[m].total*100).toFixed(1)), borderColor: CHART_COLORS.red, backgroundColor: 'rgba(200,16,46,0.05)', yAxisID: 'y1', tension: 0.3 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { position: 'left', min: 0, max: 100, title: { display: true, text: 'Avg Score %' } },
+                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %' } }
             }
-            return val;
-        });
-        csvContent += values.join(",") + "\n";
+        }
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `LG_QA_Export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    
-    showToast("✅ CSV downloaded successfully!");
-}
-function addAgent() {
-    const name = document.getElementById('r_Name').value.trim();
-    const avaya = document.getElementById('r_Avaya').value.trim();
+    // LEADERBOARD
+    const byAgent = {};
+    data.forEach(r => {
+        if (!byAgent[r.agent_name]) byAgent[r.agent_name] = { sum: 0, count: 0 };
+        byAgent[r.agent_name].sum += r.final_score;
+        byAgent[r.agent_name].count++;
+    });
+    const top = Object.entries(byAgent)
+        .filter(([_,v]) => v.count >= 1)
+        .map(([name, v]) => ({ name, avg: v.sum/v.count, count: v.count }))
+        .sort((a,b) => b.avg - a.avg)
+        .slice(0, 5);
+    const lb = document.getElementById('topLeaderboard');
+    lb.innerHTML = top.length ? top.map((a,i) => `
+        <div class="leader-row">
+            <div class="leader-rank">${i+1}</div>
+            <div>
+                <div class="leader-name">${a.name}</div>
+                <div class="leader-meta">${a.count} audit${a.count===1?'':'s'}</div>
+            </div>
+            <div class="leader-score">${a.avg.toFixed(1)}%</div>
+        </div>`).join('') : '<div style="text-align:center; color:var(--text-muted); padding:30px;">No data</div>';
 
-    if (!name || !avaya) {
-        showToast("⚠️ Agent Name and Avaya ID are required", "#C8102E");
+    // DISTRIBUTION
+    const buckets = [0,0,0,0,0]; // <60, 60-69, 70-79, 80-89, 90-100
+    data.forEach(r => {
+        const s = r.final_score;
+        if (s < 60) buckets[0]++;
+        else if (s < 70) buckets[1]++;
+        else if (s < 80) buckets[2]++;
+        else if (s < 90) buckets[3]++;
+        else buckets[4]++;
+    });
+    makeChart('distChart', {
+        type: 'bar',
+        data: {
+            labels: ['<60%','60–69%','70–79%','80–89%','90–100%'],
+            datasets: [{
+                label: 'Calls',
+                data: buckets,
+                backgroundColor: [CHART_COLORS.red, '#e62a4a', CHART_COLORS.yellow, CHART_COLORS.cyan, CHART_COLORS.green]
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    // SECTION STRIP
+    renderSectionStrip(data);
+}
+
+function renderSectionStrip(data) {
+    const strip = document.getElementById('sectionStrip');
+    if (!data.length) {
+        strip.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px;">No data</div>';
         return;
     }
-
-    const newAgent = {
-        "Agent Name": name,
-        "Avaya ID": avaya,
-        "AWS ID": document.getElementById('r_AWS').value.trim() || "—",
-        "eConnect ID": document.getElementById('r_eConnect').value.trim() || "—",
-        "GSFS ID": document.getElementById('r_GSFS').value.trim() || "—",
-        "Date of Hire": document.getElementById('r_Hire').value || new Date().toISOString().split('T')[0],
-        "Coach": document.getElementById('r_Coach').value,
-        "LOB": document.getElementById('r_LOB').value.trim() || "Tier 1",
-        "Site": document.getElementById('r_Site').value.trim() || "Site A",
-        "Status": document.getElementById('r_Status').value
-    };
-
-    roster.push(newAgent);
-    populateRosterTable();
-    populateAgentSelect();
-
-    // Clear form
-    document.querySelectorAll('#roster-view input, #roster-view select').forEach(el => el.value = '');
-
-    showToast("✅ Agent added successfully!");
+    const sectionStats = {};
+    SECTIONS.forEach(s => sectionStats[s] = { total: 0, passed: 0 });
+    data.forEach(r => {
+        const qa = r.qa_details || {};
+        qaQuestions.forEach(q => {
+            const ans = qa[`Q${q.id}_Answer`];
+            if (ans !== undefined && ans !== null) {
+                sectionStats[q.section].total++;
+                if (ans === "Yes") sectionStats[q.section].passed++;
+            }
+        });
+    });
+    const items = SECTIONS.map(s => {
+        const st = sectionStats[s];
+        const pct = st.total ? (st.passed/st.total*100) : 0;
+        return { section: s, pct };
+    }).sort((a,b) => a.pct - b.pct);
+    strip.innerHTML = items.map(it => {
+        const color = it.pct >= 90 ? CHART_COLORS.green : it.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
+        return `<div class="perf-item">
+            <div class="perf-label">${it.section}</div>
+            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${it.pct}%; background:${color};">${it.pct >= 15 ? it.pct.toFixed(0)+'%' : ''}</div></div>
+            <div class="perf-value">${it.pct.toFixed(1)}%</div>
+        </div>`;
+    }).join('');
 }
+
+// ---- TRENDS ----
+function renderTrends(data, threshold) {
+    const now = new Date();
+    const day = 86400000;
+    const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
+    const lastWeekStart = new Date(startOfWeek.getTime() - 7*day);
+    const lastWeekEnd = startOfWeek;
+
+    const thisWeekRecs = data.filter(r => { const d = new Date(r.eval_date); return d >= startOfWeek; });
+    const lastWeekRecs = data.filter(r => { const d = new Date(r.eval_date); return d >= lastWeekStart && d < lastWeekEnd; });
+    const tw = thisWeekRecs.length ? thisWeekRecs.reduce((s,r)=>s+r.final_score,0)/thisWeekRecs.length : 0;
+    const lw = lastWeekRecs.length ? lastWeekRecs.reduce((s,r)=>s+r.final_score,0)/lastWeekRecs.length : 0;
+    document.getElementById('wowScore').textContent = tw.toFixed(1)+'%';
+    document.getElementById('wowDelta').innerHTML = lw ? `Δ ${(tw-lw).toFixed(1)}pp vs last week` : '—';
+    document.getElementById('wowCount').textContent = thisWeekRecs.length;
+    document.getElementById('wowCountDelta').innerHTML = `${lastWeekRecs.length} last week`;
+
+    const thisMonth = data.filter(r => r.month === now.toISOString().substring(0,7));
+    const lmDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const lmKey = lmDate.toISOString().substring(0,7);
+    const lastMonth = data.filter(r => r.month === lmKey);
+    const tm = thisMonth.length ? thisMonth.reduce((s,r)=>s+r.final_score,0)/thisMonth.length : 0;
+    const lm = lastMonth.length ? lastMonth.reduce((s,r)=>s+r.final_score,0)/lastMonth.length : 0;
+    document.getElementById('momScore').textContent = tm.toFixed(1)+'%';
+    document.getElementById('momDelta').innerHTML = lm ? `Δ ${(tm-lm).toFixed(1)}pp vs last month` : '—';
+
+    // 12-week chart
+    const weeks = [];
+    for (let i = 11; i >= 0; i--) {
+        const wStart = new Date(startOfWeek.getTime() - i*7*day);
+        const wEnd = new Date(wStart.getTime() + 7*day);
+        const recs = data.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; });
+        weeks.push({
+            label: `W${wStart.getMonth()+1}/${wStart.getDate()}`,
+            avg: recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : 0,
+            count: recs.length
+        });
+    }
+    const best = weeks.reduce((b,w) => (w.count > 0 && w.avg > b.avg) ? w : b, { avg: -1, label: '—' });
+    document.getElementById('bestWeek').textContent = best.avg > -1 ? best.avg.toFixed(1)+'%' : '—';
+    document.getElementById('bestWeekDate').textContent = best.label;
+
+    makeChart('wowChart', {
+        type: 'bar',
+        data: {
+            labels: weeks.map(w => w.label),
+            datasets: [
+                { type: 'bar', label: 'Audits', data: weeks.map(w => w.count), backgroundColor: 'rgba(0,174,239,0.3)', yAxisID: 'y1' },
+                { type: 'line', label: 'Avg Score', data: weeks.map(w => +w.avg.toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.1)', tension: 0.3, fill: true, yAxisID: 'y' }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { position: 'left', min: 0, max: 100 },
+                y1: { position: 'right', min: 0, grid: { drawOnChartArea: false } }
+            }
+        }
+    });
+
+    // MoM chart — last 6 months
+    const monthsAgg = {};
+    data.forEach(r => {
+        if (!r.month) return;
+        if (!monthsAgg[r.month]) monthsAgg[r.month] = { total: 0, sum: 0, af: 0, offers: 0, convs: 0 };
+        monthsAgg[r.month].total++;
+        monthsAgg[r.month].sum += r.final_score;
+        if (r.auto_failed === "Yes") monthsAgg[r.month].af++;
+        if (r.upsell_offer_made === "Yes") monthsAgg[r.month].offers++;
+        if (r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes") monthsAgg[r.month].convs++;
+    });
+    const ms = Object.keys(monthsAgg).sort().slice(-6);
+    makeChart('momChart', {
+        type: 'line',
+        data: {
+            labels: ms,
+            datasets: [
+                { label: 'Avg Score', data: ms.map(m => +(monthsAgg[m].sum/monthsAgg[m].total).toFixed(1)), borderColor: CHART_COLORS.green, tension: 0.3 },
+                { label: 'Auto-Fail %', data: ms.map(m => +(monthsAgg[m].af/monthsAgg[m].total*100).toFixed(1)), borderColor: CHART_COLORS.red, tension: 0.3 },
+                { label: 'Conv. %', data: ms.map(m => monthsAgg[m].offers ? +(monthsAgg[m].convs/monthsAgg[m].offers*100).toFixed(1) : 0), borderColor: CHART_COLORS.purple, tension: 0.3 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+    });
+
+    // Daily volume — last 30 days
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getTime() - i*day);
+        const key = d.toISOString().substring(0,10);
+        const recs = data.filter(r => r.eval_date === key);
+        days.push({ label: `${d.getMonth()+1}/${d.getDate()}`, count: recs.length, avg: recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : null });
+    }
+    makeChart('dailyVolumeChart', {
+        type: 'bar',
+        data: { labels: days.map(d => d.label), datasets: [{ label: 'Audits', data: days.map(d => d.count), backgroundColor: CHART_COLORS.cyan }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    // Rolling 7-day avg
+    const rolling = [];
+    days.forEach((d, i) => {
+        const window = days.slice(Math.max(0, i-6), i+1).filter(x => x.avg !== null);
+        const v = window.length ? window.reduce((s,w)=>s+w.avg, 0)/window.length : null;
+        rolling.push(v);
+    });
+    makeChart('rollingAvgChart', {
+        type: 'line',
+        data: { labels: days.map(d => d.label), datasets: [{ label: '7-Day Avg', data: rolling.map(v => v === null ? null : +v.toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', tension: 0.3, fill: true, spanGaps: true }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+    });
+}
+
+// ---- QA DEEP DIVE ----
+function renderQADeepDive(data) {
+    // Section bar chart
+    const sectionStats = {};
+    SECTIONS.forEach(s => sectionStats[s] = { total: 0, passed: 0 });
+    data.forEach(r => {
+        const qa = r.qa_details || {};
+        qaQuestions.forEach(q => {
+            const ans = qa[`Q${q.id}_Answer`];
+            if (ans !== undefined && ans !== null) {
+                sectionStats[q.section].total++;
+                if (ans === "Yes") sectionStats[q.section].passed++;
+            }
+        });
+    });
+    const sectionLabels = SECTIONS;
+    const sectionPass = sectionLabels.map(s => sectionStats[s].total ? +(sectionStats[s].passed/sectionStats[s].total*100).toFixed(1) : 0);
+    makeChart('sectionBarChart', {
+        type: 'bar',
+        data: { labels: sectionLabels, datasets: [{ label: 'Pass %', data: sectionPass, backgroundColor: sectionPass.map(p => p >= 90 ? CHART_COLORS.green : p >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red) }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+    });
+
+    // Pareto — top defects
+    const defects = qaQuestions.map(q => {
+        let total = 0, failed = 0;
+        data.forEach(r => {
+            const ans = (r.qa_details || {})[`Q${q.id}_Answer`];
+            if (ans !== undefined && ans !== null) {
+                total++;
+                if (ans === "No") failed++;
+            }
+        });
+        return { id: q.id, title: q.title, weight: q.w, total, failed, failRate: total ? failed/total*100 : 0 };
+    }).filter(d => d.failed > 0).sort((a,b) => b.failed - a.failed).slice(0, 10);
+    let cum = 0;
+    const totalFails = defects.reduce((s,d) => s+d.failed, 0);
+    const cumPct = defects.map(d => { cum += d.failed; return totalFails ? +(cum/totalFails*100).toFixed(1) : 0; });
+    makeChart('paretoChart', {
+        type: 'bar',
+        data: {
+            labels: defects.map(d => `Q${d.id} ${d.title.substring(0,18)}`),
+            datasets: [
+                { type: 'bar', label: 'Fails', data: defects.map(d => d.failed), backgroundColor: CHART_COLORS.red, yAxisID: 'y' },
+                { type: 'line', label: 'Cumulative %', data: cumPct, borderColor: CHART_COLORS.blue, tension: 0.2, yAxisID: 'y1' }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { position: 'left' }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } }
+        }
+    });
+
+    // All 22 questions strip
+    const allQ = qaQuestions.map(q => {
+        let total = 0, passed = 0;
+        data.forEach(r => {
+            const ans = (r.qa_details || {})[`Q${q.id}_Answer`];
+            if (ans !== undefined && ans !== null) {
+                total++;
+                if (ans === "Yes") passed++;
+            }
+        });
+        return { id: q.id, title: q.title, pct: total ? passed/total*100 : 0, total };
+    }).sort((a,b) => a.pct - b.pct);
+    const strip = document.getElementById('allQuestionsStrip');
+    strip.innerHTML = allQ.map(q => {
+        const color = q.pct >= 90 ? CHART_COLORS.green : q.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
+        return `<div class="perf-item">
+            <div class="perf-label">Q${q.id}. ${q.title}</div>
+            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${q.pct}%; background:${color};">${q.pct >= 15 ? q.pct.toFixed(0)+'%' : ''}</div></div>
+            <div class="perf-value">${q.pct.toFixed(1)}%</div>
+        </div>`;
+    }).join('');
+
+    // Auto-fail breakdown
+    const afNames = ['Documentation Failure', 'Call Disconnection', 'Inappropriate Behavior', 'No Follow-up', 'Escalation Failure'];
+    const afCounts = [0,0,0,0,0];
+    data.forEach(r => {
+        const qa = r.qa_details || {};
+        for (let i = 1; i <= 5; i++) if (qa[`AF_${i}`] === "Yes") afCounts[i-1]++;
+    });
+    makeChart('afChart', {
+        type: 'bar',
+        data: { labels: afNames, datasets: [{ label: 'Occurrences', data: afCounts, backgroundColor: CHART_COLORS.red }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } } }
+    });
+
+    // Weighted impact
+    const impact = qaQuestions.map(q => {
+        let failed = 0;
+        data.forEach(r => { if ((r.qa_details || {})[`Q${q.id}_Answer`] === "No") failed++; });
+        return { id: q.id, impact: failed * q.w };
+    }).sort((a,b) => b.impact - a.impact).slice(0, 10);
+    makeChart('weightedImpactChart', {
+        type: 'bar',
+        data: { labels: impact.map(i => `Q${i.id}`), datasets: [{ label: 'Score Points Lost', data: impact.map(i => i.impact.toFixed(1)), backgroundColor: CHART_COLORS.orange }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+// ---- UPSELL ----
+function renderUpsell(data) {
+    const total = data.length;
+    const opps = data.filter(r => r.upsell_offer_made === "Yes" || r.upsell_opp_existed === "Yes").length;
+    const offers = data.filter(r => r.upsell_offer_made === "Yes").length;
+    const convs = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").length;
+    document.getElementById('fnl1').textContent = total;
+    document.getElementById('fnl2').textContent = opps;   document.getElementById('fnl2pct').textContent = total ? ((opps/total)*100).toFixed(0)+'%' : '0%';
+    document.getElementById('fnl3').textContent = offers; document.getElementById('fnl3pct').textContent = total ? ((offers/total)*100).toFixed(0)+'%' : '0%';
+    document.getElementById('fnl4').textContent = convs;  document.getElementById('fnl4pct').textContent = total ? ((convs/total)*100).toFixed(0)+'%' : '0%';
+
+    // How (offer quality)
+    const howCounts = { 'Adding Value': 0, 'Indifferent': 0, 'Pushy / Sales-y': 0 };
+    data.filter(r => r.upsell_offer_made === "Yes").forEach(r => {
+        const q = r.upsell_quality || 'Adding Value';
+        if (howCounts[q] !== undefined) howCounts[q]++;
+    });
+    makeChart('pieHow', {
+        type: 'doughnut',
+        data: { labels: Object.keys(howCounts), datasets: [{ data: Object.values(howCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Exec (follow-through)
+    const execCounts = { 'Properly Followed Up': 0, 'Partially Addressed': 0, 'Left Hanging': 0 };
+    data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").forEach(r => {
+        const f = r.upsell_followup || 'Properly Followed Up';
+        if (execCounts[f] !== undefined) execCounts[f]++;
+    });
+    makeChart('pieExec', {
+        type: 'doughnut',
+        data: { labels: Object.keys(execCounts), datasets: [{ data: Object.values(execCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Offer types
+    const typeCounts = {};
+    data.filter(r => r.upsell_offer_made === "Yes").forEach(r => {
+        const t = r.upsell_type || 'Other';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+    });
+    makeChart('offerTypeChart', {
+        type: 'bar',
+        data: { labels: Object.keys(typeCounts), datasets: [{ label: 'Offers', data: Object.values(typeCounts), backgroundColor: PALETTE }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    // Missed reasons
+    const reasonCounts = {};
+    data.filter(r => r.upsell_offer_made === "No").forEach(r => {
+        const reason = r.upsell_no_reason || (r.upsell_opp_existed === "Yes" ? 'Missed Opportunity' : 'No Opportunity');
+        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+    });
+    makeChart('missedChart', {
+        type: 'bar',
+        data: { labels: Object.keys(reasonCounts), datasets: [{ label: 'Count', data: Object.values(reasonCounts), backgroundColor: CHART_COLORS.orange }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+}
+
+// ---- AGENTS ----
+function renderAgents(data, threshold) {
+    const byAgent = {};
+    data.forEach(r => {
+        if (!byAgent[r.agent_name]) {
+            byAgent[r.agent_name] = { name: r.agent_name, coach: r.coach, site: r.site, scores: [], af: 0, offers: 0, convs: 0, hold: [], sent: [] };
+        }
+        const a = byAgent[r.agent_name];
+        a.scores.push(r.final_score);
+        if (r.auto_failed === "Yes") a.af++;
+        if (r.upsell_offer_made === "Yes") a.offers++;
+        if (r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes") a.convs++;
+        if (r.hold_time > 0) a.hold.push(r.hold_time);
+        if (r.sentiment_compound) a.sent.push(r.sentiment_compound);
+    });
+    const agents = Object.values(byAgent).map(a => ({
+        name: a.name, coach: a.coach, site: a.site, audits: a.scores.length,
+        avg: a.scores.reduce((s,v)=>s+v,0) / a.scores.length,
+        af: a.af,
+        offerRate: a.scores.length ? a.offers/a.scores.length*100 : 0,
+        convRate: a.offers ? a.convs/a.offers*100 : 0,
+        avgHold: a.hold.length ? a.hold.reduce((s,v)=>s+v,0)/a.hold.length : 0,
+        sentiment: a.sent.length ? a.sent.reduce((s,v)=>s+v,0)/a.sent.length : 0
+    })).sort((a,b) => b.avg - a.avg);
+
+    makeChart('agentChart', {
+        type: 'bar',
+        data: {
+            labels: agents.map(a => a.name),
+            datasets: [{ label: 'Avg Score', data: agents.map(a => +a.avg.toFixed(1)), backgroundColor: agents.map(a => a.avg >= threshold ? CHART_COLORS.green : CHART_COLORS.red) }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            scales: { x: { min: 0, max: 100 } },
+            plugins: { legend: { display: false }, annotation: { annotations: { line: { type: 'line', xMin: threshold, xMax: threshold, borderColor: CHART_COLORS.yellow, borderWidth: 2, borderDash: [5,5] } } } }
+        }
+    });
+
+    const tbody = document.getElementById('agentTbody');
+    tbody.innerHTML = agents.map((a, i) => {
+        const sentLabel = a.sentiment > 0.2 ? '😊' : a.sentiment < -0.2 ? '😠' : '😐';
+        return `<tr>
+            <td><strong>${i+1}</strong></td>
+            <td>${a.name}</td>
+            <td>${a.coach || '—'}</td>
+            <td>${a.site || '—'}</td>
+            <td>${a.audits}</td>
+            <td><span class="badge ${a.avg >= threshold ? 'badge-green' : 'badge-red'}">${a.avg.toFixed(1)}%</span></td>
+            <td>${a.af}</td>
+            <td>${a.offerRate.toFixed(0)}%</td>
+            <td>${a.convRate.toFixed(0)}%</td>
+            <td>${Math.round(a.avgHold)}</td>
+            <td>${sentLabel} ${a.sentiment.toFixed(2)}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ---- SEGMENTS ----
+function renderSegments(data, holdThr) {
+    const groupBy = (key) => {
+        const g = {};
+        data.forEach(r => {
+            const k = r[key] || '—';
+            if (!g[k]) g[k] = { sum: 0, count: 0 };
+            g[k].sum += r.final_score; g[k].count++;
+        });
+        return Object.entries(g).map(([k,v]) => ({ k, avg: v.sum/v.count, count: v.count })).sort((a,b) => b.avg - a.avg);
+    };
+    const renderBar = (id, items, color) => {
+        makeChart(id, {
+            type: 'bar',
+            data: { labels: items.map(i => i.k), datasets: [{ label: 'Avg Score', data: items.map(i => +i.avg.toFixed(1)), backgroundColor: color }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+        });
+    };
+    renderBar('coachChart',    groupBy('coach'),        CHART_COLORS.blue);
+    renderBar('siteChart',     groupBy('site'),         CHART_COLORS.cyan);
+    renderBar('productChart',  groupBy('product_type'), CHART_COLORS.purple);
+    renderBar('callTypeChart', groupBy('call_type'),    CHART_COLORS.teal);
+
+    // Hold time by agent
+    const byAgent = {};
+    data.forEach(r => {
+        if (r.hold_time > 0) {
+            if (!byAgent[r.agent_name]) byAgent[r.agent_name] = [];
+            byAgent[r.agent_name].push(r.hold_time);
+        }
+    });
+    const items = Object.entries(byAgent).map(([k,v]) => ({ k, avg: v.reduce((s,x)=>s+x,0)/v.length })).sort((a,b) => b.avg - a.avg);
+    makeChart('holdTimeChart', {
+        type: 'bar',
+        data: { labels: items.map(i => i.k), datasets: [{ label: 'Avg Hold (s)', data: items.map(i => Math.round(i.avg)), backgroundColor: items.map(i => i.avg > holdThr ? CHART_COLORS.red : CHART_COLORS.green) }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, annotation: { annotations: { line: { type: 'line', yMin: holdThr, yMax: holdThr, borderColor: CHART_COLORS.yellow, borderWidth: 2, borderDash: [5,5], label: { content: `Threshold ${holdThr}s`, enabled: true } } } } }
+        }
+    });
+}
+
+// ---- INSIGHTS ----
+function renderInsights(data, threshold, holdThr) {
+    const insights = [], risks = [], highlights = [];
+    if (!data.length) {
+        document.getElementById('insightsContainer').innerHTML = '<div class="insight-card"><div class="ins-body">No data in the current filter.</div></div>';
+        document.getElementById('risksContainer').innerHTML = '';
+        document.getElementById('highlightsContainer').innerHTML = '';
+        return;
+    }
+    const avg = data.reduce((s,r)=>s+r.final_score,0)/data.length;
+    const afRate = data.filter(r => r.auto_failed === "Yes").length / data.length * 100;
+    const passRate = data.filter(r => r.final_score >= threshold && r.auto_failed !== "Yes").length / data.length * 100;
+
+    insights.push({ type:'', title:'Overview', body:`Average QA score is <strong>${avg.toFixed(1)}%</strong> across <strong>${data.length}</strong> audit${data.length===1?'':'s'}. Pass rate is <strong>${passRate.toFixed(1)}%</strong> at the ${threshold}% threshold.` });
+
+    // Worst-performing questions
+    const worst = qaQuestions.map(q => {
+        let total = 0, failed = 0;
+        data.forEach(r => { const ans = (r.qa_details||{})[`Q${q.id}_Answer`]; if(ans){total++; if(ans==="No")failed++;} });
+        return { ...q, failRate: total ? failed/total*100 : 0, failed };
+    }).filter(q => q.failed >= 2).sort((a,b) => b.failRate - a.failRate).slice(0, 3);
+    if (worst.length) {
+        insights.push({ type:'warn', title:'Top areas for coaching', body:`Most frequent fails: ${worst.map(w => `<strong>Q${w.id} ${w.title}</strong> (${w.failRate.toFixed(0)}% fail)`).join(', ')}.` });
+    }
+
+    if (afRate > 10) risks.push({ type:'danger', title:'High Auto-Fail Rate', body:`Auto-fails are at <strong>${afRate.toFixed(1)}%</strong> — above the 10% red line. Review the auto-fail breakdown in the QA tab.` });
+    else if (afRate > 5) risks.push({ type:'warn', title:'Elevated Auto-Fail Rate', body:`Auto-fail rate is <strong>${afRate.toFixed(1)}%</strong>. Monitor closely.` });
+
+    const holdOver = data.filter(r => r.hold_time > holdThr).length;
+    if (holdOver > data.length * 0.15) risks.push({ type:'warn', title:'Hold Time Concerns', body:`<strong>${holdOver}</strong> calls (${(holdOver/data.length*100).toFixed(1)}%) exceeded the ${holdThr}s hold threshold.` });
+
+    // Top performer
+    const byAgent = {};
+    data.forEach(r => { if(!byAgent[r.agent_name])byAgent[r.agent_name]={sum:0,count:0}; byAgent[r.agent_name].sum+=r.final_score; byAgent[r.agent_name].count++; });
+    const topAgent = Object.entries(byAgent).filter(([_,v])=>v.count>=2).map(([n,v])=>({name:n, avg:v.sum/v.count})).sort((a,b)=>b.avg-a.avg)[0];
+    if (topAgent) highlights.push({ type:'success', title:'Top Performer', body:`<strong>${topAgent.name}</strong> leads with an average score of <strong>${topAgent.avg.toFixed(1)}%</strong>.` });
+    if (passRate >= 90) highlights.push({ type:'success', title:'Strong Pass Rate', body:`Pass rate is at <strong>${passRate.toFixed(1)}%</strong>. Keep it up.` });
+
+    const offers = data.filter(r => r.upsell_offer_made === "Yes").length;
+    const convs = data.filter(r => r.upsell_offer_made === "Yes" && r.upsell_interested === "Yes").length;
+    if (offers) {
+        const cr = convs/offers*100;
+        insights.push({ type: cr >= 30 ? 'success' : '', title:'Conversion Rate', body:`Customers said yes to <strong>${cr.toFixed(0)}%</strong> of offers (${convs}/${offers}).` });
+    }
+
+    const render = (arr) => arr.map(i => `<div class="insight-card ${i.type}"><div class="ins-title">${i.title}</div><div class="ins-body">${i.body}</div></div>`).join('') || '<div style="color:var(--text-muted); font-size:13px;">Nothing notable.</div>';
+    document.getElementById('insightsContainer').innerHTML = render(insights);
+    document.getElementById('risksContainer').innerHTML = render(risks);
+    document.getElementById('highlightsContainer').innerHTML = render(highlights);
+}
+
+// ============================================================
+// DATABASE VIEW
+// ============================================================
+const ALL_COLUMNS = [
+    { key: 'eval_date',        label: 'Date' },
+    { key: 'cnn',              label: 'CNN' },
+    { key: 'agent_name',       label: 'Agent' },
+    { key: 'coach',            label: 'Coach' },
+    { key: 'site',             label: 'Site' },
+    { key: 'lob',              label: 'LOB' },
+    { key: 'product_type',     label: 'Product' },
+    { key: 'call_type',        label: 'Call Type' },
+    { key: 'hold_time',        label: 'Hold (s)' },
+    { key: 'final_score',      label: 'Score' },
+    { key: 'auto_failed',      label: 'Auto-Fail' },
+    { key: 'sentiment_label',  label: 'Sentiment' },
+    { key: 'upsell_offer_made',label: 'Offer?' },
+    { key: 'upsell_type',      label: 'Offer Type' },
+    { key: 'upsell_quality',   label: 'Offer Qual' },
+    { key: 'upsell_interested',label: 'Interested' },
+    { key: 'qa_name',          label: 'QA' }
+];
+let visibleColumns = ['eval_date','cnn','agent_name','coach','final_score','auto_failed','upsell_offer_made'];
+
+function initColumnToggles() {
+    const grid = document.getElementById('colToggleGrid');
+    if (!grid) return;
+    grid.innerHTML = ALL_COLUMNS.map(c => `
+        <label class="col-toggle">
+            <input type="checkbox" ${visibleColumns.includes(c.key)?'checked':''} onchange="toggleCol('${c.key}', this.checked)">
+            ${c.label}
+        </label>`).join('');
+}
+
+function toggleCol(key, on) {
+    if (on && !visibleColumns.includes(key)) visibleColumns.push(key);
+    if (!on) visibleColumns = visibleColumns.filter(k => k !== key);
+    renderDBTable();
+}
+
+function toggleAllCols(on) {
+    visibleColumns = on ? ALL_COLUMNS.map(c => c.key) : [];
+    initColumnToggles();
+    renderDBTable();
+}
+
+function presetCols(preset) {
+    if (preset === 'compact') visibleColumns = ['eval_date','agent_name','final_score','auto_failed'];
+    initColumnToggles();
+    renderDBTable();
+}
+
+function toggleColPanel() {
+    document.getElementById('colTogglePanel').classList.toggle('active');
+}
+
+function renderDBTable() {
+    const table = document.getElementById('dbTable');
+    if (!table) return;
+    const search = document.getElementById('dbSearch').value.toLowerCase();
+    const status = document.getElementById('dbFilterStatus').value;
+    const threshold = getPassThreshold();
+
+    let rows = evaluationsDB;
+    if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
+    if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
+    if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
+    if (search) {
+        rows = rows.filter(r => Object.values(r).some(v =>
+            v && typeof v !== 'object' && String(v).toLowerCase().includes(search)
+        ));
+    }
+    document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+
+    const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
+    if (!cols.length) { table.innerHTML = '<thead><tr><th>No columns visible</th></tr></thead>'; return; }
+
+    let html = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
+    rows.slice(0, 500).forEach((r, idx) => {
+        html += `<tr onclick="openDetailModal(${evaluationsDB.indexOf(r)})">` + cols.map(c => {
+            const val = r[c.key];
+            if (c.key === 'final_score') {
+                const pass = r.auto_failed !== "Yes" && val >= threshold;
+                return `<td><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
+            }
+            if (c.key === 'auto_failed') return `<td><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'upsell_offer_made') return `<td><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'sentiment_label') {
+                const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
+                return `<td><span class="badge ${cls}">${val}</span></td>`;
+            }
+            return `<td title="${val ?? ''}">${val ?? '—'}</td>`;
+        }).join('') + '</tr>';
+    });
+    html += '</tbody>';
+    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
+    table.innerHTML = html;
+}
+
+function openDetailModal(idx) {
+    const r = evaluationsDB[idx];
+    if (!r) return;
+    document.getElementById('modalTitle').textContent = `Evaluation · ${r.cnn} · ${r.agent_name}`;
+    const qa = r.qa_details || {};
+    const qaRows = qaQuestions.map(q => {
+        const ans = qa[`Q${q.id}_Answer`] || '—';
+        const note = qa[`Q${q.id}_Note`] || '';
+        const cls = ans === "Yes" ? 'badge-green' : ans === "No" ? 'badge-red' : 'badge-gray';
+        return `<tr><td>Q${q.id}. ${q.title}</td><td><span class="badge ${cls}">${ans}</span></td><td>${note || '—'}</td></tr>`;
+    }).join('');
+
+    const body = `
+        <div class="detail-section">
+            <div class="detail-section-title">Overview</div>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="dlabel">Date</div><div class="dvalue">${r.eval_date}</div></div>
+                <div class="detail-item"><div class="dlabel">CNN</div><div class="dvalue">${r.cnn}</div></div>
+                <div class="detail-item"><div class="dlabel">Agent</div><div class="dvalue">${r.agent_name}</div></div>
+                <div class="detail-item"><div class="dlabel">QA</div><div class="dvalue">${r.qa_name}</div></div>
+                <div class="detail-item"><div class="dlabel">Coach</div><div class="dvalue">${r.coach}</div></div>
+                <div class="detail-item"><div class="dlabel">Site</div><div class="dvalue">${r.site}</div></div>
+                <div class="detail-item"><div class="dlabel">Product</div><div class="dvalue">${r.product_type}</div></div>
+                <div class="detail-item"><div class="dlabel">Call Type</div><div class="dvalue">${r.call_type}</div></div>
+                <div class="detail-item"><div class="dlabel">Hold Time</div><div class="dvalue">${r.hold_time}s</div></div>
+                <div class="detail-item"><div class="dlabel">Final Score</div><div class="dvalue"><span class="badge ${r.final_score >= getPassThreshold() && r.auto_failed !== 'Yes' ? 'badge-green' : 'badge-red'}">${r.final_score.toFixed(1)}%</span></div></div>
+                <div class="detail-item"><div class="dlabel">Auto-Failed</div><div class="dvalue">${r.auto_failed}</div></div>
+                <div class="detail-item"><div class="dlabel">Sentiment</div><div class="dvalue">${r.sentiment_label} (${r.sentiment_compound})</div></div>
+            </div>
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-title">QA Criteria</div>
+            <table><thead><tr><th>Question</th><th>Score</th><th>Note</th></tr></thead><tbody>${qaRows}</tbody></table>
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-title">Personalization / Upsell</div>
+            <div class="detail-grid">
+                <div class="detail-item"><div class="dlabel">Offer Made</div><div class="dvalue">${r.upsell_offer_made}</div></div>
+                <div class="detail-item"><div class="dlabel">Type</div><div class="dvalue">${r.upsell_type || '—'}</div></div>
+                <div class="detail-item"><div class="dlabel">Quality</div><div class="dvalue">${r.upsell_quality || '—'}</div></div>
+                <div class="detail-item"><div class="dlabel">Customer Interested</div><div class="dvalue">${r.upsell_interested || '—'}</div></div>
+                <div class="detail-item"><div class="dlabel">Follow-through</div><div class="dvalue">${r.upsell_followup || '—'}</div></div>
+                <div class="detail-item"><div class="dlabel">Opp. Existed</div><div class="dvalue">${r.upsell_opp_existed}</div></div>
+                <div class="detail-item"><div class="dlabel">No-Offer Reason</div><div class="dvalue">${r.upsell_no_reason || '—'}</div></div>
+            </div>
+            ${r.upsell_notes ? `<div style="margin-top:12px; padding:12px; background:var(--bg-main); border-radius:6px; font-size:13px;">${r.upsell_notes}</div>` : ''}
+        </div>`;
+    document.getElementById('modalBody').innerHTML = body;
+    document.getElementById('detailModal').classList.add('active');
+}
+
+function closeDetailModal() {
+    document.getElementById('detailModal').classList.remove('active');
+}
+
+// CSV DOWNLOAD
+function downloadCSV() {
+    if (!evaluationsDB.length) { showToast("No records to export", "#FFB612"); return; }
+    // Flatten qa_details into columns
+    const flat = evaluationsDB.map(r => {
+        const row = { ...r };
+        delete row.qa_details;
+        const qa = r.qa_details || {};
+        Object.keys(qa).forEach(k => row[k] = qa[k]);
+        return row;
+    });
+    const headers = [...new Set(flat.flatMap(r => Object.keys(r)))];
+    const escape = v => {
+        if (v === null || v === undefined) return '';
+        const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
+        return s;
+    };
+    const csv = [headers.join(','), ...flat.map(r => headers.map(h => escape(r[h])).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `LG_QA_Export_${new Date().toISOString().substring(0,10)}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    showToast("✅ CSV downloaded");
+}
+
+// ============================================================
+// SAMPLE DATA — used when Supabase has no records yet so the dashboard isn't empty
+// ============================================================
+function generateSampleData() {
+    const products = ['HA - Home Appliance', 'HE - Home Entertainment', 'Other'];
+    const callTypes = ['Troubleshooting', 'Product Registration', 'Troubleshooting Leading to Repair'];
+    const offerTypes = ['LG Extended Warranty', 'Accessory', 'Water Filter', 'ThinQ Explanation'];
+    const offerQuals = ['Adding Value', 'Indifferent', 'Pushy / Sales-y'];
+    const followups = ['Properly Followed Up', 'Partially Addressed', 'Left Hanging'];
+    const noReasons = ['Call Transferred', 'Irate Customer', 'Escalation'];
+    const sentLabels = ['Positive', 'Neutral', 'Negative'];
+
+    const records = [];
+    const today = new Date();
+    for (let i = 0; i < 60; i++) {
+        const agent = roster[Math.floor(Math.random() * roster.length)];
+        const daysAgo = Math.floor(Math.random() * 90);
+        const d = new Date(today.getTime() - daysAgo * 86400000);
+        const dateStr = d.toISOString().substring(0, 10);
+
+        // Generate per-question answers (mostly pass)
+        const qa = {};
+        let score = 100;
+        qaQuestions.forEach(q => {
+            const failChance = q.id === 7 ? 0.08 : q.id >= 18 ? 0.18 : 0.1; // Q7 = resolution, mostly passes; Documentation fails more
+            const fail = Math.random() < failChance;
+            qa[`Q${q.id}_Answer`] = fail ? 'No' : 'Yes';
+            qa[`Q${q.id}_Note`] = fail ? 'Needs improvement' : '';
+            if (fail) score -= q.w;
+        });
+        const autoFailChance = 0.05;
+        const autoFailed = Math.random() < autoFailChance;
+        for (let af = 1; af <= 5; af++) qa[`AF_${af}`] = (autoFailed && af === Math.floor(Math.random()*5)+1) ? 'Yes' : 'No';
+        if (autoFailed) score = 0;
+
+        const offerMade = Math.random() < 0.7 ? 'Yes' : 'No';
+        const oppExisted = offerMade === 'No' && Math.random() < 0.3 ? 'Yes' : 'No';
+        const offerQual = offerQuals[Math.floor(Math.random()*offerQuals.length)];
+        const interested = offerMade === 'Yes' && Math.random() < 0.4 ? 'Yes' : 'No';
+        const followup = followups[Math.floor(Math.random()*followups.length)];
+
+        if (offerMade === 'Yes') {
+            if (offerQual === 'Pushy / Sales-y') score -= 5;
+            if (offerQual === 'Indifferent') score -= 3;
+            if (interested === 'Yes') {
+                if (followup === 'Left Hanging') score -= 5;
+                if (followup === 'Partially Addressed') score -= 2.5;
+            }
+        } else if (oppExisted === 'Yes') {
+            score -= 10;
+        }
+        score = Math.max(0, score);
+
+        const sentCompound = +(Math.random() * 1.6 - 0.6).toFixed(3);
+        const sentLabel = sentCompound > 0.28 ? 'Positive' : sentCompound < -0.28 ? 'Negative' : 'Neutral';
+
+        records.push({
+            eval_date: dateStr,
+            month: dateStr.substring(0,7),
+            cnn: 'CNN-' + Math.floor(100000 + Math.random()*900000),
+            qa_name: 'QA Auditor',
+            agent_name: agent.name,
+            coach: agent.coach,
+            lob: agent.lob,
+            site: agent.site,
+            product_type: products[Math.floor(Math.random()*products.length)],
+            call_type: callTypes[Math.floor(Math.random()*callTypes.length)],
+            hold_time: Math.floor(Math.random() * 240),
+            final_score: +score.toFixed(1),
+            auto_failed: autoFailed ? 'Yes' : 'No',
+            sentiment_compound: sentCompound,
+            sentiment_label: sentLabel,
+            sentiment_pos: Math.max(0, sentCompound)*100,
+            sentiment_neg: Math.max(0, -sentCompound)*100,
+            upsell_offer_made: offerMade,
+            upsell_type: offerMade === 'Yes' ? offerTypes[Math.floor(Math.random()*offerTypes.length)] : '',
+            upsell_quality: offerMade === 'Yes' ? offerQual : '',
+            upsell_opp_existed: oppExisted,
+            upsell_no_reason: offerMade === 'No' ? noReasons[Math.floor(Math.random()*noReasons.length)] : '',
+            upsell_interested: offerMade === 'Yes' ? interested : '',
+            upsell_followup: offerMade === 'Yes' && interested === 'Yes' ? followup : '',
+            upsell_notes: '',
+            qa_details: qa,
+            created_at: d.toISOString()
+        });
+    }
+    return records.map(normalizeEval);
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+async function initApp() {
+    // Try to initialize Supabase
+    try {
+        if (window.supabase && SUPABASE_URL && SUPABASE_URL.startsWith('http')) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            supabaseEnabled = true;
+        }
+    } catch (e) {
+        console.warn("Supabase init failed:", e);
+        supabaseEnabled = false;
+    }
+
+    // Load data
+    if (supabaseEnabled) {
+        try {
+            const { data: evalData, error: evalErr } = await supabaseClient
+                .from('evaluations').select('*').order('created_at', { ascending: false });
+            if (evalErr) throw evalErr;
+            evaluationsDB = (evalData || []).map(normalizeEval).filter(Boolean);
+        } catch (e) {
+            console.warn("Could not load evaluations from Supabase:", e.message);
+            evaluationsDB = [];
+        }
+        try {
+            const { data: agentData, error: agentErr } = await supabaseClient
+                .from('agents').select('*').order('name', { ascending: true });
+            if (agentErr) throw agentErr;
+            if (agentData && agentData.length) {
+                roster = agentData.map(normalizeAgent).filter(Boolean);
+            }
+        } catch (e) {
+            console.warn("Could not load agents from Supabase:", e.message);
+        }
+    }
+
+    // If empty DB and not connected to Supabase, seed with sample data so the dashboard isn't blank
+    if (!evaluationsDB.length && !supabaseEnabled) {
+        evaluationsDB = generateSampleData();
+        console.info("Using sample data — Supabase not configured.");
+    }
+
+    // Build UI
+    buildQuestionsTable();
+    populateAgentSelect();
+    populateRosterTable();
+    populateDashboardSlicers();
+    initColumnToggles();
+    document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
+    toggleUpsellFields();
+    calcScore();
+
+    // Periodic refresh from Supabase
+    if (supabaseEnabled) {
+        setInterval(async () => {
+            try {
+                const { data } = await supabaseClient.from('evaluations').select('*').order('created_at', { ascending: false });
+                if (data) {
+                    evaluationsDB = data.map(normalizeEval).filter(Boolean);
+                    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+                }
+            } catch (e) { /* silent */ }
+        }, 15000);
+    }
+}
+
+// On load — show login, focus password field
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('loginPwd').focus();
+});
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
