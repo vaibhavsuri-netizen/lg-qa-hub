@@ -1232,13 +1232,41 @@ function populateRosterTable() {
 // NAV
 // ============================================================
 function switchView(viewId, el) {
-    document.querySelectorAll('.view-section').forEach(d => d.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-    el.classList.add('active');
-    if(viewId === 'dashboard-view') updateDashboard();
-    if(viewId === 'database-view') { initColumnToggles(); renderDBTable(); }
-    if(viewId === 'roster-view') populateRosterTable();
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show the selected view
+    const targetView = document.getElementById(viewId);
+    if (targetView) {
+        targetView.classList.add('active');
+    }
+
+    // Highlight the clicked nav link
+    if (el) {
+        el.classList.add('active');
+    }
+
+    // Refresh dashboard when opening it
+    if (viewId === 'dashboard-view') {
+        updateDashboard();
+    }
+
+    // Refresh database and roster when opening those views
+    if (viewId === 'database-view') {
+        initColumnToggles();
+        renderDBTable();
+    }
+
+    if (viewId === 'roster-view') {
+        populateRosterTable();
+    }
 }
 function switchDashTab(tabId, el) {
     document.querySelectorAll('.dash-subview').forEach(d => d.classList.remove('active'));
