@@ -9,6 +9,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- Transformers.js for optional AI sentiment (loaded lazily on demand) -->
 
 <style>
     :root {
@@ -213,6 +218,34 @@
     .col-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background 0.15s; }
     .col-toggle:hover { background: var(--bg-main); }
 
+    /* CLICKABLE ELEMENTS — drill-down hints */
+    .kpi-box.clickable { cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; position: relative; }
+    .kpi-box.clickable:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+    .kpi-box.clickable::after { content: "↗"; position: absolute; top: 8px; right: 10px; font-size: 12px; opacity: 0.35; }
+    .chart-wrapper canvas { cursor: pointer; }
+    .perf-item { cursor: pointer; padding: 8px 6px; border-radius: 6px; transition: background 0.12s; }
+    .perf-item:hover { background: var(--bg-main); }
+    .perf-item .perf-expand-icon { display: inline-block; font-size: 10px; margin-right: 6px; transition: transform 0.2s; color: var(--text-muted); }
+    .perf-item.expanded .perf-expand-icon { transform: rotate(90deg); }
+    .perf-questions { margin-top: 10px; padding: 10px 14px; background: var(--bg-main); border-radius: 6px; font-size: 12px; }
+    .perf-questions table { width: 100%; }
+    .perf-questions th { font-size: 10px; color: var(--text-muted); text-align: left; font-weight: 600; }
+    .perf-questions td { padding: 4px 0; }
+    .perf-question-bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--border-light); position: relative; vertical-align: middle; width: 100px; margin-right: 8px; }
+    .perf-question-bar .fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; }
+
+    /* COMPARE LAYOUT */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .compare-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; }
+    .compare-card h4 { margin: 0 0 12px 0; color: var(--header-blue); font-size: 14px; }
+    .compare-kpi { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--bg-main); font-size: 13px; }
+    .compare-kpi .label { color: var(--text-muted); }
+    .compare-kpi .val-a { color: var(--header-blue); font-weight: 700; }
+    .compare-kpi .val-b { color: #00843D; font-weight: 700; }
+    .compare-kpi .delta { font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-left: 6px; }
+    .compare-kpi .delta.pos { background: #d4f4dd; color: #00843D; }
+    .compare-kpi .delta.neg { background: #ffe0e0; color: #C8102E; }
+
     /* MODAL */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
@@ -416,10 +449,17 @@
             </div>
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <button class="btn btn-small btn-secondary" onclick="analyzeAndApplySentiment()">🔍 Analyze Sentiment</button>
+                <select id="sentimentEngine" title="Choose analysis engine" style="padding:6px 10px; border:1px solid var(--border-medium); border-radius:6px; font-size:12px; background:white;">
+                    <option value="local" selected>⚡ Fast (local keyword + negation)</option>
+                    <option value="ai">🧠 AI (DistilBERT — better accuracy, one-time 65MB download)</option>
+                </select>
                 <div id="sentimentResult" style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-height: 32px;"></div>
             </div>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Sentiment is automatically factored into the final QA score and stored with the record.</div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+            Both engines run <strong>entirely in your browser</strong> — no text is ever sent to a server.
+            Sentiment is factored into the final QA score and stored with the record.
+        </div>
     </div>
 
     <div style="text-align:right; padding: 10px 0 30px;">
@@ -436,13 +476,28 @@
             <div style="font-size:12px; color:var(--text-muted); margin-top:2px;"><span id="filterCountLabel">0 records</span></div>
         </div>
         <div class="slicer-group">
-            <div class="slicer-item"><label>Period</label>
-                <select id="slicerPeriod" onchange="updateDashboard()">
-                    <option value="All">All Time</option><option value="ThisWeek">This Week</option>
-                    <option value="LastWeek">Last Week</option><option value="L4W">Last 4 Weeks</option>
-                    <option value="ThisMonth">This Month</option><option value="LastMonth">Last Month</option>
+            <div class="slicer-item"><label>Date Range</label>
+                <select id="slicerPeriod" onchange="onPeriodChange()">
+                    <option value="All">All Time</option>
+                    <option value="L7D">Last 7 Days</option>
+                    <option value="L30D" selected>Last 30 Days</option>
+                    <option value="L90D">Last 90 Days</option>
+                    <option value="ThisWeek">This Week</option>
+                    <option value="LastWeek">Last Week</option>
+                    <option value="L4W">Last 4 Weeks</option>
+                    <option value="ThisMonth">This Month</option>
+                    <option value="LastMonth">Last Month</option>
                     <option value="L3M">Last 3 Months</option>
+                    <option value="L6M">Last 6 Months</option>
+                    <option value="YTD">Year to Date</option>
+                    <option value="Custom">Custom Range...</option>
                 </select>
+            </div>
+            <div class="slicer-item" id="customDateFrom" style="display:none;"><label>From</label>
+                <input type="date" id="dateFrom" onchange="updateDashboard()">
+            </div>
+            <div class="slicer-item" id="customDateTo" style="display:none;"><label>To</label>
+                <input type="date" id="dateTo" onchange="updateDashboard()">
             </div>
             <div class="slicer-item"><label>Agent</label>
                 <select id="slicerAgent" onchange="updateDashboard()"><option value="All">All Agents</option></select>
@@ -479,6 +534,20 @@
         <label>Hold Time Threshold:</label>
         <input type="number" id="holdThreshold" value="120" min="0" style="width:80px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
         <span style="font-size:12px; color:var(--text-muted);">seconds</span>
+        <div class="settings-sep"></div>
+        <label>Score Target:</label>
+        <input type="number" id="scoreTarget" value="92" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <span style="font-size:12px; color:var(--text-muted);">%</span>
+        <div class="settings-sep"></div>
+        <label>Display:</label>
+        <select id="displayMode" onchange="updateDashboard()" style="padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;">
+            <option value="both" selected>Count & %</option>
+            <option value="count">Count only</option>
+            <option value="pct">% only</option>
+        </select>
+        <div class="settings-sep"></div>
+        <button class="btn btn-ghost btn-small" onclick="openCompareModal()" title="Compare two agents, coaches, or sites side by side">⚖️ Compare</button>
+        <button class="btn btn-ghost btn-small" onclick="openCoachScorecards()" title="Generate per-coach scorecards (PDF export)">📋 Coach Scorecards</button>
     </div>
 
     <div class="dash-tabs">
@@ -494,14 +563,14 @@
     <!-- OVERVIEW -->
     <div id="dash-overview" class="dash-subview active">
         <div class="kpi-row">
-            <div class="kpi-box green"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
-            <div class="kpi-box indigo"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
-            <div class="kpi-box red"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub" id="kpiAutoCount">0 cases</div></div>
-            <div class="kpi-box yellow"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub" id="kpiOfferCount">0 offers</div></div>
-            <div class="kpi-box purple"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub" id="kpiConvCount">0 wins</div></div>
-            <div class="kpi-box blue"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub" id="kpiPassCount">0/0</div></div>
-            <div class="kpi-box teal"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub" id="kpiStdDev">σ 0</div></div>
-            <div class="kpi-box orange"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub" id="kpiHoldOver">0 over threshold</div></div>
+            <div class="kpi-box green clickable" onclick="drillKPI('all')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
+            <div class="kpi-box indigo clickable" onclick="drillKPI('all')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
+            <div class="kpi-box red clickable" onclick="drillKPI('autoFail')"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub" id="kpiAutoCount">0 cases</div></div>
+            <div class="kpi-box yellow clickable" onclick="drillKPI('offered')"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub" id="kpiOfferCount">0 offers</div></div>
+            <div class="kpi-box purple clickable" onclick="drillKPI('converted')"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub" id="kpiConvCount">0 wins</div></div>
+            <div class="kpi-box blue clickable" onclick="drillKPI('passed')"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub" id="kpiPassCount">0/0</div></div>
+            <div class="kpi-box teal clickable" onclick="drillKPI('all')"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub" id="kpiStdDev">σ 0</div></div>
+            <div class="kpi-box orange clickable" onclick="drillKPI('overHold')"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub" id="kpiHoldOver">0 over threshold</div></div>
         </div>
         <div class="dash-container">
             <div class="dash-col" style="flex:1.5;">
@@ -726,12 +795,14 @@
             <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input type="text" id="dbSearch" class="search-input" placeholder="Search all fields..." oninput="renderDBTable()">
+            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="renderDBTable()">
             <select id="dbFilterStatus" onchange="renderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
             <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
+            <button class="btn btn-small" onclick="document.getElementById('importEvalFile').click()">⬆ Import CSV</button>
+            <input type="file" id="importEvalFile" accept=".csv,.json" style="display:none" onchange="importEvaluations(this.files[0])">
         </div>
     </div>
     <div class="col-toggle-panel" id="colTogglePanel">
@@ -756,6 +827,11 @@
         <div>
             <div class="page-title">👥 Agent Roster</div>
             <div class="page-subtitle"><span id="rosterCount">0 agents</span></div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-small" onclick="downloadRosterCSV()">⬇ Download CSV</button>
+            <button class="btn btn-small" onclick="document.getElementById('importRosterFile').click()">⬆ Import CSV</button>
+            <input type="file" id="importRosterFile" accept=".csv,.json" style="display:none" onchange="importRoster(this.files[0])">
         </div>
     </div>
 
@@ -858,6 +934,75 @@
             <button class="modal-close" onclick="closeDetailModal()">×</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+
+<!-- EDIT EVALUATION MODAL -->
+<div class="modal-overlay" id="editEvalModal" onclick="if(event.target===this) closeEvalEditModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">✎ Edit Evaluation</div>
+            <button class="modal-close" onclick="closeEvalEditModal()">×</button>
+        </div>
+        <div class="modal-body" id="editEvalBody"></div>
+    </div>
+</div>
+
+<!-- EDIT ROSTER MODAL -->
+<div class="modal-overlay" id="editRosterModal" onclick="if(event.target===this) closeRosterEditModal()">
+    <div class="modal-content" style="max-width:700px;">
+        <div class="modal-header">
+            <div class="modal-title">✎ Edit Agent</div>
+            <button class="modal-close" onclick="closeRosterEditModal()">×</button>
+        </div>
+        <div class="modal-body" id="editRosterBody"></div>
+    </div>
+</div>
+
+<!-- IMPORT PREVIEW MODAL -->
+<div class="modal-overlay" id="importModal" onclick="if(event.target===this) closeImportModal()">
+    <div class="modal-content" style="max-width:1100px;">
+        <div class="modal-header">
+            <div class="modal-title" id="importTitle">Import Preview</div>
+            <button class="modal-close" onclick="closeImportModal()">×</button>
+        </div>
+        <div class="modal-body" id="importBody"></div>
+    </div>
+</div>
+
+<!-- DRILL-DOWN MODAL (shared by KPI cards, charts, and section expand) -->
+<div class="modal-overlay" id="drillModal" onclick="if(event.target===this) closeDrillModal()">
+    <div class="modal-content" style="max-width:1200px;">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="drillTitle">Drill-Down</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;" id="drillSubtitle"></div>
+            </div>
+            <button class="modal-close" onclick="closeDrillModal()">×</button>
+        </div>
+        <div class="modal-body" id="drillBody"></div>
+    </div>
+</div>
+
+<!-- COMPARE MODAL -->
+<div class="modal-overlay" id="compareModal" onclick="if(event.target===this) closeCompareModal()">
+    <div class="modal-content" style="max-width:1200px;">
+        <div class="modal-header">
+            <div class="modal-title">⚖️ Compare</div>
+            <button class="modal-close" onclick="closeCompareModal()">×</button>
+        </div>
+        <div class="modal-body" id="compareBody"></div>
+    </div>
+</div>
+
+<!-- COACH SCORECARDS MODAL -->
+<div class="modal-overlay" id="scorecardModal" onclick="if(event.target===this) closeCoachScorecards()">
+    <div class="modal-content" style="max-width:1200px;">
+        <div class="modal-header">
+            <div class="modal-title">📋 Coach Scorecards</div>
+            <button class="modal-close" onclick="closeCoachScorecards()">×</button>
+        </div>
+        <div class="modal-body" id="scorecardBody"></div>
     </div>
 </div>
 
@@ -1138,64 +1283,280 @@ function getHoldThreshold() {
 // ============================================================
 // SENTIMENT
 // ============================================================
-function analyzeCustomerSentiment(text) {
+// ============================================================
+// SENTIMENT ANALYSIS — two engines, both privacy-preserving
+//   1. LOCAL (default): improved AFINN-style keyword scorer with negation,
+//      intensifiers, diminishers, and bigram detection. Instant, ~0KB extra.
+//   2. AI (optional): DistilBERT via Transformers.js, runs entirely in the
+//      user's browser via WebAssembly/WebGPU. No data leaves the device.
+// Both return the same shape: { compound, label, pos, neg, neu }
+// ============================================================
+
+// --- AFINN-style wordlist (a curated subset, scores -5 to +5). The full
+//     AFINN-165 is ~2.5K words; this is a focused list relevant to customer
+//     support / call-center conversations. Trims dataset size while keeping
+//     the most common valence-bearing words.
+const SENTIMENT_LEXICON = {
+    // strong positive (+4 to +5)
+    'excellent': 4, 'amazing': 4, 'fantastic': 4, 'wonderful': 4, 'perfect': 4,
+    'outstanding': 4, 'superb': 4, 'brilliant': 4, 'awesome': 4, 'phenomenal': 4,
+    'love': 3, 'loved': 3, 'lovely': 3, 'incredible': 4, 'exceptional': 4,
+    // mid positive (+2 to +3)
+    'great': 3, 'good': 2, 'happy': 3, 'pleased': 3, 'satisfied': 3,
+    'helpful': 3, 'friendly': 2, 'professional': 2, 'patient': 2, 'kind': 2,
+    'easy': 2, 'quick': 2, 'fast': 2, 'efficient': 3, 'resolved': 3,
+    'thank': 2, 'thanks': 2, 'appreciate': 3, 'appreciated': 3, 'grateful': 3,
+    'fixed': 2, 'solved': 3, 'works': 2, 'working': 2, 'wonderful': 3,
+    'comfortable': 2, 'smooth': 2, 'clear': 2, 'understand': 1, 'understood': 2,
+    'recommend': 3, 'best': 3, 'better': 2, 'nice': 2, 'glad': 2, 'enjoy': 2,
+    'success': 2, 'successful': 3, 'reliable': 3, 'trustworthy': 3,
+    // weak positive (+1)
+    'okay': 1, 'ok': 1, 'fine': 1, 'alright': 1, 'decent': 1, 'satisfactory': 1,
+    'acceptable': 1, 'pleasant': 1, 'cool': 1, 'liked': 1, 'like': 1,
+    // weak negative (-1 to -2)
+    'issue': -1, 'problem': -1, 'concern': -1, 'difficulty': -1, 'trouble': -1,
+    'wait': -1, 'waited': -1, 'waiting': -1, 'delay': -2, 'delayed': -2,
+    'confused': -2, 'confusing': -2, 'slow': -2, 'difficult': -2, 'hard': -1,
+    'unable': -2, 'cannot': -1, 'cant': -1, 'unclear': -2, 'mistake': -2,
+    'wrong': -2, 'fault': -2, 'error': -2, 'broken': -3, 'damaged': -3,
+    // mid negative (-3 to -4)
+    'bad': -3, 'poor': -3, 'unhappy': -3, 'unhelpful': -3, 'unsatisfied': -3,
+    'disappointed': -3, 'disappointing': -3, 'frustrated': -3, 'frustrating': -3,
+    'annoyed': -3, 'annoying': -3, 'rude': -4, 'unprofessional': -4,
+    'upset': -3, 'angry': -4, 'mad': -3, 'irritated': -3, 'irritating': -3,
+    'waste': -3, 'wasted': -3, 'useless': -4, 'pointless': -3, 'fail': -3,
+    'failed': -3, 'failure': -3, 'refund': -2, 'escalate': -2, 'escalation': -2,
+    'complaint': -2, 'complain': -2, 'complained': -2,
+    // strong negative (-5)
+    'terrible': -5, 'horrible': -5, 'awful': -5, 'worst': -5, 'horrendous': -5,
+    'disgusting': -5, 'unacceptable': -5, 'outrageous': -4, 'appalling': -5,
+    'pathetic': -4, 'incompetent': -4, 'hate': -4, 'hated': -4, 'nightmare': -4,
+    'never': -1, 'nothing': -1
+};
+
+// Common bigrams that have meaning beyond their parts ("not bad" is positive)
+const SENTIMENT_BIGRAMS = {
+    'not bad': 2, 'not good': -2, 'not great': -2, 'not happy': -3,
+    'not satisfied': -3, 'not helpful': -3, 'not working': -3, 'not resolved': -3,
+    'no good': -2, 'no problem': 1, 'no issue': 1, 'no issues': 1,
+    'thank you': 2, 'well done': 3, 'great job': 4, 'really good': 3,
+    'really bad': -4, 'really helpful': 4, 'really frustrating': -4,
+    'much better': 3, 'much worse': -3, 'far better': 3, 'far worse': -3,
+    'short sighted': -2, 'cool stuff': 2
+};
+
+const NEGATIONS = new Set(['not','no','never','none','nothing','nobody',"isn't","wasn't","aren't","weren't","don't","doesn't","didn't","can't","cannot","won't","wouldn't","shouldn't","couldn't","haven't","hasn't","hadn't"]);
+const INTENSIFIERS = new Set(['very','really','extremely','so','too','highly','incredibly','absolutely','completely','totally','utterly','quite','super','exceptionally']);
+const DIMINISHERS = new Set(['slightly','somewhat','barely','hardly','kind of','sort of','little','bit','rather','fairly','mildly']);
+
+// Strip plain punctuation but keep contractions intact
+function _normalizeToken(t) { return t.toLowerCase().replace(/^[^\w']+|[^\w']+$/g, ''); }
+
+/**
+ * IMPROVED LOCAL SENTIMENT SCORER
+ * Returns { compound: -1..1, label, pos, neg, neu, hits[] }
+ * - Negation: a negator within 3 tokens flips the next valence word's sign
+ * - Intensifiers boost by 1.5x; diminishers by 0.5x
+ * - Bigrams checked first (so "not bad" doesn't naively count as negative)
+ */
+function analyzeCustomerSentimentLocal(text) {
     if (!text || text.trim().length < 3) {
-        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100, engine: 'local', hits: [] };
     }
-    const positive = ['good','great','excellent','happy','satisfied','thank','appreciate','resolved','helpful','perfect','love','amazing','quick','easy','professional','friendly','patient'];
-    const negative = ['bad','terrible','frustrated','angry','upset','horrible','worst','refund','escalate','disappointed','slow','rude','unhelpful','issue','problem','waste','confused','annoyed'];
-    const intensifiers = ['very','really','extremely','so','too','highly','incredibly'];
-    const words = text.toLowerCase().split(/\s+/);
+    // Normalize whitespace
+    const cleaned = text.toLowerCase().replace(/[^a-z0-9'\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+    const tokens = cleaned.split(' ').map(_normalizeToken).filter(Boolean);
+
+    // First pass: catch bigrams. Mark consumed positions so we don't double-count.
+    const consumed = new Array(tokens.length).fill(false);
+    const hits = [];
     let posScore = 0, negScore = 0;
-    for (let i = 0; i < words.length; i++) {
-        const w = words[i].replace(/[^a-z]/g, '');
-        let mult = 1;
-        if (i > 0 && intensifiers.includes(words[i-1])) mult = 1.7;
-        if (positive.includes(w)) posScore += mult;
-        if (negative.includes(w)) negScore += mult;
+
+    for (let i = 0; i < tokens.length - 1; i++) {
+        const bg = tokens[i] + ' ' + tokens[i+1];
+        if (SENTIMENT_BIGRAMS[bg] !== undefined) {
+            const s = SENTIMENT_BIGRAMS[bg];
+            if (s > 0) posScore += s; else negScore += -s;
+            hits.push({ token: bg, score: s, type: 'bigram' });
+            consumed[i] = true; consumed[i+1] = true;
+        }
     }
-    const total = words.length || 1;
-    const compound = Math.max(-1, Math.min(1, (posScore - negScore) / total * 2.8));
+
+    // Second pass: single-word valence with negation + intensifier/diminisher within a 3-token window
+    for (let i = 0; i < tokens.length; i++) {
+        if (consumed[i]) continue;
+        const w = tokens[i];
+        let s = SENTIMENT_LEXICON[w];
+        if (s === undefined) continue;
+
+        // Check for negation in the 3 tokens prior
+        let negated = false, multiplier = 1;
+        for (let j = Math.max(0, i-3); j < i; j++) {
+            if (NEGATIONS.has(tokens[j])) negated = true;
+            if (INTENSIFIERS.has(tokens[j])) multiplier *= 1.5;
+            if (DIMINISHERS.has(tokens[j])) multiplier *= 0.5;
+        }
+        let final = s * multiplier;
+        if (negated) final = -final * 0.8;   // negation flips polarity, slightly damped
+
+        if (final > 0) posScore += final; else negScore += -final;
+        hits.push({ token: w, score: +final.toFixed(2), type: negated ? 'negated' : 'word' });
+    }
+
+    // Normalize. Compound mirrors VADER's [-1, 1] range using a saturation curve.
+    const raw = posScore - negScore;
+    const compound = raw === 0 ? 0 : raw / Math.sqrt(raw*raw + 15);   // sigmoid-ish curve
+    const totalTokens = Math.max(tokens.length, 1);
+    const pos = +((posScore / totalTokens) * 100).toFixed(1);
+    const neg = +((negScore / totalTokens) * 100).toFixed(1);
+    const neu = +Math.max(0, 100 - pos - neg).toFixed(1);
     let label = "Neutral";
-    if (compound > 0.28) label = "Positive";
-    else if (compound < -0.28) label = "Negative";
+    if (compound >  0.28) label = "Positive";
+    if (compound < -0.28) label = "Negative";
     return {
-        compound: parseFloat(compound.toFixed(3)),
-        label,
-        pos: parseFloat(((posScore / total) * 100).toFixed(1)) || 0,
-        neg: parseFloat(((negScore / total) * 100).toFixed(1)) || 0,
-        neu: parseFloat(Math.max(0, (100 - ((posScore + negScore) / total * 100))).toFixed(1)) || 100
+        compound: +compound.toFixed(3),
+        label, pos, neg, neu,
+        engine: 'local',
+        hits
     };
+}
+
+// --- AI engine state (lazy) ---
+let _aiClassifier = null;       // resolved Transformers.js pipeline (singleton)
+let _aiLoadingPromise = null;   // dedupe concurrent loads
+let _aiAvailable = null;        // null = not tried yet, true/false after attempt
+
+// Load Transformers.js + DistilBERT model on demand. Returns the pipeline or throws.
+async function ensureAIClassifier(onProgress) {
+    if (_aiClassifier) return _aiClassifier;
+    if (_aiLoadingPromise) return _aiLoadingPromise;
+
+    _aiLoadingPromise = (async () => {
+        try {
+            // Dynamic import — only fetches Transformers.js if user opts in
+            const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0');
+            // Use the CDN-hosted model files (~65MB, cached after first download)
+            env.allowLocalModels = false;
+            env.useBrowserCache = true;
+            _aiClassifier = await pipeline(
+                'sentiment-analysis',
+                'Xenova/distilbert-base-uncased-finetuned-sst-2-english',
+                {
+                    progress_callback: (p) => {
+                        // p has { status, name, file, progress, loaded, total }
+                        if (onProgress) onProgress(p);
+                    }
+                }
+            );
+            _aiAvailable = true;
+            return _aiClassifier;
+        } catch (e) {
+            _aiAvailable = false;
+            _aiLoadingPromise = null;
+            throw e;
+        }
+    })();
+    return _aiLoadingPromise;
+}
+
+// AI sentiment via DistilBERT. Returns the same shape as the local scorer.
+async function analyzeCustomerSentimentAI(text, onProgress) {
+    if (!text || text.trim().length < 3) {
+        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100, engine: 'ai' };
+    }
+    const classifier = await ensureAIClassifier(onProgress);
+    // DistilBERT-SST2 returns { label: 'POSITIVE'|'NEGATIVE', score: 0..1 }
+    const out = await classifier(text);
+    const result = Array.isArray(out) ? out[0] : out;
+    const isPos = result.label === 'POSITIVE';
+    // Map confidence to a -1..1 compound score. Sign from label, magnitude from confidence.
+    // Confidence below 0.6 -> neutral-ish; above 0.9 -> strong.
+    const conf = Math.max(0, Math.min(1, result.score));
+    const compound = (isPos ? 1 : -1) * (conf * 2 - 1);   // 0.5→0, 0.75→0.5, 1.0→1.0
+    let label = "Neutral";
+    if (compound >  0.28) label = "Positive";
+    if (compound < -0.28) label = "Negative";
+    return {
+        compound: +compound.toFixed(3),
+        label,
+        pos: isPos ? +(conf*100).toFixed(1) : +((1-conf)*100).toFixed(1),
+        neg: isPos ? +((1-conf)*100).toFixed(1) : +(conf*100).toFixed(1),
+        neu: +(Math.max(0, 1 - Math.abs(compound))*100).toFixed(1),
+        engine: 'ai',
+        rawLabel: result.label,
+        confidence: +conf.toFixed(3)
+    };
+}
+
+// Router: picks the engine based on the UI toggle. Always falls back to local.
+async function analyzeCustomerSentiment(text) {
+    const mode = document.getElementById('sentimentEngine')?.value || 'local';
+    if (mode === 'ai') {
+        try {
+            return await analyzeCustomerSentimentAI(text, (p) => {
+                // Surface model-download progress in the UI
+                if (p.status === 'progress' && p.total) {
+                    const pct = Math.round((p.loaded / p.total) * 100);
+                    const el = document.getElementById('sentimentResult');
+                    if (el) el.innerHTML = `<span style="font-size:11px; color:#666;">📥 Downloading AI model: ${pct}% (one-time, ~65MB)</span>`;
+                } else if (p.status === 'ready') {
+                    showToast("✓ AI sentiment model ready");
+                }
+            });
+        } catch (e) {
+            console.warn("AI sentiment failed, falling back to local:", e);
+            showToast("AI model unavailable — using local scorer", "#FFB612");
+            return analyzeCustomerSentimentLocal(text);
+        }
+    }
+    return analyzeCustomerSentimentLocal(text);
 }
 
 function updateSentimentDisplay() {
     const text = document.getElementById('sentimentText').value;
-    currentSentiment = analyzeCustomerSentiment(text);
+    // Always render via the local scorer instantly for "typing" feedback.
+    // The "Analyze Sentiment" button is what triggers the AI path explicitly.
+    currentSentiment = analyzeCustomerSentimentLocal(text);
+    renderSentimentBadge(currentSentiment);
+}
+
+function renderSentimentBadge(res) {
     const container = document.getElementById('sentimentResult');
-    const res = currentSentiment;
+    if (!container) return;
     const color = res.label === "Positive" ? "#00843D" : (res.label === "Negative" ? "#C8102E" : "#FFB612");
     const emoji = res.label === "Positive" ? "😊" : (res.label === "Negative" ? "😠" : "😐");
+    const engineBadge = res.engine === 'ai'
+        ? '<span style="background:#8b5cf6; color:white; padding:2px 6px; border-radius:9999px; font-size:9px; font-weight:700; margin-left:4px;">🧠 AI</span>'
+        : '';
     container.innerHTML = `
         <span style="background:${color}; color:white; padding:3px 9px; border-radius:9999px; font-size:11px; font-weight:700;">${emoji} ${res.label}</span>
         <span style="font-size:16px; font-weight:800; color:${color};">${res.compound}</span>
         <span style="font-size:10.5px; color:#6b7785;">pos ${res.pos}% / neg ${res.neg}%</span>
+        ${engineBadge}
     `;
 }
 
-function analyzeAndApplySentiment() {
+async function analyzeAndApplySentiment() {
     const text = document.getElementById('sentimentText').value.trim();
     if (!text) { showToast("Please enter feedback text first", "#FFB612"); return; }
-    updateSentimentDisplay();
-    if (currentSentiment.compound > 0.5 && currentNumericalScore < 95) {
-        currentNumericalScore = Math.min(100, currentNumericalScore + 4);
-        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
-        showToast("Positive sentiment boosted score +4%");
-    } else if (currentSentiment.compound < -0.5 && currentNumericalScore > 20) {
-        currentNumericalScore = Math.max(0, currentNumericalScore - 4);
-        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
-        showToast("Negative sentiment adjusted score -4%", "#FFB612");
-    } else {
-        showToast("Sentiment recorded", "#0056b3");
+    const btn = document.querySelector('button[onclick="analyzeAndApplySentiment()"]');
+    if (btn) { btn.disabled = true; btn.textContent = "🔍 Analyzing..."; }
+    try {
+        currentSentiment = await analyzeCustomerSentiment(text);
+        renderSentimentBadge(currentSentiment);
+        if (currentSentiment.compound > 0.5 && currentNumericalScore < 95) {
+            currentNumericalScore = Math.min(100, currentNumericalScore + 4);
+            document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+            showToast("Positive sentiment boosted score +4%");
+        } else if (currentSentiment.compound < -0.5 && currentNumericalScore > 20) {
+            currentNumericalScore = Math.max(0, currentNumericalScore - 4);
+            document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+            showToast("Negative sentiment adjusted score -4%", "#FFB612");
+        } else {
+            showToast("Sentiment recorded", "#0056b3");
+        }
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "🔍 Analyze Sentiment"; }
     }
 }
 
@@ -1293,6 +1654,7 @@ function populateRosterTable() {
             <td><span class="badge ${statusBadge}">${agent.status || 'Active'}</span></td>
             <td>${auditsByAgent[agent.name] || 0}</td>
             <td>
+                <button class="btn btn-ghost btn-small" onclick="openRosterEditModal(${idx})" title="Edit">✎</button>
                 <button class="btn btn-ghost btn-small" onclick="removeAgent(${idx})" title="Remove">✕</button>
             </td>`;
         tbody.appendChild(row);
@@ -1501,7 +1863,8 @@ async function saveEvaluation() {
         metadata: {
             saved_from: "LG QA Hub",
             saved_at:   new Date().toISOString(),
-            agent_id:   sel.value
+            agent_id:   sel.value,
+            sentiment_engine: currentSentiment.engine || 'local'
         }
     };
 
@@ -1619,12 +1982,22 @@ function getFilteredData() {
     startOfWeek.setHours(0,0,0,0);
     const lastWeekStart = new Date(startOfWeek.getTime() - 7*day);
 
+    // Custom date range bounds
+    const customFromEl = document.getElementById('dateFrom');
+    const customToEl   = document.getElementById('dateTo');
+    const customFrom = (period === "Custom" && customFromEl && customFromEl.value) ? new Date(customFromEl.value) : null;
+    const customTo   = (period === "Custom" && customToEl   && customToEl.value)   ? new Date(customToEl.value)   : null;
+    if (customTo) customTo.setHours(23,59,59,999);
+
     return evaluationsDB.filter(e => {
         if (!e.eval_date) return false;
         const d = new Date(e.eval_date);
         if (isNaN(d)) return false;
 
-        if (period === "ThisWeek"  && d < startOfWeek) return false;
+        if (period === "L7D"       && (now - d) > 7*day)  return false;
+        if (period === "L30D"      && (now - d) > 30*day) return false;
+        if (period === "L90D"      && (now - d) > 90*day) return false;
+        if (period === "ThisWeek"  && d < startOfWeek)    return false;
         if (period === "LastWeek"  && (d < lastWeekStart || d >= startOfWeek)) return false;
         if (period === "L4W"       && (now - d) > 28*day) return false;
         if (period === "ThisMonth" && (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth())) return false;
@@ -1632,7 +2005,13 @@ function getFilteredData() {
             const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
             if (d.getFullYear() !== lm.getFullYear() || d.getMonth() !== lm.getMonth()) return false;
         }
-        if (period === "L3M" && (now - d) > 90*day) return false;
+        if (period === "L3M" && (now - d) > 90*day)  return false;
+        if (period === "L6M" && (now - d) > 180*day) return false;
+        if (period === "YTD" && d.getFullYear() !== now.getFullYear()) return false;
+        if (period === "Custom") {
+            if (customFrom && d < customFrom) return false;
+            if (customTo   && d > customTo)   return false;
+        }
 
         if (agent   !== "All" && e.agent_name   !== agent)   return false;
         if (coach   !== "All" && e.coach        !== coach)   return false;
@@ -1648,9 +2027,56 @@ function getFilteredData() {
     });
 }
 
+// Show/hide custom date inputs when "Custom" is selected
+function onPeriodChange() {
+    const p = document.getElementById('slicerPeriod').value;
+    document.getElementById('customDateFrom').style.display = (p === 'Custom') ? '' : 'none';
+    document.getElementById('customDateTo').style.display   = (p === 'Custom') ? '' : 'none';
+    // Auto-fill custom dates with sensible defaults the first time
+    if (p === 'Custom') {
+        const from = document.getElementById('dateFrom');
+        const to   = document.getElementById('dateTo');
+        if (!from.value) {
+            const d = new Date(); d.setDate(d.getDate() - 30);
+            from.value = d.toISOString().substring(0, 10);
+        }
+        if (!to.value) {
+            to.value = new Date().toISOString().substring(0, 10);
+        }
+    }
+    updateDashboard();
+}
+
+// Display-mode helpers — render count, %, or both based on the user's choice
+function getDisplayMode() {
+    return document.getElementById('displayMode')?.value || 'both';
+}
+function fmtCountPct(count, total) {
+    const mode = getDisplayMode();
+    const pct = total ? (count/total*100) : 0;
+    if (mode === 'count') return String(count);
+    if (mode === 'pct')   return pct.toFixed(1) + '%';
+    return `${count} (${pct.toFixed(1)}%)`;
+}
+function fmtRatio(count, total) {
+    // For KPIs where the "main" number is a percentage but we want to expose count too
+    const mode = getDisplayMode();
+    const pct = total ? (count/total*100) : 0;
+    if (mode === 'count') return String(count);
+    if (mode === 'pct')   return pct.toFixed(1) + '%';
+    return pct.toFixed(1) + '%';   // both → leave pct on top, count goes in subtitle elsewhere
+}
+function getScoreTarget() {
+    const v = parseFloat(document.getElementById('scoreTarget')?.value);
+    return isFinite(v) ? v : 92;
+}
+
 function resetFilters() {
-    ['slicerPeriod','slicerAgent','slicerCoach','slicerLOB','slicerProduct','slicerSite','slicerStatus']
+    document.getElementById('slicerPeriod').value = 'L30D';
+    ['slicerAgent','slicerCoach','slicerLOB','slicerProduct','slicerSite','slicerStatus']
         .forEach(id => document.getElementById(id).value = 'All');
+    document.getElementById('customDateFrom').style.display = 'none';
+    document.getElementById('customDateTo').style.display   = 'none';
     updateDashboard();
 }
 
@@ -1726,20 +2152,34 @@ function renderOverview(data, threshold, holdThr) {
     const avgHold = holdTimes.length ? holdTimes.reduce((s,h) => s+h, 0) / holdTimes.length : 0;
     const overHold = data.filter(r => r.hold_time > holdThr).length;
 
+    const mode = getDisplayMode();
     document.getElementById('kpiAvgScore').textContent = avg.toFixed(1) + '%';
     document.getElementById('kpiTotal').textContent = total;
-    document.getElementById('kpiAuto').textContent = total ? ((autoFails/total)*100).toFixed(1)+'%' : '0%';
-    document.getElementById('kpiAutoCount').textContent = `${autoFails} cases`;
-    document.getElementById('kpiOffer').textContent = total ? ((offers/total)*100).toFixed(1)+'%' : '0%';
-    document.getElementById('kpiOfferCount').textContent = `${offers} offers`;
-    document.getElementById('kpiConv').textContent = offers ? ((convs/offers)*100).toFixed(1)+'%' : '0%';
-    document.getElementById('kpiConvCount').textContent = `${convs} wins`;
-    document.getElementById('kpiPass').textContent = total ? ((passed/total)*100).toFixed(1)+'%' : '0%';
-    document.getElementById('kpiPassCount').textContent = `${passed}/${total}`;
+    document.getElementById('kpiAuto').textContent =
+        mode === 'count' ? String(autoFails) :
+        total ? ((autoFails/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiAutoCount').textContent =
+        mode === 'pct' ? `${total ? ((autoFails/total)*100).toFixed(1) : 0}% rate` : `${autoFails} case${autoFails===1?'':'s'}`;
+    document.getElementById('kpiOffer').textContent =
+        mode === 'count' ? String(offers) :
+        total ? ((offers/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiOfferCount').textContent =
+        mode === 'pct' ? `${total ? ((offers/total)*100).toFixed(1) : 0}% rate` : `${offers} offer${offers===1?'':'s'}`;
+    document.getElementById('kpiConv').textContent =
+        mode === 'count' ? String(convs) :
+        offers ? ((convs/offers)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiConvCount').textContent =
+        mode === 'pct' ? `${offers ? ((convs/offers)*100).toFixed(1) : 0}% of offers` : `${convs} win${convs===1?'':'s'}`;
+    document.getElementById('kpiPass').textContent =
+        mode === 'count' ? String(passed) :
+        total ? ((passed/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('kpiPassCount').textContent =
+        mode === 'pct' ? `${total ? ((passed/total)*100).toFixed(1) : 0}% rate` : `${passed}/${total}`;
     document.getElementById('kpiMedian').textContent = median.toFixed(1) + '%';
     document.getElementById('kpiStdDev').textContent = `σ ${stddev.toFixed(1)}`;
     document.getElementById('kpiHoldTime').textContent = Math.round(avgHold) + 's';
-    document.getElementById('kpiHoldOver').textContent = `${overHold} over threshold`;
+    document.getElementById('kpiHoldOver').textContent =
+        mode === 'pct' ? `${total ? ((overHold/total)*100).toFixed(1) : 0}% over threshold` : `${overHold} over threshold`;
 
     // TREND CHART (monthly)
     const byMonth = {};
@@ -1752,6 +2192,7 @@ function renderOverview(data, threshold, holdThr) {
         if (r.auto_failed === "Yes") byMonth[m].autoFails++;
     });
     const months = Object.keys(byMonth).sort();
+    const targetScore = getScoreTarget();
     makeChart('trendChart', {
         type: 'line',
         data: {
@@ -1763,9 +2204,30 @@ function renderOverview(data, threshold, holdThr) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const monthLabel = months[els[0].index];
+                const monthData = data.filter(r => (r.month || r.eval_date?.substring(0,7)) === monthLabel);
+                openDrillModal(`Records for ${monthLabel}`, `${monthData.length} record${monthData.length===1?'':'s'}`, monthData);
+            },
             scales: {
                 y: { position: 'left', min: 0, max: 100, title: { display: true, text: 'Avg Score %' } },
                 y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %' } }
+            },
+            plugins: {
+                annotation: {
+                    annotations: {
+                        target: {
+                            type: 'line',
+                            yMin: targetScore, yMax: targetScore,
+                            yScaleID: 'y',
+                            borderColor: CHART_COLORS.green,
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            label: { display: true, content: `Target ${targetScore}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 10 }, padding: 4 }
+                        }
+                    }
+                }
             }
         }
     });
@@ -1813,7 +2275,19 @@ function renderOverview(data, threshold, holdThr) {
                 backgroundColor: [CHART_COLORS.red, '#e62a4a', CHART_COLORS.yellow, CHART_COLORS.cyan, CHART_COLORS.green]
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const i = els[0].index;
+                const ranges = [[0,60],[60,70],[70,80],[80,90],[90,101]];
+                const [lo, hi] = ranges[i];
+                const subset = data.filter(r => r.final_score >= lo && r.final_score < hi);
+                const labels = ['<60%','60–69%','70–79%','80–89%','90–100%'];
+                openDrillModal(`Score range: ${labels[i]}`, `${subset.length} record${subset.length===1?'':'s'}`, subset);
+            }
+        }
     });
 
     // SECTION STRIP
@@ -1841,16 +2315,98 @@ function renderSectionStrip(data) {
     const items = SECTIONS.map(s => {
         const st = sectionStats[s];
         const pct = st.total ? (st.passed/st.total*100) : 0;
-        return { section: s, pct };
+        return { section: s, pct, passed: st.passed, total: st.total };
     }).sort((a,b) => a.pct - b.pct);
     strip.innerHTML = items.map(it => {
         const color = it.pct >= 90 ? CHART_COLORS.green : it.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
-        return `<div class="perf-item">
-            <div class="perf-label">${it.section}</div>
-            <div class="perf-bar-wrap"><div class="perf-bar" style="width:${it.pct}%; background:${color};">${it.pct >= 15 ? it.pct.toFixed(0)+'%' : ''}</div></div>
-            <div class="perf-value">${it.pct.toFixed(1)}%</div>
-        </div>`;
+        const safe = it.section.replace(/[^a-z0-9]/gi, '_');
+        const valDisplay = getDisplayMode() === 'count' ? `${it.passed}/${it.total}` :
+                           getDisplayMode() === 'pct'   ? `${it.pct.toFixed(1)}%` :
+                                                          `${it.pct.toFixed(1)}% (${it.passed}/${it.total})`;
+        return `
+            <div class="perf-item" id="perf-${safe}" onclick="toggleSectionExpand('${safe}', '${it.section.replace(/'/g,"&#39;")}')">
+                <div style="display:flex; align-items:center;">
+                    <span class="perf-expand-icon">▶</span>
+                    <div class="perf-label" style="flex:1;">${it.section}</div>
+                    <div class="perf-value">${valDisplay}</div>
+                </div>
+                <div class="perf-bar-wrap" style="margin-top:6px;"><div class="perf-bar" style="width:${it.pct}%; background:${color};">${it.pct >= 15 ? it.pct.toFixed(0)+'%' : ''}</div></div>
+                <div class="perf-questions" id="perf-q-${safe}" style="display:none;"></div>
+            </div>`;
     }).join('');
+}
+
+// Expand/collapse a section to show its individual questions
+function toggleSectionExpand(safeId, sectionName) {
+    const item = document.getElementById(`perf-${safeId}`);
+    const inner = document.getElementById(`perf-q-${safeId}`);
+    if (!item || !inner) return;
+    const isOpen = item.classList.contains('expanded');
+    // Close any other open sections first (only one at a time)
+    document.querySelectorAll('.perf-item.expanded').forEach(el => {
+        el.classList.remove('expanded');
+        const id = el.id.replace('perf-', '');
+        const inn = document.getElementById(`perf-q-${id}`);
+        if (inn) inn.style.display = 'none';
+    });
+    if (!isOpen) {
+        item.classList.add('expanded');
+        inner.style.display = '';
+        inner.innerHTML = buildSectionQuestionsHtml(sectionName);
+    }
+    // Prevent the click from bubbling to anything else
+    if (event) event.stopPropagation();
+}
+
+function buildSectionQuestionsHtml(sectionName) {
+    const data = getFilteredData();
+    const qs = qaQuestions.filter(q => q.section === sectionName);
+    const rows = qs.map(q => {
+        let total = 0, passed = 0;
+        const failingCNNs = [];
+        data.forEach(r => {
+            const ans = r.qa_details?.[`Q${q.id}_Answer`];
+            if (ans !== undefined && ans !== null) {
+                total++;
+                if (ans === "Yes") passed++;
+                else failingCNNs.push(r);
+            }
+        });
+        const pct = total ? (passed/total*100) : 0;
+        const color = pct >= 90 ? CHART_COLORS.green : pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
+        const display = getDisplayMode() === 'count' ? `${passed}/${total}` :
+                        getDisplayMode() === 'pct'   ? `${pct.toFixed(1)}%` :
+                                                       `${passed}/${total} · ${pct.toFixed(1)}%`;
+        // top-3 failing agents on this question
+        const agentFails = {};
+        failingCNNs.forEach(r => { agentFails[r.agent_name] = (agentFails[r.agent_name]||0)+1; });
+        const topAgents = Object.entries(agentFails).sort((a,b)=>b[1]-a[1]).slice(0,3)
+                              .map(([n,c]) => `${n} (${c})`).join(', ') || '—';
+        return `
+            <tr>
+                <td style="vertical-align:top; padding-right:10px;">
+                    <strong style="color:var(--header-blue);">Q${q.id}.</strong> ${q.title}
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Weight: ${q.w}% · Top failing: ${topAgents}</div>
+                </td>
+                <td style="white-space:nowrap; text-align:right; vertical-align:top;">
+                    <span class="perf-question-bar"><span class="fill" style="width:${pct}%; background:${color};"></span></span>
+                    <strong>${display}</strong>
+                    <button class="btn btn-ghost btn-small" style="margin-left:8px; padding:2px 6px; font-size:10px;"
+                            onclick="event.stopPropagation(); openDrillModal('Q${q.id} fails: ${q.title.replace(/'/g,'&#39;')}', '${failingCNNs.length} record${failingCNNs.length===1?'':'s'}', window.__lastDrillData_q${q.id} || [])">
+                        🔍 View ${failingCNNs.length} fails
+                    </button>
+                </td>
+            </tr>`;
+    }).join('');
+    // Stash failing-row sets so the inline buttons can read them without re-computing
+    qs.forEach(q => {
+        const fails = data.filter(r => r.qa_details?.[`Q${q.id}_Answer`] === 'No');
+        window[`__lastDrillData_q${q.id}`] = fails;
+    });
+    return `<table>
+        <thead><tr><th>Question</th><th style="text-align:right;">Pass Rate</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ---- TRENDS ----
@@ -1986,7 +2542,19 @@ function renderQADeepDive(data) {
     makeChart('sectionBarChart', {
         type: 'bar',
         data: { labels: sectionLabels, datasets: [{ label: 'Pass %', data: sectionPass, backgroundColor: sectionPass.map(p => p >= 90 ? CHART_COLORS.green : p >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red) }] },
-        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            scales: { x: { min: 0, max: 100 } },
+            plugins: { legend: { display: false } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const section = sectionLabels[els[0].index];
+                const sectionQs = qaQuestions.filter(q => q.section === section).map(q => q.id);
+                // Records where ANY question in this section failed
+                const subset = data.filter(r => sectionQs.some(qid => r.qa_details?.[`Q${qid}_Answer`] === 'No'));
+                openDrillModal(`Failing calls in "${section}"`, `${subset.length} record${subset.length===1?'':'s'} had at least one failure in this section`, subset);
+            }
+        }
     });
 
     // Pareto — top defects
@@ -2015,7 +2583,13 @@ function renderQADeepDive(data) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: { y: { position: 'left' }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } }
+            scales: { y: { position: 'left' }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } },
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const d = defects[els[0].index];
+                const subset = data.filter(r => r.qa_details?.[`Q${d.id}_Answer`] === 'No');
+                openDrillModal(`Q${d.id} fails: ${d.title}`, `${subset.length} record${subset.length===1?'':'s'} failed this question (weight ${d.weight}%)`, subset);
+            }
         }
     });
 
@@ -2152,6 +2726,7 @@ function renderAgents(data, threshold) {
         sentiment: a.sent.length ? a.sent.reduce((s,v)=>s+v,0)/a.sent.length : 0
     })).sort((a,b) => b.avg - a.avg);
 
+    const targetScore2 = getScoreTarget();
     makeChart('agentChart', {
         type: 'bar',
         data: {
@@ -2161,7 +2736,23 @@ function renderAgents(data, threshold) {
         options: {
             responsive: true, maintainAspectRatio: false, indexAxis: 'y',
             scales: { x: { min: 0, max: 100 } },
-            plugins: { legend: { display: false }, annotation: { annotations: { line: { type: 'line', xMin: threshold, xMax: threshold, borderColor: CHART_COLORS.yellow, borderWidth: 2, borderDash: [5,5] } } } }
+            onClick: (ev, els) => {
+                if (!els.length) return;
+                const ag = agents[els[0].index];
+                const subset = data.filter(r => r.agent_name === ag.name);
+                openDrillModal(`All audits: ${ag.name}`, `${subset.length} record${subset.length===1?'':'s'} · avg ${ag.avg.toFixed(1)}%`, subset);
+            },
+            plugins: {
+                legend: { display: false },
+                annotation: {
+                    annotations: {
+                        passLine: { type: 'line', xMin: threshold, xMax: threshold, borderColor: CHART_COLORS.yellow, borderWidth: 2, borderDash: [5,5],
+                            label: { display: true, content: `Pass ${threshold}%`, position: 'start', backgroundColor: CHART_COLORS.yellow, color: '#000', font: { size: 9 }, padding: 3 } },
+                        targetLine: { type: 'line', xMin: targetScore2, xMax: targetScore2, borderColor: CHART_COLORS.green, borderWidth: 2, borderDash: [6,4],
+                            label: { display: true, content: `Target ${targetScore2}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 9 }, padding: 3 } }
+                    }
+                }
+            }
         }
     });
 
@@ -2336,19 +2927,28 @@ function toggleColPanel() {
 function renderDBTable() {
     const table = document.getElementById('dbTable');
     if (!table) return;
-    const search = document.getElementById('dbSearch').value.toLowerCase();
+    const search = document.getElementById('dbSearch').value.trim();
     const status = document.getElementById('dbFilterStatus').value;
     const threshold = getPassThreshold();
 
     let rows = evaluationsDB;
+    // Fuzzy search first (if there's a query)
+    if (search) {
+        if (typeof Fuse !== 'undefined') {
+            // Rebuild each search so the index reflects any recent saves/edits/deletes (it's fast)
+            rebuildFuseIndex();
+            rows = fuzzyFilterEvaluations(search);
+        } else {
+            // Fall back to plain substring if Fuse didn't load
+            const lc = search.toLowerCase();
+            rows = rows.filter(r => Object.values(r).some(v =>
+                v && typeof v !== 'object' && String(v).toLowerCase().includes(lc)
+            ));
+        }
+    }
     if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
     if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
     if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
-    if (search) {
-        rows = rows.filter(r => Object.values(r).some(v =>
-            v && typeof v !== 'object' && String(v).toLowerCase().includes(search)
-        ));
-    }
     document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
     const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
@@ -2387,6 +2987,12 @@ function openDetailModal(idx) {
         const cls = ans === "Yes" ? 'badge-green' : ans === "No" ? 'badge-red' : 'badge-gray';
         return `<tr><td>Q${q.id}. ${q.title}</td><td><span class="badge ${cls}">${ans}</span></td><td>${note || '—'}</td></tr>`;
     }).join('');
+
+    const actionBar = `
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border-light);">
+            <button class="btn btn-small" onclick="openEvalEditModal(${idx})">✎ Edit Record</button>
+            <button class="btn btn-secondary btn-small" onclick="deleteEvaluation(${idx})" style="background:#C8102E; color:white; border-color:#C8102E;">🗑 Delete</button>
+        </div>`;
 
     const body = `
         <div class="detail-section">
@@ -2429,6 +3035,1168 @@ function openDetailModal(idx) {
 
 function closeDetailModal() {
     document.getElementById('detailModal').classList.remove('active');
+}
+
+// ============================================================
+// EDIT EVALUATION RECORD (in-place edit, syncs to Supabase)
+// ============================================================
+function openEvalEditModal(idx) {
+    const r = evaluationsDB[idx];
+    if (!r) return;
+    closeDetailModal();
+    const qa = r.qa_details || {};
+    const coaches = [...new Set(roster.map(a => a.coach).filter(Boolean))];
+    if (!coaches.length) coaches.push('Coach A','Coach B','Coach C');
+
+    // Build per-question rows for inline editing
+    const qaRows = qaQuestions.map(q => {
+        const ans  = qa[`Q${q.id}_Answer`] || 'Yes';
+        const note = qa[`Q${q.id}_Note`]   || '';
+        return `
+            <tr>
+                <td style="font-size:13px;">Q${q.id}. ${q.title}</td>
+                <td style="width:90px;">
+                    <select id="e_q_${q.id}_ans" class="select-yes-no ${ans==='Yes'?'yes':'no'}" onchange="this.className='select-yes-no '+(this.value==='Yes'?'yes':'no')">
+                        <option value="Yes" ${ans==='Yes'?'selected':''}>Yes</option>
+                        <option value="No"  ${ans==='No' ?'selected':''}>No</option>
+                    </select>
+                </td>
+                <td><input type="text" id="e_q_${q.id}_note" value="${(note||'').replace(/"/g,'&quot;')}" placeholder="Note..."></td>
+            </tr>`;
+    }).join('');
+
+    const afRows = [1,2,3,4,5].map(i => {
+        const v = qa[`AF_${i}`] || 'No';
+        return `
+            <div class="form-group">
+                <label>Auto-Fail #${i}</label>
+                <select id="e_af_${i}" class="select-yes-no ${v==='Yes'?'no':'yes'}">
+                    <option value="No"  ${v==='No' ?'selected':''}>No</option>
+                    <option value="Yes" ${v==='Yes'?'selected':''}>Yes</option>
+                </select>
+            </div>`;
+    }).join('');
+
+    const body = `
+        <input type="hidden" id="e_eval_idx" value="${idx}">
+        <input type="hidden" id="e_eval_dbid" value="${r.id || ''}">
+        <div class="detail-section">
+            <div class="detail-section-title">Core Information</div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="form-group"><label>Eval Date *</label><input type="date" id="e_date" value="${r.eval_date||''}"></div>
+                <div class="form-group"><label>CNN *</label><input type="text" id="e_cnn" value="${r.cnn||''}"></div>
+                <div class="form-group"><label>QA Name</label><input type="text" id="e_qaname" value="${r.qa_name||''}"></div>
+                <div class="form-group"><label>Agent Name</label><input type="text" id="e_agent" value="${r.agent_name||''}"></div>
+                <div class="form-group"><label>Coach</label><input type="text" id="e_coach" value="${r.coach||''}" list="coachList"></div>
+                <div class="form-group"><label>LOB</label><input type="text" id="e_lob" value="${r.lob||''}"></div>
+                <div class="form-group"><label>Site</label><input type="text" id="e_site" value="${r.site||''}"></div>
+                <div class="form-group"><label>Product Type</label><input type="text" id="e_product" value="${r.product_type||''}"></div>
+                <div class="form-group"><label>Call Type</label><input type="text" id="e_calltype" value="${r.call_type||''}"></div>
+                <div class="form-group"><label>Hold Time (s)</label><input type="number" id="e_hold" value="${r.hold_time||0}" min="0"></div>
+                <div class="form-group"><label>Final Score (%)</label><input type="number" id="e_score" value="${(r.final_score||0).toFixed(1)}" min="0" max="100" step="0.1"></div>
+                <div class="form-group"><label>Auto-Failed</label>
+                    <select id="e_autofail" class="select-yes-no ${r.auto_failed==='Yes'?'no':'yes'}">
+                        <option value="No"  ${r.auto_failed!=='Yes'?'selected':''}>No</option>
+                        <option value="Yes" ${r.auto_failed==='Yes'?'selected':''}>Yes</option>
+                    </select>
+                </div>
+            </div>
+            <datalist id="coachList">${coaches.map(c=>`<option value="${c}">`).join('')}</datalist>
+        </div>
+
+        <div class="detail-section">
+            <div class="detail-section-title">Sentiment</div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="form-group"><label>Compound (-1 to 1)</label><input type="number" id="e_sent_c" value="${r.sentiment_compound||0}" step="0.01" min="-1" max="1"></div>
+                <div class="form-group"><label>Label</label>
+                    <select id="e_sent_l">
+                        <option ${r.sentiment_label==='Positive'?'selected':''}>Positive</option>
+                        <option ${r.sentiment_label==='Neutral'?'selected':''}>Neutral</option>
+                        <option ${r.sentiment_label==='Negative'?'selected':''}>Negative</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Positive %</label><input type="number" id="e_sent_p" value="${r.sentiment_pos||0}" step="0.1" min="0" max="100"></div>
+                <div class="form-group"><label>Negative %</label><input type="number" id="e_sent_n" value="${r.sentiment_neg||0}" step="0.1" min="0" max="100"></div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <div class="detail-section-title">Personalization / Upsell</div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="form-group"><label>Offer Made</label>
+                    <select id="e_up_made">
+                        <option ${r.upsell_offer_made==='Yes'?'selected':''}>Yes</option>
+                        <option ${r.upsell_offer_made==='No' ?'selected':''}>No</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Type</label><input type="text" id="e_up_type" value="${r.upsell_type||''}"></div>
+                <div class="form-group"><label>Quality</label>
+                    <select id="e_up_qual">
+                        <option value="">—</option>
+                        <option ${r.upsell_quality==='Adding Value'?'selected':''}>Adding Value</option>
+                        <option ${r.upsell_quality==='Indifferent'?'selected':''}>Indifferent</option>
+                        <option ${r.upsell_quality==='Pushy / Sales-y'?'selected':''}>Pushy / Sales-y</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Customer Interested</label>
+                    <select id="e_up_int">
+                        <option value="">—</option>
+                        <option ${r.upsell_interested==='Yes'?'selected':''}>Yes</option>
+                        <option ${r.upsell_interested==='No' ?'selected':''}>No</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Follow-through</label>
+                    <select id="e_up_fol">
+                        <option value="">—</option>
+                        <option ${r.upsell_followup==='Properly Followed Up'?'selected':''}>Properly Followed Up</option>
+                        <option ${r.upsell_followup==='Partially Addressed'?'selected':''}>Partially Addressed</option>
+                        <option ${r.upsell_followup==='Left Hanging'?'selected':''}>Left Hanging</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Opp. Existed</label>
+                    <select id="e_up_opp">
+                        <option ${r.upsell_opp_existed==='Yes'?'selected':''}>Yes</option>
+                        <option ${r.upsell_opp_existed!=='Yes'?'selected':''}>No</option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;"><label>Upsell Notes</label><textarea id="e_up_notes" rows="2">${r.upsell_notes||''}</textarea></div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <div class="detail-section-title">QA Criteria (22 Questions)</div>
+            <table><thead><tr><th>Question</th><th>Answer</th><th>Note</th></tr></thead><tbody>${qaRows}</tbody></table>
+        </div>
+
+        <div class="detail-section">
+            <div class="detail-section-title">Auto-Fail Flags</div>
+            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">${afRows}</div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; padding:14px 0;">
+            <button class="btn btn-ghost" onclick="closeEvalEditModal()">Cancel</button>
+            <button class="btn" id="saveEvalEditBtn" onclick="saveEvalEdit()">💾 Save Changes</button>
+        </div>`;
+    document.getElementById('editEvalBody').innerHTML = body;
+    document.getElementById('editEvalModal').classList.add('active');
+}
+
+function closeEvalEditModal() {
+    document.getElementById('editEvalModal').classList.remove('active');
+}
+
+async function saveEvalEdit() {
+    const idx   = parseInt(document.getElementById('e_eval_idx').value);
+    const dbId  = document.getElementById('e_eval_dbid').value || null;
+    const r     = evaluationsDB[idx];
+    if (!r) { showToast("Record not found", "#C8102E"); return; }
+
+    // Validate
+    const cnnVal  = document.getElementById('e_cnn').value.trim();
+    const dateVal = document.getElementById('e_date').value;
+    if (!cnnVal)  { showToast("CNN is required", "#C8102E"); return; }
+    if (!dateVal) { showToast("Eval Date is required", "#C8102E"); return; }
+
+    // Rebuild qa_details
+    const newQa = {};
+    for (let i = 1; i <= 22; i++) {
+        newQa[`Q${i}_Answer`] = document.getElementById(`e_q_${i}_ans`).value;
+        newQa[`Q${i}_Note`]   = document.getElementById(`e_q_${i}_note`).value || "";
+    }
+    for (let i = 1; i <= 5; i++) newQa[`AF_${i}`] = document.getElementById(`e_af_${i}`).value;
+
+    const clampedScore = Math.max(0, Math.min(100, parseFloat(document.getElementById('e_score').value) || 0));
+
+    // Build update payload using the Title Case schema columns
+    const updatePayload = {
+        "Eval Date":       dateVal,
+        "Month":           dateVal.substring(0, 7),
+        "CNN":             cnnVal,
+        "QA Name":         document.getElementById('e_qaname').value.trim() || null,
+        "Agent Name":      document.getElementById('e_agent').value.trim()  || r.agent_name,
+        "Coach":           document.getElementById('e_coach').value.trim()  || null,
+        "LOB":             document.getElementById('e_lob').value.trim()    || null,
+        "Site":            document.getElementById('e_site').value.trim()   || null,
+        "Product Type":    document.getElementById('e_product').value.trim()|| null,
+        "Call Type":       document.getElementById('e_calltype').value.trim()|| null,
+        "Hold Time (s)":   parseInt(document.getElementById('e_hold').value) || 0,
+        "Final Score":     clampedScore,
+        "Auto-Failed":     document.getElementById('e_autofail').value,
+        "Sentiment_Compound": parseFloat(document.getElementById('e_sent_c').value) || 0,
+        "Sentiment_Label": document.getElementById('e_sent_l').value,
+        "Sentiment_Pos":   parseFloat(document.getElementById('e_sent_p').value) || 0,
+        "Sentiment_Neg":   parseFloat(document.getElementById('e_sent_n').value) || 0,
+        "Upsell_OfferMade":  document.getElementById('e_up_made').value,
+        "Upsell_Type":       document.getElementById('e_up_type').value.trim() || null,
+        "Upsell_Quality":    document.getElementById('e_up_qual').value         || null,
+        "Upsell_OppExisted": document.getElementById('e_up_opp').value,
+        "Upsell_NoReason":   r.upsell_no_reason || null,
+        "Upsell_Interested": document.getElementById('e_up_int').value || null,
+        "Upsell_Followup":   document.getElementById('e_up_fol').value || null,
+        upsell_notes:        document.getElementById('e_up_notes').value.trim() || null,
+        qa_details:          newQa
+    };
+
+    // Apply locally first
+    Object.assign(r, normalizeEval({ ...updatePayload, id: r.id, created_at: r.created_at }));
+    renderDBTable();
+    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+
+    if (supabaseEnabled && dbId) {
+        const btn = document.getElementById('saveEvalEditBtn');
+        btn.disabled = true; btn.textContent = "Saving...";
+        try {
+            const { error } = await supabaseClient
+                .from('evaluations')
+                .update(updatePayload)
+                .eq('id', dbId);
+            if (error) throw error;
+            showToast("✓ Record updated in Supabase");
+            closeEvalEditModal();
+        } catch (e) {
+            console.error("Update failed:", e, "payload:", updatePayload);
+            const msg = (e && e.message) || (e && e.details) || "see console";
+            showToast("⚠️ Update failed: " + msg, "#C8102E");
+        } finally {
+            btn.disabled = false; btn.textContent = "💾 Save Changes";
+        }
+    } else if (!dbId) {
+        showToast("Updated locally — record has no Supabase ID (re-save it)", "#FFB612");
+        closeEvalEditModal();
+    } else {
+        showToast("Updated locally (Supabase offline)", "#FFB612");
+        closeEvalEditModal();
+    }
+}
+
+async function deleteEvaluation(idx) {
+    const r = evaluationsDB[idx];
+    if (!r) return;
+    if (!confirm(`Permanently delete evaluation ${r.cnn} for ${r.agent_name}?\n\nThis cannot be undone.`)) return;
+
+    // Remove locally first
+    evaluationsDB.splice(idx, 1);
+    closeDetailModal();
+    renderDBTable();
+    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+
+    if (supabaseEnabled && r.id) {
+        try {
+            const { error } = await supabaseClient.from('evaluations').delete().eq('id', r.id);
+            if (error) throw error;
+            showToast("Record deleted from Supabase", "#FFB612");
+        } catch (e) {
+            console.error("Delete failed:", e);
+            showToast("Deleted locally — Supabase error: " + (e.message || "unknown"), "#C8102E");
+        }
+    } else {
+        showToast("Record removed (local only)", "#FFB612");
+    }
+}
+
+// ============================================================
+// EDIT ROSTER AGENT (in-place edit, syncs to Supabase)
+// ============================================================
+function openRosterEditModal(idx) {
+    const a = roster[idx];
+    if (!a) return;
+    const body = `
+        <input type="hidden" id="er_idx" value="${idx}">
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="form-group"><label>Agent Name *</label><input type="text" id="er_Name" value="${a.name||''}"></div>
+            <div class="form-group"><label>Avaya ID *</label><input type="text" id="er_Avaya" value="${a.id||''}"></div>
+            <div class="form-group"><label>AWS ID</label><input type="text" id="er_AWS" value="${a.awsId||''}"></div>
+            <div class="form-group"><label>eConnect ID</label><input type="text" id="er_eConnect" value="${a.econnect||''}"></div>
+            <div class="form-group"><label>GSFS ID</label><input type="text" id="er_GSFS" value="${a.gsfs||''}"></div>
+            <div class="form-group"><label>Date of Hire</label><input type="date" id="er_Hire" value="${a.hire||''}"></div>
+            <div class="form-group"><label>Coach</label><input type="text" id="er_Coach" value="${a.coach||''}"></div>
+            <div class="form-group"><label>LOB</label><input type="text" id="er_LOB" value="${a.lob||''}"></div>
+            <div class="form-group"><label>Site</label><input type="text" id="er_Site" value="${a.site||''}"></div>
+            <div class="form-group"><label>Team</label><input type="text" id="er_Team" value="${a.team||''}"></div>
+            <div class="form-group"><label>Shift</label><input type="text" id="er_Shift" value="${a.shift||''}"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="er_Email" value="${a.email||''}"></div>
+            <div class="form-group"><label>Phone</label><input type="text" id="er_Phone" value="${a.phone||''}"></div>
+            <div class="form-group"><label>Status</label>
+                <select id="er_Status">
+                    <option ${a.status==='Active'?'selected':''}>Active</option>
+                    <option ${a.status==='Inactive'?'selected':''}>Inactive</option>
+                    <option ${a.status==='On Leave'?'selected':''}>On Leave</option>
+                    <option ${a.status==='Terminated'?'selected':''}>Terminated</option>
+                </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;"><label>Notes</label><textarea id="er_Notes" rows="2">${a.notes||''}</textarea></div>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:16px; margin-top:16px; border-top:1px solid var(--border-light);">
+            <button class="btn btn-ghost" onclick="closeRosterEditModal()">Cancel</button>
+            <button class="btn" id="saveRosterEditBtn" onclick="saveRosterEdit()">💾 Save Changes</button>
+        </div>`;
+    document.getElementById('editRosterBody').innerHTML = body;
+    document.getElementById('editRosterModal').classList.add('active');
+}
+
+function closeRosterEditModal() {
+    document.getElementById('editRosterModal').classList.remove('active');
+}
+
+async function saveRosterEdit() {
+    const idx = parseInt(document.getElementById('er_idx').value);
+    const a = roster[idx];
+    if (!a) { showToast("Agent not found", "#C8102E"); return; }
+
+    const newName  = document.getElementById('er_Name').value.trim();
+    const newAvaya = document.getElementById('er_Avaya').value.trim();
+    if (!newName || !newAvaya) { showToast("Name and Avaya ID are required", "#C8102E"); return; }
+    // Avaya ID uniqueness check (excluding this record)
+    if (roster.some((r,i) => i !== idx && r.id === newAvaya)) {
+        showToast("Another agent already uses that Avaya ID", "#C8102E");
+        return;
+    }
+
+    const updated = {
+        id:       newAvaya,
+        name:     newName,
+        awsId:    document.getElementById('er_AWS').value.trim(),
+        econnect: document.getElementById('er_eConnect').value.trim(),
+        gsfs:     document.getElementById('er_GSFS').value.trim(),
+        hire:     document.getElementById('er_Hire').value,
+        coach:    document.getElementById('er_Coach').value.trim(),
+        lob:      document.getElementById('er_LOB').value.trim(),
+        site:     document.getElementById('er_Site').value.trim(),
+        team:     document.getElementById('er_Team').value.trim(),
+        shift:    document.getElementById('er_Shift').value.trim(),
+        email:    document.getElementById('er_Email').value.trim(),
+        phone:    document.getElementById('er_Phone').value.trim(),
+        notes:    document.getElementById('er_Notes').value.trim(),
+        status:   document.getElementById('er_Status').value,
+        _pk:      a._pk || null
+    };
+
+    // Apply locally
+    roster[idx] = updated;
+    populateRosterTable();
+    populateAgentSelect();
+
+    if (supabaseEnabled && (a._pk || a.id)) {
+        const btn = document.getElementById('saveRosterEditBtn');
+        btn.disabled = true; btn.textContent = "Saving...";
+        try {
+            const payload = {
+                "Agent Name":   updated.name,
+                "Avaya ID":     updated.id,
+                "AWS ID":       updated.awsId    || null,
+                "eConnect ID":  updated.econnect || null,
+                "GSFS ID":      updated.gsfs     || null,
+                "Date of Hire": updated.hire     || null,
+                "Status":       updated.status,
+                "Coach":        updated.coach    || null,
+                "LOB":          updated.lob      || null,
+                "Site":         updated.site     || null,
+                "Email":        updated.email    || null,
+                "Phone":        updated.phone    || null,
+                "Shift":        updated.shift    || null,
+                "Team":         updated.team     || null,
+                "Notes":        updated.notes    || null
+            };
+            const q = supabaseClient.from('agents').update(payload);
+            const { error } = a._pk
+                ? await q.eq('id', a._pk)
+                : await q.eq('"Avaya ID"', a.id);  // fall back to old Avaya ID before this edit
+            if (error) throw error;
+            showToast("✓ Agent updated in Supabase");
+            closeRosterEditModal();
+        } catch (e) {
+            console.error("Roster update failed:", e);
+            const msg = (e && e.message) || "see console";
+            showToast("⚠️ Update failed: " + msg, "#C8102E");
+        } finally {
+            btn.disabled = false; btn.textContent = "💾 Save Changes";
+        }
+    } else {
+        showToast("Updated locally (Supabase offline)", "#FFB612");
+        closeRosterEditModal();
+    }
+}
+
+// ============================================================
+// DOWNLOAD ROSTER CSV
+// ============================================================
+function downloadRosterCSV() {
+    if (!roster.length) { showToast("No agents to export", "#FFB612"); return; }
+    const flat = roster.map(a => ({
+        "Agent Name":   a.name,
+        "Avaya ID":     a.id,
+        "AWS ID":       a.awsId,
+        "eConnect ID":  a.econnect,
+        "GSFS ID":      a.gsfs,
+        "Date of Hire": a.hire,
+        "Coach":        a.coach,
+        "LOB":          a.lob,
+        "Site":         a.site,
+        "Team":         a.team,
+        "Shift":        a.shift,
+        "Email":        a.email,
+        "Phone":        a.phone,
+        "Status":       a.status,
+        "Notes":        a.notes
+    }));
+    const csv = Papa.unparse(flat);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `lg_qa_roster_${new Date().toISOString().substring(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`✓ Exported ${roster.length} agent${roster.length===1?'':'s'}`);
+}
+
+// ============================================================
+// IMPORT — shared helpers
+// ============================================================
+// Read a file as text OR parse JSON depending on extension; CSV uses PapaParse.
+function parseImportFile(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) return reject(new Error("No file selected"));
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.onload = (ev) => {
+            const text = ev.target.result;
+            if (ext === 'json') {
+                try {
+                    const data = JSON.parse(text);
+                    resolve(Array.isArray(data) ? data : [data]);
+                } catch (e) { reject(new Error("Invalid JSON: " + e.message)); }
+            } else {
+                // CSV / TSV — let PapaParse autodetect
+                const result = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+                if (result.errors && result.errors.length) {
+                    console.warn("CSV parse warnings:", result.errors);
+                }
+                resolve(result.data || []);
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
+// Case-insensitive key lookup for sloppy CSV headers
+function pick(row, ...keys) {
+    if (!row) return undefined;
+    const lcMap = {};
+    Object.keys(row).forEach(k => { lcMap[k.toLowerCase().trim()] = row[k]; });
+    for (const k of keys) {
+        const v = lcMap[k.toLowerCase().trim()];
+        if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+}
+
+// ============================================================
+// IMPORT ROSTER (CSV/JSON → preview → Supabase)
+// ============================================================
+let pendingRosterImport = [];
+
+async function importRoster(file) {
+    if (!file) return;
+    try {
+        const rows = await parseImportFile(file);
+        if (!rows.length) { showToast("File is empty", "#FFB612"); return; }
+
+        // Normalize each row into our canonical agent shape
+        pendingRosterImport = rows.map(row => ({
+            name:     String(pick(row, 'Agent Name','name','agent_name')||'').trim(),
+            id:       String(pick(row, 'Avaya ID','avaya_id','id','avaya')||'').trim(),
+            awsId:    String(pick(row, 'AWS ID','aws_id','aws','awsId')||'').trim(),
+            econnect: String(pick(row, 'eConnect ID','econnect_id','econnect')||'').trim(),
+            gsfs:     String(pick(row, 'GSFS ID','gsfs_id','gsfs')||'').trim(),
+            hire:     String(pick(row, 'Date of Hire','hire_date','hire','hireDate')||'').trim(),
+            coach:    String(pick(row, 'Coach','coach')||'').trim(),
+            lob:      String(pick(row, 'LOB','lob')||'').trim(),
+            site:     String(pick(row, 'Site','site')||'').trim(),
+            team:     String(pick(row, 'Team','team')||'').trim(),
+            shift:    String(pick(row, 'Shift','shift')||'').trim(),
+            email:    String(pick(row, 'Email','email')||'').trim(),
+            phone:    String(pick(row, 'Phone','phone')||'').trim(),
+            notes:    String(pick(row, 'Notes','notes')||'').trim(),
+            status:   String(pick(row, 'Status','status')||'Active').trim()
+        }));
+
+        // Mark errors and dupes
+        const existingIds = new Set(roster.map(r => r.id));
+        const seenInBatch = new Set();
+        pendingRosterImport.forEach(r => {
+            r._issues = [];
+            if (!r.name)  r._issues.push("missing Agent Name");
+            if (!r.id)    r._issues.push("missing Avaya ID");
+            if (r.id && existingIds.has(r.id))   r._issues.push("Avaya ID already in roster");
+            if (r.id && seenInBatch.has(r.id))   r._issues.push("duplicate in this file");
+            if (r.id) seenInBatch.add(r.id);
+            // Validate status against schema CHECK
+            if (r.status && !['Active','Inactive','Terminated','On Leave'].includes(r.status)) {
+                r._issues.push("invalid Status (must be Active/Inactive/Terminated/On Leave)");
+            }
+        });
+
+        renderImportPreview('roster');
+    } catch (e) {
+        console.error("Import error:", e);
+        showToast("Import failed: " + e.message, "#C8102E");
+    } finally {
+        // Reset input so importing the same file twice still fires onchange
+        document.getElementById('importRosterFile').value = '';
+    }
+}
+
+// ============================================================
+// IMPORT EVALUATIONS (CSV/JSON → preview → Supabase)
+// ============================================================
+let pendingEvalImport = [];
+
+async function importEvaluations(file) {
+    if (!file) return;
+    try {
+        const rows = await parseImportFile(file);
+        if (!rows.length) { showToast("File is empty", "#FFB612"); return; }
+
+        pendingEvalImport = rows.map(row => {
+            // qa_details may arrive as a JSON string column, OR as flattened Q1_Answer/Q1_Note columns
+            let qa = {};
+            const rawQa = pick(row, 'qa_details','QA Details');
+            if (rawQa) {
+                try { qa = typeof rawQa === 'string' ? JSON.parse(rawQa) : rawQa; }
+                catch (e) { qa = {}; }
+            }
+            // Also pull any flattened Qn_Answer / Qn_Note columns
+            for (let i = 1; i <= 22; i++) {
+                const a = pick(row, `Q${i}_Answer`);
+                const n = pick(row, `Q${i}_Note`);
+                if (a !== undefined) qa[`Q${i}_Answer`] = String(a);
+                if (n !== undefined) qa[`Q${i}_Note`]   = String(n);
+            }
+            for (let af = 1; af <= 5; af++) {
+                const v = pick(row, `AF_${af}`);
+                if (v !== undefined) qa[`AF_${af}`] = String(v);
+            }
+
+            const dateVal  = String(pick(row, 'Eval Date','eval_date','date')||'').trim();
+            const finalSc  = parseFloat(pick(row, 'Final Score','final_score','score'));
+            return {
+                "Eval Date":   dateVal,
+                "Month":       String(pick(row, 'Month','month')||(dateVal||'').substring(0,7)),
+                "CNN":         String(pick(row, 'CNN','cnn')||'').trim(),
+                "QA Name":     String(pick(row, 'QA Name','qa_name')||'').trim() || null,
+                "Agent Name":  String(pick(row, 'Agent Name','agent_name','agent')||'').trim(),
+                "Coach":       String(pick(row, 'Coach','coach')||'').trim() || null,
+                "LOB":         String(pick(row, 'LOB','lob')||'').trim() || null,
+                "Site":        String(pick(row, 'Site','site')||'').trim() || null,
+                "Product Type":String(pick(row, 'Product Type','product_type')||'').trim() || null,
+                "Call Type":   String(pick(row, 'Call Type','call_type')||'').trim() || null,
+                "Hold Time (s)": parseInt(pick(row, 'Hold Time (s)','hold_time','hold_time_s'))||0,
+                "Final Score": Math.max(0, Math.min(100, isFinite(finalSc) ? finalSc : 0)),
+                "Auto-Failed": (String(pick(row, 'Auto-Failed','auto_failed')||'No').trim()==='Yes')?'Yes':'No',
+                "Sentiment_Compound": parseFloat(pick(row, 'Sentiment_Compound','sentiment_compound'))||0,
+                "Sentiment_Label":    String(pick(row, 'Sentiment_Label','sentiment_label')||'Neutral'),
+                "Sentiment_Pos":      parseFloat(pick(row, 'Sentiment_Pos','sentiment_pos'))||0,
+                "Sentiment_Neg":      parseFloat(pick(row, 'Sentiment_Neg','sentiment_neg'))||0,
+                "Upsell_OfferMade":   String(pick(row, 'Upsell_OfferMade','upsell_offer_made')||'No'),
+                "Upsell_Type":        String(pick(row, 'Upsell_Type','upsell_type')||'').trim() || null,
+                "Upsell_Quality":     String(pick(row, 'Upsell_Quality','upsell_quality')||'').trim() || null,
+                "Upsell_OppExisted":  String(pick(row, 'Upsell_OppExisted','upsell_opp_existed')||'No'),
+                "Upsell_NoReason":    String(pick(row, 'Upsell_NoReason','upsell_no_reason')||'').trim() || null,
+                "Upsell_Interested":  String(pick(row, 'Upsell_Interested','upsell_interested')||'').trim() || null,
+                "Upsell_Followup":    String(pick(row, 'Upsell_Followup','upsell_followup')||'').trim() || null,
+                upsell_notes:         String(pick(row, 'upsell_notes','Upsell Notes')||'').trim() || null,
+                qa_details:           qa
+            };
+        });
+
+        // Validate
+        const existingCNNs = new Set(evaluationsDB.map(e => e.cnn));
+        const seen = new Set();
+        pendingEvalImport.forEach(r => {
+            r._issues = [];
+            if (!r["Eval Date"])   r._issues.push("missing Eval Date");
+            if (!r["CNN"])         r._issues.push("missing CNN");
+            if (!r["Agent Name"])  r._issues.push("missing Agent Name");
+            if (r["CNN"] && existingCNNs.has(r["CNN"])) r._issues.push("CNN already exists in DB");
+            if (r["CNN"] && seen.has(r["CNN"]))         r._issues.push("duplicate CNN in this file");
+            if (r["CNN"]) seen.add(r["CNN"]);
+            if (r["Final Score"] < 0 || r["Final Score"] > 100) r._issues.push("Final Score out of range");
+            if (!['Yes','No'].includes(r["Auto-Failed"])) r._issues.push("invalid Auto-Failed");
+        });
+
+        renderImportPreview('eval');
+    } catch (e) {
+        console.error("Import error:", e);
+        showToast("Import failed: " + e.message, "#C8102E");
+    } finally {
+        document.getElementById('importEvalFile').value = '';
+    }
+}
+
+// ============================================================
+// IMPORT PREVIEW UI
+// ============================================================
+function renderImportPreview(kind) {
+    const list = kind === 'roster' ? pendingRosterImport : pendingEvalImport;
+    const validCount   = list.filter(r => !r._issues || !r._issues.length).length;
+    const invalidCount = list.length - validCount;
+    document.getElementById('importTitle').textContent =
+        kind === 'roster' ? '📥 Import Roster — Preview' : '📥 Import Evaluations — Preview';
+
+    let rowsHtml;
+    if (kind === 'roster') {
+        rowsHtml = list.map((r, i) => `
+            <tr style="${r._issues.length ? 'background:#fff5f5;' : ''}">
+                <td>${i+1}</td>
+                <td>${r.name||'—'}</td>
+                <td>${r.id||'—'}</td>
+                <td>${r.coach||'—'}</td>
+                <td>${r.status||'—'}</td>
+                <td>${r.email||'—'}</td>
+                <td style="color:#C8102E; font-size:12px;">${r._issues.join('; ') || '<span style="color:#00843D;">✓ ok</span>'}</td>
+            </tr>`).join('');
+        rowsHtml = `<table><thead><tr><th>#</th><th>Name</th><th>Avaya ID</th><th>Coach</th><th>Status</th><th>Email</th><th>Issues</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+    } else {
+        rowsHtml = list.map((r, i) => `
+            <tr style="${r._issues.length ? 'background:#fff5f5;' : ''}">
+                <td>${i+1}</td>
+                <td>${r["Eval Date"]||'—'}</td>
+                <td>${r["CNN"]||'—'}</td>
+                <td>${r["Agent Name"]||'—'}</td>
+                <td>${r["Final Score"]?.toFixed?.(1) ?? '—'}</td>
+                <td>${r["Auto-Failed"]||'—'}</td>
+                <td style="color:#C8102E; font-size:12px;">${r._issues.join('; ') || '<span style="color:#00843D;">✓ ok</span>'}</td>
+            </tr>`).join('');
+        rowsHtml = `<table><thead><tr><th>#</th><th>Date</th><th>CNN</th><th>Agent</th><th>Score</th><th>AutoFail</th><th>Issues</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+    }
+
+    const body = `
+        <div style="display:flex; gap:20px; align-items:center; padding:14px; background:#f8fafc; border-radius:8px; margin-bottom:16px;">
+            <div><strong style="font-size:24px; color:#00843D;">${validCount}</strong> <span style="color:#666;">ready to import</span></div>
+            <div><strong style="font-size:24px; color:#C8102E;">${invalidCount}</strong> <span style="color:#666;">will be skipped</span></div>
+            <div style="margin-left:auto; font-size:13px; color:#666;">Total rows in file: ${list.length}</div>
+        </div>
+        <div style="max-height:400px; overflow-y:auto; border:1px solid var(--border-light); border-radius:8px;">${rowsHtml}</div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:16px; margin-top:16px; border-top:1px solid var(--border-light);">
+            <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+            <button class="btn" id="confirmImportBtn" onclick="confirmImport('${kind}')" ${validCount===0?'disabled':''}>⬆ Import ${validCount} ${kind === 'roster' ? 'agent' : 'evaluation'}${validCount===1?'':'s'}</button>
+        </div>`;
+    document.getElementById('importBody').innerHTML = body;
+    document.getElementById('importModal').classList.add('active');
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('active');
+    pendingRosterImport = [];
+    pendingEvalImport   = [];
+}
+
+async function confirmImport(kind) {
+    const btn = document.getElementById('confirmImportBtn');
+    btn.disabled = true; btn.textContent = "Importing...";
+
+    if (kind === 'roster') {
+        const valid = pendingRosterImport.filter(r => !r._issues.length);
+        let inserted = 0, failed = 0;
+        for (const a of valid) {
+            const localAgent = { ...a, _pk: null };
+            delete localAgent._issues;
+            roster.push(localAgent);
+
+            if (supabaseEnabled) {
+                try {
+                    const payload = {
+                        "Agent Name":   a.name,
+                        "Avaya ID":     a.id,
+                        "AWS ID":       a.awsId    || null,
+                        "eConnect ID":  a.econnect || null,
+                        "GSFS ID":      a.gsfs     || null,
+                        "Date of Hire": a.hire     || null,
+                        "Status":       a.status,
+                        "Coach":        a.coach    || null,
+                        "LOB":          a.lob      || null,
+                        "Site":         a.site     || null,
+                        "Email":        a.email    || null,
+                        "Phone":        a.phone    || null,
+                        "Shift":        a.shift    || null,
+                        "Team":         a.team     || null,
+                        "Notes":        a.notes    || null
+                    };
+                    const { data, error } = await supabaseClient.from('agents').insert(payload).select().single();
+                    if (error) throw error;
+                    if (data && data.id) localAgent._pk = data.id;
+                    inserted++;
+                } catch (e) {
+                    console.error("Row failed:", a, e);
+                    failed++;
+                }
+            } else { inserted++; }
+        }
+        populateRosterTable();
+        populateAgentSelect();
+        closeImportModal();
+        showToast(`✓ Imported ${inserted} agent${inserted===1?'':'s'}${failed?`, ${failed} failed (see console)`:''}`,
+                  failed ? '#FFB612' : '#00843D');
+    } else {
+        const valid = pendingEvalImport.filter(r => !r._issues.length);
+        let inserted = 0, failed = 0;
+        for (const payload of valid) {
+            const clean = { ...payload };
+            delete clean._issues;
+
+            // Add locally first
+            const local = normalizeEval({ ...clean, created_at: new Date().toISOString() });
+            evaluationsDB.unshift(local);
+
+            if (supabaseEnabled) {
+                try {
+                    const { data, error } = await supabaseClient.from('evaluations').insert(clean).select().single();
+                    if (error) throw error;
+                    if (data && data.id) local.id = data.id;
+                    inserted++;
+                } catch (e) {
+                    console.error("Row failed:", clean, e);
+                    failed++;
+                }
+            } else { inserted++; }
+        }
+        renderDBTable();
+        if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+        closeImportModal();
+        showToast(`✓ Imported ${inserted} evaluation${inserted===1?'':'s'}${failed?`, ${failed} failed (see console)`:''}`,
+                  failed ? '#FFB612' : '#00843D');
+    }
+}
+
+// ============================================================
+// DRILL-DOWN MODAL — shared by KPI cards, charts, and section expand
+// ============================================================
+let _drillCurrentRecords = [];
+
+function openDrillModal(title, subtitle, records) {
+    _drillCurrentRecords = records || [];
+    document.getElementById('drillTitle').textContent = title;
+    document.getElementById('drillSubtitle').textContent = subtitle || '';
+
+    if (!_drillCurrentRecords.length) {
+        document.getElementById('drillBody').innerHTML = `
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">No matching records.</div>`;
+        document.getElementById('drillModal').classList.add('active');
+        return;
+    }
+
+    // Sort by score ascending (worst-first; that's what people usually want to investigate)
+    const rows = [..._drillCurrentRecords].sort((a,b) => a.final_score - b.final_score);
+    const threshold = getPassThreshold();
+    const tbody = rows.map((r, i) => {
+        const cls = r.auto_failed === "Yes" ? 'badge-red' : r.final_score >= threshold ? 'badge-green' : 'badge-red';
+        const idxInMain = evaluationsDB.indexOf(r);
+        return `<tr style="cursor:pointer;" onclick="closeDrillModal(); openDetailModal(${idxInMain});">
+            <td>${i+1}</td>
+            <td>${r.eval_date||'—'}</td>
+            <td><strong>${r.cnn||'—'}</strong></td>
+            <td>${r.agent_name||'—'}</td>
+            <td>${r.coach||'—'}</td>
+            <td>${r.lob||'—'}</td>
+            <td>${r.call_type||'—'}</td>
+            <td>${r.hold_time||0}s</td>
+            <td><span class="badge ${cls}">${(r.final_score||0).toFixed(1)}%</span></td>
+            <td>${r.auto_failed||'No'}</td>
+        </tr>`;
+    }).join('');
+
+    const avg = rows.reduce((s,r)=>s+r.final_score,0)/rows.length;
+    const autoFails = rows.filter(r=>r.auto_failed==='Yes').length;
+
+    document.getElementById('drillBody').innerHTML = `
+        <div style="display:flex; gap:24px; padding:12px 16px; background:#f8fafc; border-radius:8px; margin-bottom:14px; align-items:center;">
+            <div><div style="font-size:11px; color:var(--text-muted);">Records</div><strong style="font-size:18px;">${rows.length}</strong></div>
+            <div><div style="font-size:11px; color:var(--text-muted);">Avg Score</div><strong style="font-size:18px;">${avg.toFixed(1)}%</strong></div>
+            <div><div style="font-size:11px; color:var(--text-muted);">Auto-Fails</div><strong style="font-size:18px;">${autoFails}</strong></div>
+            <div style="margin-left:auto;">
+                <button class="btn btn-small" onclick="downloadDrillCSV()">⬇ Download these ${rows.length} rows</button>
+            </div>
+        </div>
+        <div style="max-height:60vh; overflow-y:auto; border:1px solid var(--border-light); border-radius:8px;">
+            <table>
+                <thead style="position:sticky; top:0; background:white; z-index:1;">
+                    <tr><th>#</th><th>Date</th><th>CNN</th><th>Agent</th><th>Coach</th><th>LOB</th><th>Call Type</th><th>Hold</th><th>Score</th><th>AutoFail</th></tr>
+                </thead>
+                <tbody>${tbody}</tbody>
+            </table>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:10px;">💡 Click any row to open the full evaluation detail.</div>
+    `;
+    document.getElementById('drillModal').classList.add('active');
+}
+
+function closeDrillModal() {
+    document.getElementById('drillModal').classList.remove('active');
+}
+
+function downloadDrillCSV() {
+    if (!_drillCurrentRecords.length) return;
+    const flat = _drillCurrentRecords.map(r => {
+        const row = { ...r };
+        delete row.qa_details;
+        const qa = r.qa_details || {};
+        Object.keys(qa).forEach(k => row[k] = qa[k]);
+        return row;
+    });
+    const headers = [...new Set(flat.flatMap(r => Object.keys(r)))];
+    const csv = Papa.unparse({ fields: headers, data: flat.map(r => headers.map(h => r[h] ?? '')) });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `lg_qa_drilldown_${new Date().toISOString().substring(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast(`✓ Exported ${flat.length} row${flat.length===1?'':'s'}`);
+}
+
+// KPI-card drill-downs map their identifier to a record subset.
+function drillKPI(kind) {
+    const data = getFilteredData();
+    const threshold = getPassThreshold();
+    const holdThr   = getHoldThreshold();
+    let subset, title;
+    switch (kind) {
+        case 'all':       subset = data; title = 'All filtered records'; break;
+        case 'autoFail':  subset = data.filter(r => r.auto_failed === 'Yes'); title = 'Auto-failed calls'; break;
+        case 'offered':   subset = data.filter(r => r.upsell_offer_made === 'Yes'); title = 'Calls where an offer was made'; break;
+        case 'converted': subset = data.filter(r => r.upsell_offer_made === 'Yes' && r.upsell_interested === 'Yes'); title = 'Offers that converted'; break;
+        case 'passed':    subset = data.filter(r => r.final_score >= threshold && r.auto_failed !== 'Yes'); title = `Passing calls (≥ ${threshold}%)`; break;
+        case 'overHold':  subset = data.filter(r => r.hold_time > holdThr); title = `Calls over ${holdThr}s hold time`; break;
+        default:          subset = data; title = 'Filtered records';
+    }
+    openDrillModal(title, `${subset.length} of ${data.length} record${data.length===1?'':'s'}`, subset);
+}
+
+// ============================================================
+// COMPARE MODE — pick two entities (agent/coach/site) side-by-side
+// ============================================================
+function openCompareModal() {
+    const agents = [...new Set(evaluationsDB.map(e => e.agent_name).filter(Boolean))].sort();
+    const coaches = [...new Set(evaluationsDB.map(e => e.coach).filter(Boolean))].sort();
+    const sites = [...new Set(evaluationsDB.map(e => e.site).filter(Boolean))].sort();
+
+    const buildOptions = arr => arr.map(v => `<option value="${v}">${v}</option>`).join('');
+    document.getElementById('compareBody').innerHTML = `
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+            <div class="form-group">
+                <label>Compare by</label>
+                <select id="cmp_dim" onchange="rebuildCompareSelects()">
+                    <option value="agent">Agent</option>
+                    <option value="coach">Coach</option>
+                    <option value="site">Site</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Entity A</label>
+                <select id="cmp_a"></select>
+            </div>
+            <div class="form-group">
+                <label>Entity B</label>
+                <select id="cmp_b"></select>
+            </div>
+        </div>
+        <div style="margin-bottom:14px;">
+            <button class="btn" onclick="renderCompare()">🔄 Compare</button>
+        </div>
+        <div id="compareOutput"></div>
+        <!-- Datasource stashes for rebuildCompareSelects -->
+        <input type="hidden" id="cmp_agents" value='${JSON.stringify(agents).replace(/'/g, "&#39;")}'>
+        <input type="hidden" id="cmp_coaches" value='${JSON.stringify(coaches).replace(/'/g, "&#39;")}'>
+        <input type="hidden" id="cmp_sites" value='${JSON.stringify(sites).replace(/'/g, "&#39;")}'>
+    `;
+    rebuildCompareSelects();
+    document.getElementById('compareModal').classList.add('active');
+}
+
+function rebuildCompareSelects() {
+    const dim = document.getElementById('cmp_dim').value;
+    const key = dim === 'agent' ? 'cmp_agents' : dim === 'coach' ? 'cmp_coaches' : 'cmp_sites';
+    const arr = JSON.parse(document.getElementById(key).value);
+    const opts = arr.map(v => `<option value="${v}">${v}</option>`).join('');
+    document.getElementById('cmp_a').innerHTML = opts;
+    document.getElementById('cmp_b').innerHTML = opts;
+    if (arr.length > 1) document.getElementById('cmp_b').selectedIndex = 1;
+}
+
+function closeCompareModal() {
+    document.getElementById('compareModal').classList.remove('active');
+}
+
+function renderCompare() {
+    const dim = document.getElementById('cmp_dim').value;
+    const a   = document.getElementById('cmp_a').value;
+    const b   = document.getElementById('cmp_b').value;
+    if (a === b) { showToast("Pick two different entities", "#FFB612"); return; }
+
+    const field = dim === 'agent' ? 'agent_name' : dim === 'coach' ? 'coach' : 'site';
+    const data = getFilteredData();
+    const setA = data.filter(r => r[field] === a);
+    const setB = data.filter(r => r[field] === b);
+
+    if (!setA.length && !setB.length) {
+        document.getElementById('compareOutput').innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted);">No records for either selection (try a wider date range).</div>';
+        return;
+    }
+
+    const stat = arr => {
+        const t = arr.length;
+        const avg = t ? arr.reduce((s,r)=>s+r.final_score,0)/t : 0;
+        const auto = arr.filter(r=>r.auto_failed==='Yes').length;
+        const offers = arr.filter(r=>r.upsell_offer_made==='Yes').length;
+        const convs = arr.filter(r=>r.upsell_offer_made==='Yes' && r.upsell_interested==='Yes').length;
+        const thr = getPassThreshold();
+        const passed = arr.filter(r=>r.final_score>=thr && r.auto_failed!=='Yes').length;
+        const holds = arr.map(r=>r.hold_time).filter(h=>h>0);
+        const avgHold = holds.length ? holds.reduce((s,h)=>s+h,0)/holds.length : 0;
+        return { t, avg, auto, offers, convs, passed, avgHold };
+    };
+    const sA = stat(setA), sB = stat(setB);
+
+    const cmpRow = (label, vA, vB, fmt, dir) => {
+        // dir: 'higher' = higher is better; 'lower' = lower is better
+        const num = (v) => parseFloat(v) || 0;
+        const delta = num(vA) - num(vB);
+        const aBetter = dir === 'higher' ? delta > 0 : delta < 0;
+        const cls = Math.abs(delta) < 0.05 ? '' : (aBetter ? 'pos' : 'neg');
+        return `<div class="compare-kpi">
+            <span class="label">${label}</span>
+            <span><span class="val-a">${fmt(vA)}</span> vs <span class="val-b">${fmt(vB)}</span>
+                <span class="delta ${cls}">${delta>=0?'+':''}${delta.toFixed(1)}${fmt===toPct?'pp':''}</span>
+            </span>
+        </div>`;
+    };
+    const toPct = v => (parseFloat(v)||0).toFixed(1) + '%';
+    const toNum = v => String(v);
+    const toSec = v => Math.round(parseFloat(v)||0) + 's';
+
+    // Per-question pass-rate comparison
+    const qPct = (arr, qid) => {
+        let tot=0, p=0;
+        arr.forEach(r => { const ans = r.qa_details?.[`Q${qid}_Answer`]; if (ans!==undefined) { tot++; if (ans==='Yes') p++; } });
+        return tot ? (p/tot*100) : 0;
+    };
+    const qBars = qaQuestions.map(q => {
+        const pa = qPct(setA, q.id), pb = qPct(setB, q.id);
+        const diff = pa - pb;
+        const cls = Math.abs(diff) < 0.5 ? '' : (diff > 0 ? 'pos' : 'neg');
+        return `<tr>
+            <td style="font-size:12px;">Q${q.id}. ${q.title}</td>
+            <td style="text-align:right; font-size:12px;"><strong style="color:var(--header-blue);">${pa.toFixed(0)}%</strong></td>
+            <td style="text-align:right; font-size:12px;"><strong style="color:#00843D;">${pb.toFixed(0)}%</strong></td>
+            <td style="text-align:right; font-size:11px;"><span class="delta ${cls}" style="padding:2px 6px; border-radius:3px;">${diff>=0?'+':''}${diff.toFixed(0)}pp</span></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('compareOutput').innerHTML = `
+        <div class="compare-grid">
+            <div class="compare-card">
+                <h4 style="color:var(--header-blue);">▍ A: ${a} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${sA.t} record${sA.t===1?'':'s'})</span></h4>
+                <div style="font-size:28px; font-weight:800; color:var(--header-blue); margin-bottom:6px;">${sA.avg.toFixed(1)}%</div>
+                <div style="font-size:11px; color:var(--text-muted);">Average QA score</div>
+            </div>
+            <div class="compare-card">
+                <h4 style="color:#00843D;">▍ B: ${b} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">(${sB.t} record${sB.t===1?'':'s'})</span></h4>
+                <div style="font-size:28px; font-weight:800; color:#00843D; margin-bottom:6px;">${sB.avg.toFixed(1)}%</div>
+                <div style="font-size:11px; color:var(--text-muted);">Average QA score</div>
+            </div>
+        </div>
+
+        <div class="compare-card" style="margin-bottom:16px;">
+            <h4>📊 Headline Metrics</h4>
+            ${cmpRow('Total audits',         sA.t,                                            sB.t,                                            toNum, 'higher')}
+            ${cmpRow('Average score',        sA.avg,                                          sB.avg,                                          toPct, 'higher')}
+            ${cmpRow('Pass rate',            sA.t ? sA.passed/sA.t*100 : 0,                   sB.t ? sB.passed/sB.t*100 : 0,                   toPct, 'higher')}
+            ${cmpRow('Auto-fail rate',       sA.t ? sA.auto/sA.t*100 : 0,                     sB.t ? sB.auto/sB.t*100 : 0,                     toPct, 'lower')}
+            ${cmpRow('Offer rate',           sA.t ? sA.offers/sA.t*100 : 0,                   sB.t ? sB.offers/sB.t*100 : 0,                   toPct, 'higher')}
+            ${cmpRow('Conversion rate',      sA.offers ? sA.convs/sA.offers*100 : 0,          sB.offers ? sB.convs/sB.offers*100 : 0,          toPct, 'higher')}
+            ${cmpRow('Avg hold time',        sA.avgHold,                                      sB.avgHold,                                      toSec, 'lower')}
+        </div>
+
+        <div class="compare-card">
+            <h4>🔍 Per-Question Pass Rate</h4>
+            <table>
+                <thead><tr><th>Question</th><th style="text-align:right;">A</th><th style="text-align:right;">B</th><th style="text-align:right;">Δ (A−B)</th></tr></thead>
+                <tbody>${qBars}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+// ============================================================
+// COACH SCORECARDS — auto-generated per-coach summary with PDF export
+// ============================================================
+function openCoachScorecards() {
+    const data = getFilteredData();
+    const coaches = [...new Set(data.map(e => e.coach).filter(Boolean))].sort();
+    if (!coaches.length) {
+        document.getElementById('scorecardBody').innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No coach data in the current filter window.</div>';
+        document.getElementById('scorecardModal').classList.add('active');
+        return;
+    }
+    const cards = coaches.map(c => buildCoachScorecardHtml(c, data.filter(r => r.coach === c)));
+    document.getElementById('scorecardBody').innerHTML = `
+        <div style="display:flex; gap:10px; justify-content:space-between; align-items:center; margin-bottom:14px; padding:10px 14px; background:#f8fafc; border-radius:8px;">
+            <div style="font-size:13px; color:var(--text-muted);">
+                Generated from <strong>${data.length}</strong> record${data.length===1?'':'s'} across <strong>${coaches.length}</strong> coach${coaches.length===1?'':'es'}, respecting current dashboard filters.
+            </div>
+            <button class="btn btn-small" onclick="downloadAllScorecardsPDF()">📄 Download All as PDF</button>
+        </div>
+        <div id="scorecardContainer">${cards.join('')}</div>
+    `;
+    document.getElementById('scorecardModal').classList.add('active');
+}
+
+function buildCoachScorecardHtml(coach, data) {
+    const t = data.length;
+    const avg = t ? data.reduce((s,r)=>s+r.final_score,0)/t : 0;
+    const thr = getPassThreshold();
+    const passed = data.filter(r=>r.final_score>=thr && r.auto_failed!=='Yes').length;
+    const auto = data.filter(r=>r.auto_failed==='Yes').length;
+    const offers = data.filter(r=>r.upsell_offer_made==='Yes').length;
+    const convs = data.filter(r=>r.upsell_offer_made==='Yes' && r.upsell_interested==='Yes').length;
+    const target = getScoreTarget();
+
+    // Per-agent breakdown
+    const byAgent = {};
+    data.forEach(r => {
+        if (!byAgent[r.agent_name]) byAgent[r.agent_name] = { count:0, sum:0, auto:0, pass:0 };
+        byAgent[r.agent_name].count++;
+        byAgent[r.agent_name].sum += r.final_score;
+        if (r.auto_failed === 'Yes') byAgent[r.agent_name].auto++;
+        if (r.final_score >= thr && r.auto_failed !== 'Yes') byAgent[r.agent_name].pass++;
+    });
+    const agentRows = Object.entries(byAgent).map(([name, v]) => ({
+        name, count: v.count, avg: v.sum/v.count, auto: v.auto, pass: v.pass
+    })).sort((a,b) => b.avg - a.avg);
+
+    // Section-level weak points
+    const sectionStats = {};
+    SECTIONS.forEach(s => sectionStats[s] = { total:0, passed:0 });
+    data.forEach(r => {
+        qaQuestions.forEach(q => {
+            const ans = r.qa_details?.[`Q${q.id}_Answer`];
+            if (ans !== undefined) {
+                sectionStats[q.section].total++;
+                if (ans === 'Yes') sectionStats[q.section].passed++;
+            }
+        });
+    });
+    const weakSections = SECTIONS.map(s => {
+        const st = sectionStats[s];
+        return { section: s, pct: st.total ? st.passed/st.total*100 : 0 };
+    }).sort((a,b) => a.pct - b.pct).slice(0, 3);
+
+    const safeCoach = coach.replace(/[^a-z0-9]/gi, '_');
+    return `
+        <div class="scorecard" id="scorecard_${safeCoach}" style="border:1px solid var(--border-light); border-radius:10px; padding:20px; margin-bottom:18px; background:white;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:14px; margin-bottom:14px; border-bottom:2px solid var(--header-blue);">
+                <div>
+                    <div style="font-size:11px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase;">Coach Scorecard</div>
+                    <div style="font-size:22px; font-weight:800; color:var(--header-blue); margin-top:2px;">${coach}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${t} audit${t===1?'':'s'} · ${Object.keys(byAgent).length} agent${Object.keys(byAgent).length===1?'':'s'} · Period reflects current dashboard filter</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:11px; color:var(--text-muted);">Average Score</div>
+                    <div style="font-size:32px; font-weight:800; color:${avg >= target ? '#00843D' : avg >= thr ? '#FFB612' : '#C8102E'};">${avg.toFixed(1)}%</div>
+                    <div style="font-size:11px; color:var(--text-muted);">Target: ${target}% · ${(avg-target).toFixed(1)}pp vs target</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; margin-bottom:16px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:6px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Pass Rate</div><div style="font-size:18px; font-weight:700; color:#00843D;">${t?((passed/t)*100).toFixed(1):0}%</div><div style="font-size:11px; color:var(--text-muted);">${passed}/${t}</div></div>
+                <div style="background:#f8fafc; padding:10px; border-radius:6px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Auto-Fail Rate</div><div style="font-size:18px; font-weight:700; color:#C8102E;">${t?((auto/t)*100).toFixed(1):0}%</div><div style="font-size:11px; color:var(--text-muted);">${auto} case${auto===1?'':'s'}</div></div>
+                <div style="background:#f8fafc; padding:10px; border-radius:6px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Offer Rate</div><div style="font-size:18px; font-weight:700; color:#FFB612;">${t?((offers/t)*100).toFixed(1):0}%</div><div style="font-size:11px; color:var(--text-muted);">${offers} offer${offers===1?'':'s'}</div></div>
+                <div style="background:#f8fafc; padding:10px; border-radius:6px;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Conversion</div><div style="font-size:18px; font-weight:700; color:#8b5cf6;">${offers?((convs/offers)*100).toFixed(1):0}%</div><div style="font-size:11px; color:var(--text-muted);">${convs} win${convs===1?'':'s'}</div></div>
+            </div>
+
+            <div style="font-size:11px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin:14px 0 6px;">⚠️ Weak Areas (Lowest Section Pass Rates)</div>
+            <div style="display:flex; gap:10px; margin-bottom:14px;">
+                ${weakSections.map(ws => `<div style="flex:1; padding:8px 10px; background:#fff5f5; border-left:3px solid ${ws.pct<75?'#C8102E':'#FFB612'}; border-radius:4px;"><div style="font-size:11px; color:var(--text-muted);">${ws.section}</div><div style="font-size:14px; font-weight:700;">${ws.pct.toFixed(1)}%</div></div>`).join('')}
+            </div>
+
+            <div style="font-size:11px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin:14px 0 6px;">👥 Agent Breakdown</div>
+            <table style="width:100%; font-size:12px;">
+                <thead><tr><th style="text-align:left;">Agent</th><th style="text-align:right;">Audits</th><th style="text-align:right;">Avg Score</th><th style="text-align:right;">Pass</th><th style="text-align:right;">Auto-Fail</th></tr></thead>
+                <tbody>${agentRows.map(a => `<tr>
+                    <td><strong>${a.name}</strong></td>
+                    <td style="text-align:right;">${a.count}</td>
+                    <td style="text-align:right; color:${a.avg>=target?'#00843D':a.avg>=thr?'#FFB612':'#C8102E'}; font-weight:700;">${a.avg.toFixed(1)}%</td>
+                    <td style="text-align:right;">${a.pass}/${a.count}</td>
+                    <td style="text-align:right;">${a.auto}</td>
+                </tr>`).join('')}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+function closeCoachScorecards() {
+    document.getElementById('scorecardModal').classList.remove('active');
+}
+
+async function downloadAllScorecardsPDF() {
+    if (typeof window.jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+        showToast("PDF libraries didn't load — check your connection", "#C8102E");
+        return;
+    }
+    const container = document.getElementById('scorecardContainer');
+    if (!container) return;
+    const cards = container.querySelectorAll('.scorecard');
+    if (!cards.length) { showToast("No scorecards to export", "#FFB612"); return; }
+
+    showToast("📄 Building PDF... this can take a few seconds", "#FFB612");
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+
+        for (let i = 0; i < cards.length; i++) {
+            const canvas = await html2canvas(cards[i], { scale: 2, backgroundColor: '#ffffff', logging: false });
+            const imgData = canvas.toDataURL('image/png');
+            const imgW = pageW - margin * 2;
+            const imgH = (canvas.height * imgW) / canvas.width;
+            if (i > 0) pdf.addPage();
+            // If a single card is taller than the page, scale it down
+            const finalH = Math.min(imgH, pageH - margin * 2);
+            const finalW = (canvas.width * finalH) / canvas.height;
+            pdf.addImage(imgData, 'PNG', (pageW - finalW)/2, margin, finalW, finalH);
+        }
+        pdf.save(`lg_qa_coach_scorecards_${new Date().toISOString().substring(0,10)}.pdf`);
+        showToast(`✓ PDF saved (${cards.length} scorecard${cards.length===1?'':'s'})`);
+    } catch (e) {
+        console.error("PDF generation failed:", e);
+        showToast("PDF generation failed — see console", "#C8102E");
+    }
+}
+
+// ============================================================
+// FUSE.JS — fuzzy search across the Database view
+// ============================================================
+let _fuseIndex = null;
+
+function rebuildFuseIndex() {
+    if (typeof Fuse === 'undefined') return;
+    _fuseIndex = new Fuse(evaluationsDB, {
+        keys: ['cnn', 'agent_name', 'coach', 'qa_name', 'lob', 'site', 'product_type', 'call_type'],
+        threshold: 0.35,   // 0 = exact only; 1 = match anything
+        ignoreLocation: true,
+        includeScore: false
+    });
+}
+
+// Fuse-powered filter, used by renderDBTable when a search query is present
+function fuzzyFilterEvaluations(query) {
+    if (!query || !_fuseIndex) return evaluationsDB;
+    return _fuseIndex.search(query).map(r => r.item);
 }
 
 // CSV DOWNLOAD
