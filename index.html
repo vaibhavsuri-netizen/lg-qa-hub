@@ -2137,19 +2137,11 @@ function destroyChart(id) {
 }
 
 function makeChart(id, cfg) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return null;
-
-    if (chartInstances[id]) {
-        // If chart exists, update it smoothly
-        chartInstances[id].data = cfg.data;
-        if (cfg.options) chartInstances[id].options = cfg.options;
-        chartInstances[id].update();
-    } else {
-        // Create new chart only if it doesn't exist yet
-        chartInstances[id] = new Chart(canvas, cfg);
-    }
-    return chartInstances[id];
+    destroyChart(id);
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    chartInstances[id] = new Chart(canvas, cfg);
+    return chartInstances[id];
 }
 
 const CHART_COLORS = {
