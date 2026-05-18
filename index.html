@@ -341,9 +341,8 @@
         <div class="nav-link" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
         <div class="nav-link" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
         <div class="nav-link" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
-        <div class="nav-link" onclick="switchView('weightage-view', this)"><span>⚖️</span>Change Weightage</div>
     </div>
-    <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
+    <div class="sidebar-footer">LG QA Hub v4.0<br>© 2026 LG Electronics</div>
 </div>
 
 <div class="main-content">
@@ -432,61 +431,34 @@
         </table>
     </div>
 
-    <!-- UPDATED PERSONALIZATION / UPSELLING SECTION -->
     <div class="card" style="border-left: 4px solid var(--header-blue);">
         <div class="section-title"><span class="section-num">3</span>Personalization / Upselling</div>
         <table>
-            <tr>
-                <td style="font-weight:600; width:32%;">Offer Made?</td>
-                <td style="width:28%;">
-                    <select id="up_OfferMade" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();">
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                    </select>
-                </td>
-                <td rowspan="9"><textarea id="up_Notes" placeholder="Personalization Notes..." style="height:220px; resize:vertical;"></textarea></td>
+            <tr><td style="font-weight:600; width:32%;">Offer Made?</td>
+                <td style="width:28%;"><select id="up_OfferMade" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
+                <td rowspan="8"><textarea id="up_Notes" placeholder="Personalization Notes..." style="height:220px; resize:vertical;"></textarea></td>
             </tr>
-            <tr id="row_OfferType">
-                <td><div class="q-title">What was Offered?</div></td>
-                <td><select id="up_OfferType" onchange="calcScore()"></select></td>
+            <tr id="row_OfferType"><td><div class="q-title">What was Offered?</div></td>
+                <td><select id="up_OfferType" onchange="calcScore()"><option>LG Extended Warranty</option><option>Accessory</option><option>Water Filter</option><option>ThinQ Explanation</option></select></td>
             </tr>
-            <tr id="row_OfferQuality">
-                <td><div class="q-title">Offer Quality (Rate the HOW)</div></td>
-                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="calcScore()"></select></td>
+            <tr id="row_OfferQuality"><td><div class="q-title">Offer Quality (Rate the HOW)</div></td>
+                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="calcScore()"><option value="Adding Value">Adding Value (0%)</option><option value="Indifferent">Indifferent (-3%)</option><option value="Pushy / Sales-y">Pushy / Sales-y (-5%)</option></select></td>
             </tr>
-            <tr id="row_OppExisted" class="hidden">
-                <td><div class="q-title">Opportunity Existed?</div></td>
-                <td><select id="up_OppExisted" class="select-yes-no no" onchange="calcScore()">
-                    <option value="Yes">Yes (-10% Penalty)</option>
-                    <option value="No">No (N/A)</option>
-                </select></td>
+            <tr id="row_OppExisted" class="hidden"><td><div class="q-title">Opportunity Existed?</div></td>
+                <td><select id="up_OppExisted" class="select-yes-no no" onchange="calcScore()"><option value="Yes">Yes (-10% Penalty)</option><option value="No">No (N/A)</option></select></td>
             </tr>
-            <tr id="row_NoReason" class="hidden">
-                <td><div class="q-title">Reason for No Offer</div></td>
-                <td><select id="up_NoReason" onchange="calcScore()"></select></td>
+            <tr id="row_NoReason" class="hidden"><td><div class="q-title">Reason for No Offer</div></td>
+                <td><select id="up_NoReason" onchange="calcScore()"><option>Call Transferred</option><option>Irate Customer</option><option>Escalation</option></select></td>
             </tr>
-            <tr id="row_CustomerInterested">
-                <td><div class="q-title">Customer Interested?</div></td>
-                <td><select id="up_CustInterested" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();">
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                </select></td>
+            <tr id="row_CustomerInterested"><td><div class="q-title">Customer Interested?</div></td>
+                <td><select id="up_CustInterested" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
             </tr>
-            
-            <!-- NEW ROW: Reason for No Interest -->
-            <tr id="row_NoInterestReason" class="hidden">
-                <td><div class="q-title">Reason for No Interest</div></td>
-                <td><select id="up_NoInterestReason" onchange="calcScore()"></select></td>
-            </tr>
-            
-            <tr id="row_FollowThrough">
-                <td><div class="q-title">Follow-Through</div></td>
-                <td><select id="up_FollowThrough" class="select-yes-no yes" onchange="calcScore()"></select></td>
+            <tr id="row_FollowThrough"><td><div class="q-title">Follow-Through</div></td>
+                <td><select id="up_FollowThrough" class="select-yes-no yes" onchange="calcScore()"><option value="Properly Followed Up">Properly Followed Up (0%)</option><option value="Partially Addressed">Partially Addressed (-2.5%)</option><option value="Left Hanging">Left Hanging (-5%)</option></select></td>
             </tr>
         </table>
     </div>
 
-    <!-- Rest of the form (Auto-Fail, Sentiment, etc.) remains the same -->
     <div class="card" style="border-left: 4px solid var(--fail-red);">
         <div class="section-title danger"><span class="section-num">4</span>Auto-Fail Criteria</div>
         <table>
@@ -518,104 +490,572 @@
     </div>
 </div>
 
-<!-- DASHBOARD VIEW (unchanged) -->
+<!-- DASHBOARD -->
 <div id="dashboard-view" class="view-section">
-    <!-- ... (keep all your existing dashboard content exactly as before) ... -->
-    <!-- For brevity in this response, assume the full dashboard HTML is kept unchanged -->
-</div>
-
-<!-- DATABASE VIEW (unchanged) -->
-<div id="database-view" class="view-section">
-    <!-- ... keep original ... -->
-</div>
-
-<!-- ROSTER VIEW (unchanged) -->
-<div id="roster-view" class="view-section">
-    <!-- ... keep original ... -->
-</div>
-
-<!-- NEW: WEIGHTAGE MANAGER VIEW -->
-<div id="weightage-view" class="view-section">
-    <div class="page-header">
+    <div class="dash-header-bar">
         <div>
-            <div class="page-title">⚖️ Weightage Manager</div>
-            <div class="page-subtitle">Adjust scoring weights • Changes apply immediately to new evaluations</div>
+            <h2>📊 Analytics Hub</h2>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Real-time insights · <span id="filterCountLabel">0 records</span></div>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-secondary" onclick="saveWeights()">💾 Save Weights</button>
-            <button class="btn btn-ghost" onclick="resetAllWeights()">↺ Reset All to Default</button>
+        <div class="slicer-group">
+            <div class="slicer-item"><label>Period</label>
+                <select id="slicerPeriod" onchange="updateDashboard()">
+                    <option value="All">All Time</option><option value="ThisWeek">This Week</option>
+                    <option value="LastWeek">Last Week</option><option value="L4W">Last 4 Weeks</option>
+                    <option value="ThisMonth">This Month</option><option value="LastMonth">Last Month</option>
+                    <option value="L3M">Last 3 Months</option>
+                </select>
+            </div>
+            <div class="slicer-item"><label>Month</label>
+                <select id="slicerMonth" onchange="updateDashboard()"><option value="All">All Months</option></select>
+            </div>
+            <div class="slicer-item"><label>Agent</label>
+                <select id="slicerAgent" onchange="updateDashboard()"><option value="All">All Agents</option></select>
+            </div>
+            <div class="slicer-item"><label>Coach</label>
+                <select id="slicerCoach" onchange="updateDashboard()"><option value="All">All Coaches</option></select>
+            </div>
+            <div class="slicer-item"><label>LOB</label>
+                <select id="slicerLOB" onchange="updateDashboard()"><option value="All">All LOBs</option></select>
+            </div>
+            <div class="slicer-item"><label>Product</label>
+                <select id="slicerProduct" onchange="updateDashboard()"><option value="All">All Products</option></select>
+            </div>
+            <div class="slicer-item"><label>Site</label>
+                <select id="slicerSite" onchange="updateDashboard()"><option value="All">All Sites</option></select>
+            </div>
+            <div class="slicer-item"><label>Status</label>
+                <select id="slicerStatus" onchange="updateDashboard()">
+                    <option value="All">All</option><option value="Pass">Passed (≥88%)</option>
+                    <option value="Fail">Failed (&lt;88%)</option><option value="AutoFail">Auto-Failed</option>
+                </select>
+            </div>
+            <div class="slicer-item"><label>&nbsp;</label>
+                <button class="reset-btn" onclick="resetFilters()">↻ Reset</button>
+            </div>
         </div>
     </div>
 
-    <div class="card">
-        <div style="margin-bottom:12px; font-size:12px; color:var(--text-muted);">
-            Total Weight: <strong id="totalWeight">100</strong>% &nbsp;|&nbsp; 
-            <span style="color:#C8102E;">Changes affect score calculation immediately</span>
+    <div class="display-settings-bar">
+        <label>⚙️ Chart Display:</label>
+        <div class="toggle-group">
+            <button class="toggle-btn active" id="dispPct" onclick="setDisplayMode('pct')">% Only</button>
+            <button class="toggle-btn" id="dispCount" onclick="setDisplayMode('count')">Count Only</button>
+            <button class="toggle-btn" id="dispBoth" onclick="setDisplayMode('both')">Both</button>
         </div>
-        <table id="weightTable" style="font-size:13px;">
+        <div class="settings-sep"></div>
+        <label>Hold Time Threshold:</label>
+        <input type="number" id="holdThreshold" value="120" min="0" style="width:80px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <span style="font-size:12px; color:var(--text-muted);">seconds</span>
+        <div class="settings-sep"></div>
+        <label>Pass Threshold:</label>
+        <input type="number" id="passThreshold" value="88" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <span style="font-size:12px; color:var(--text-muted);">%</span>
+    </div>
+
+    <div class="drilldown-bar hidden" id="drilldownBar">
+        <span class="drill-label">🔍 Drill-down active:</span>
+        <span class="drill-crumb" id="drillCrumb">—</span>
+        <button class="drill-clear" onclick="clearDrilldown()">✕ Clear</button>
+    </div>
+
+    <div class="dash-tabs">
+        <div class="dash-tab active" onclick="switchDashTab('dash-overview', this)">🎯 Overview</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-trends', this)">📈 Trends</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-qa', this)">🔍 QA Deep Dive</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-upsell', this)">💼 Upsell</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-agents', this)">🏆 Agents & Leaderboard</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-segment', this)">🗂️ Segments</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-heatmap', this)">🗓️ Heatmaps</div>
+        <div class="dash-tab" onclick="switchDashTab('dash-insights', this)">💡 Insights</div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="dash-overview" class="dash-subview active">
+        <div class="kpi-row">
+            <div class="kpi-box green" oncontextmenu="showCtxMenu(event,'avg_score_data')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub"><span class="delta neutral" id="kpiAvgDelta">—</span> vs prior</div><canvas class="mini-spark" id="sparkScore"></canvas></div>
+            <div class="kpi-box indigo" oncontextmenu="showCtxMenu(event,'all_data')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub"><span class="delta neutral" id="kpiTotalDelta">—</span> vs prior</div><canvas class="mini-spark" id="sparkTotal"></canvas></div>
+            <div class="kpi-box red" oncontextmenu="showCtxMenu(event,'autofail_data')"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub"><span id="kpiAutoCount">0 cases</span></div><canvas class="mini-spark" id="sparkAF"></canvas></div>
+            <div class="kpi-box yellow" oncontextmenu="showCtxMenu(event,'offer_data')"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub"><span id="kpiOfferCount">0 offers</span></div></div>
+            <div class="kpi-box purple" oncontextmenu="showCtxMenu(event,'conversion_data')"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub"><span id="kpiConvCount">0 successes</span></div></div>
+            <div class="kpi-box blue" oncontextmenu="showCtxMenu(event,'pass_data')"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub"><span id="kpiPassCount">0/0</span></div></div>
+            <div class="kpi-box teal" oncontextmenu="showCtxMenu(event,'all_data')"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub"><span id="kpiStdDev">σ 0</span></div></div>
+            <div class="kpi-box orange" oncontextmenu="showCtxMenu(event,'hold_data')"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub"><span id="kpiHoldOver">0 over threshold</span></div></div>
+        </div>
+        <div class="dash-container">
+            <div class="dash-col" style="flex:1.5;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score Trend<div class="dash-card-subtitle">Monthly avg score & auto-fail rate</div></div><button class="card-ctx-btn" oncontextmenu="showCtxMenu(event,'all_data')" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Top Performers<div class="dash-card-subtitle">Highest avg QA scores</div></div></div>
+                    <div class="leaderboard" id="topLeaderboard"></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score Distribution<div class="dash-card-subtitle">Calls across score ranges</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="distChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Performance by Section<div class="dash-card-subtitle">Pass rate by evaluation section</div></div></div>
+                    <div class="perf-strip" id="sectionStrip"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRENDS -->
+    <div id="dash-trends" class="dash-subview">
+        <div class="kpi-row">
+            <div class="kpi-box green"><h3>This Week vs Last</h3><div class="val" id="wowScore">0%</div><div class="val-sub"><span class="delta neutral" id="wowDelta">—</span></div></div>
+            <div class="kpi-box indigo"><h3>This Month vs Last</h3><div class="val" id="momScore">0%</div><div class="val-sub"><span class="delta neutral" id="momDelta">—</span></div></div>
+            <div class="kpi-box blue"><h3>Audits This Week</h3><div class="val" id="wowCount">0</div><div class="val-sub"><span class="delta neutral" id="wowCountDelta">—</span> vs last week</div></div>
+            <div class="kpi-box yellow"><h3>Best Week (12W)</h3><div class="val" id="bestWeek">—</div><div class="val-sub" id="bestWeekDate">—</div></div>
+        </div>
+        <div class="dash-container">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Week-Over-Week<div class="dash-card-subtitle">Last 12 weeks</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper tall"><canvas id="wowChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Month-Over-Month<div class="dash-card-subtitle">Score, AF rate, conversion</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper tall"><canvas id="momChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header">
+                <div>Question-Level Trend<div class="dash-card-subtitle">Track individual question pass rate over time</div></div>
+                <select id="slicerQuestion" onchange="updateDashboard()" style="padding:6px 10px; font-size:12px; border:1px solid var(--border-medium); border-radius:6px; font-weight:600; color:var(--header-blue);">
+                    <option value="AvgScore">Overall Average Score</option>
+                </select>
+            </div>
+            <div class="chart-wrapper"><canvas id="momQuestionChart"></canvas></div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Daily Volume (30 Days)<div class="dash-card-subtitle">Audits per day</div></div></div>
+                    <div class="chart-wrapper"><canvas id="dailyVolumeChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Rolling 7-Day Avg<div class="dash-card-subtitle">Smoothed score trend</div></div></div>
+                    <div class="chart-wrapper"><canvas id="rollingAvgChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QA DEEP DIVE -->
+    <div id="dash-qa" class="dash-subview">
+        <div class="dash-container">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Section Performance<div class="dash-card-subtitle">Pass rate by section</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="sectionBarChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Top Defects (Pareto)<div class="dash-card-subtitle">Most failed questions</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="paretoChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>All 22 Questions · Pass Rate<div class="dash-card-subtitle">Ranked weakest first</div></div></div>
+                    <div class="perf-strip" id="allQuestionsStrip" style="max-height:500px; overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Auto-Fail Breakdown<div class="dash-card-subtitle">By category</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'autofail_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="afChart"></canvas></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Weighted Score Impact<div class="dash-card-subtitle">Score lost per question</div></div></div>
+                    <div class="chart-wrapper"><canvas id="weightedImpactChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPSELL -->
+    <div id="dash-upsell" class="dash-subview">
+        <div class="dash-container">
+            <div class="dash-col" style="flex:1;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Conversion Funnel<div class="dash-card-subtitle">Call → conversion flow</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="funnel-wrapper">
+                        <div class="funnel-layer f-1"><span>Total Calls</span><strong id="fnl1">0</strong><div class="pct">100%</div></div>
+                        <div class="funnel-layer f-2"><span>Opportunities</span><strong id="fnl2">0</strong><div class="pct" id="fnl2pct">0%</div></div>
+                        <div class="funnel-layer f-3"><span>Offers Made</span><strong id="fnl3">0</strong><div class="pct" id="fnl3pct">0%</div></div>
+                        <div class="funnel-layer f-4"><span>Conversions</span><strong id="fnl4">0</strong><div class="pct" id="fnl4pct">0%</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="dash-col" style="flex:1.2;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Offer Quality (The HOW)<div class="dash-card-subtitle">How agents present offers</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="donut-wrapper"><canvas id="pieHow"></canvas></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">After-offer quality</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="donut-wrapper"><canvas id="pieExec"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Offer Types Distribution<div class="dash-card-subtitle">What's being offered most</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'offer_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="offerTypeChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Reasons for Missed Offers<div class="dash-card-subtitle">Why opportunities weren't taken</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="missedChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Upsell Trend Over Time<div class="dash-card-subtitle">Offer rate and conversion by month</div></div></div>
+            <div class="chart-wrapper"><canvas id="upsellTrendChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- AGENTS -->
+    <div id="dash-agents" class="dash-subview">
+        <div class="dash-card">
+            <div class="dash-card-header"><div>Agent Leaderboard<div class="dash-card-subtitle">Sorted by avg QA score · Click bar to drill down</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+            <div class="chart-wrapper tall"><canvas id="agentChart"></canvas></div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Detailed Agent Metrics<div class="dash-card-subtitle">Per-agent breakdown</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+            <table id="agentTable">
+                <thead><tr><th>Rank</th><th>Agent</th><th>Coach</th><th>Site</th><th>LOB</th><th>Audits</th><th>Avg Score</th><th>Auto-Fails</th><th>Offer Rate</th><th>Conv. Rate</th><th>Avg Hold(s)</th><th>Trend</th><th>Consistency</th><th>Sentiment</th><th>Improvement</th></tr></thead>
+                <tbody id="agentTbody"></tbody>
+            </table>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Top vs Bottom · Radar<div class="dash-card-subtitle">Section comparison</div></div></div>
+            <div class="chart-wrapper x-tall"><canvas id="agentRadarChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- SEGMENTS -->
+    <div id="dash-segment" class="dash-subview">
+        <div class="kpi-row" id="segmentKPIs"></div>
+        <div class="dash-container">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score by Coach<div class="dash-card-subtitle">Avg QA score per coach · click to drill</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="coachChart"></canvas></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score by Site<div class="dash-card-subtitle">Avg QA score per site</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="siteChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score by Product Type<div class="dash-card-subtitle">HA vs HE vs Other</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="productChart"></canvas></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Score by Call Type<div class="dash-card-subtitle">Troubleshooting vs Registration vs Repair</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'all_data')">⋯</button></div>
+                    <div class="chart-wrapper"><canvas id="callTypeChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Hold Time Analysis<div class="dash-card-subtitle">Avg hold time by agent · threshold line shown</div></div><button class="card-ctx-btn" onclick="showCtxMenuBtn(event,'hold_data')">⋯</button></div>
+            <div class="chart-wrapper"><canvas id="holdTimeChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- HEATMAPS -->
+    <div id="dash-heatmap" class="dash-subview">
+        <div class="dash-card">
+            <div class="dash-card-header"><div>Agent × Section Heatmap<div class="dash-card-subtitle">Pass rate · green = high · red = low</div></div></div>
+            <div id="heatmapContainer" style="overflow-x:auto;"></div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Monthly Score Heatmap<div class="dash-card-subtitle">Agent performance across months</div></div></div>
+            <div id="monthHeatmapContainer" style="overflow-x:auto;"></div>
+        </div>
+        <div class="dash-card" style="margin-top:18px;">
+            <div class="dash-card-header"><div>Coach × Section Heatmap<div class="dash-card-subtitle">Pass rate by coach team</div></div></div>
+            <div id="coachHeatmapContainer" style="overflow-x:auto;"></div>
+        </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div id="dash-insights" class="dash-subview">
+        <div class="dash-container">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>🎯 Key Insights<div class="dash-card-subtitle">Auto-generated from filtered data</div></div></div>
+                    <div id="insightsContainer"></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>⚠️ Risk Indicators<div class="dash-card-subtitle">Areas requiring attention</div></div></div>
+                    <div id="risksContainer"></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>🏆 Highlights<div class="dash-card-subtitle">Positive trends</div></div></div>
+                    <div id="highlightsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DATABASE VIEW -->
+<div id="database-view" class="view-section">
+    <div class="page-header">
+        <div>
+            <div class="page-title">🗃️ Database Records</div>
+            <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input type="text" id="dbSearch" class="search-input" placeholder="Search all fields..." oninput="renderDBTable()">
+            <select id="dbFilterStatus" onchange="renderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
+                <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
+            </select>
+            <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
+            <button class="btn btn-secondary btn-small" onclick="downloadCSV()">
+                ⬇ Download CSV
+            </button>        
+        </div>
+    </div>
+    <div class="col-toggle-panel" id="colTogglePanel">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; align-items:center;">
+            <strong style="font-size:13px; color:var(--header-blue);">Toggle Columns</strong>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-small" onclick="toggleAllCols(true)">All</button>
+                <button class="btn btn-ghost btn-small" onclick="toggleAllCols(false)">None</button>
+                <button class="btn btn-ghost btn-small" onclick="presetCols('compact')">Compact</button>
+            </div>
+        </div>
+        <div class="col-toggle-grid" id="colToggleGrid"></div>
+    </div>
+    <div class="card" style="padding:12px;">
+        <div class="db-table-wrapper"><table id="dbTable"></table></div>
+    </div>
+</div>
+
+<!-- ROSTER VIEW -->
+<div id="roster-view" class="view-section">
+   <div class="page-header">
+    <div>
+        <div class="page-title">👥 Agent Roster</div>
+        <div class="page-subtitle">Manage active agents</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="section-title"><span class="section-num">+</span>Add New Agent</div>
+
+    <!-- Add New Agent Form -->
+    <div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
+        <div class="form-group">
+            <label>Agent Name</label>
+            <input type="text" id="r_Name" placeholder="Last, First">
+        </div>
+        <div class="form-group">
+            <label>Avaya ID</label>
+            <input type="text" id="r_Avaya" placeholder="Avaya ID">
+        </div>
+        <div class="form-group">
+            <label>Coach</label>
+            <select id="r_Coach">
+                <option value="Coach A">Coach A</option>
+                <option value="Coach B">Coach B</option>
+                <option value="Coach C">Coach C</option>
+            </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
+            <button class="btn" onclick="addAgent()">+ Add Agent</button>
+        </div>
+    </div>
+
+    <!-- IMPORT / EXPORT SECTION -->
+    <div style="margin-top: 10px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
+        <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
+        <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
+                📥 Import Agents (CSV/JSON)
+            </button>
+            <button class="btn btn-ghost btn-small" onclick="exportAgents()">
+                📤 Export Agents
+            </button>
+        </div>
+    </div>
+
+    <!-- TEST BUTTON -->
+    <div style="margin-top: 15px; text-align: center;">
+        <button class="btn btn-ghost btn-small" onclick="testNetlifyConnection()" 
+                style="background: #f0f4f9; color: #002b5e; border: 1px solid #002b5e;">
+            🔍 Test Netlify Connection
+        </button>
+    </div>
+
+    <div style="overflow-x:auto; margin-top:22px;">
+        <table id="rosterTable">
             <thead>
                 <tr>
-                    <th style="width:60px;">Q#</th>
-                    <th>Question Title</th>
-                    <th style="width:120px;">Section</th>
-                    <th style="width:110px;">Weight (%)</th>
-                    <th style="width:90px;">Action</th>
+                    <th>Agent Name</th>
+                    <th>Avaya ID</th>
+                    <th>Coach</th>
+                    <th>Site</th>
+                    <th>Audits</th>
                 </tr>
             </thead>
-            <tbody id="weightTbody"></tbody>
+            <tbody></tbody>
         </table>
     </div>
 </div>
+</div>
 
+<!-- Add New Agent Form -->
+<div class="form-grid" style="background:#f8fafc; padding:18px; border-radius:8px; border:1px solid #e4e8ed; margin-bottom:20px;">
+    <div class="form-group">
+        <label>Agent Name</label>
+        <input type="text" id="r_Name" placeholder="Last, First">
+    </div>
+    <div class="form-group">
+        <label>Avaya ID</label>
+        <input type="text" id="r_Avaya" placeholder="Avaya ID">
+    </div>
+    <div class="form-group">
+        <label>Coach</label>
+        <select id="r_Coach">
+            <option value="Coach A">Coach A</option>
+            <option value="Coach B">Coach B</option>
+            <option value="Coach C">Coach C</option>
+        </select>
+    </div>
+    <div class="form-group" style="justify-content:flex-end; align-self:flex-end;">
+        <button class="btn" onclick="addAgent()">+ Add Agent</button>
+    </div>
+</div>
+        <!-- IMPORT / EXPORT SECTION -->
+<div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e4e8ed;">
+    <strong style="font-size: 13px; color: #002b5e;">Import / Export Agents</strong>
+    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+        <button class="btn btn-secondary btn-small" onclick="showImportModal('agents')">
+            📥 Import Agents
+        </button>
+        <button class="btn btn-ghost btn-small" onclick="exportAgents()">
+            📤 Export Agents
+        </button>
+    </div>
+</div>
+        <div style="overflow-x:auto; margin-top:22px;">
+            <table id="rosterTable">
+                <thead><tr><th>Agent Name</th><th>Avaya ID</th><th>AWS ID</th><th>Date of Hire</th><th>Coach</th><th>LOB</th><th>Site</th><th>Status</th><th>Audits</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- TEST NETLIFY CONNECTION BUTTON -->
+<div style="margin-top: 15px; text-align: center;">
+    <button class="btn btn-ghost btn-small" onclick="testNetlifyConnection()" 
+            style="background: #f0f4f9; color: #002b5e; border: 1px solid #002b5e;">
+        🔍 Test Netlify Connection
+    </button>
+</div>
+
+<div style="overflow-x:auto; margin-top:22px;">
+    <table id="rosterTable">
+        ...
+    </table>
+</div>    
 </div><!-- end main-content -->
 
-<!-- Keep all modals, detail panel, context menu, toast exactly as in original -->
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+    <div class="detail-panel-header">
+        <div class="detail-panel-title" id="detailPanelTitle">Detail View</div>
+        <button class="detail-panel-close" onclick="closeDetailPanel()">×</button>
+    </div>
+    <div class="detail-panel-body" id="detailPanelBody"></div>
+    <div class="detail-panel-footer">
+        <button class="btn btn-small btn-secondary" onclick="downloadDetailRecords()">⬇ Download These Records</button>
+        <button class="btn btn-small btn-ghost" onclick="closeDetailPanel()">Close</button>
+    </div>
+</div>
+
+<!-- RECORD DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">Evaluation Detail</div>
+            <button class="modal-close" onclick="closeDetailModal()">×</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+    </div>
+</div>
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-item" onclick="ctxDrillDown()">🔍 Drill down into this</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="ctxDownloadChoice('visual')">⬇ Download this visual's records</div>
+    <div class="ctx-item" onclick="ctxDownloadChoice('filtered')">⬇ Download all filtered records</div>
+    <div class="ctx-item" onclick="ctxDownloadChoice('choose')">⬇ Let me choose...</div>
+</div>
+
+<!-- DOWNLOAD CHOICE MODAL -->
+<div class="dl-modal" id="dlModal">
+    <div class="dl-modal-box">
+        <h3>📥 Download Records</h3>
+        <p>Choose which records to export as CSV:</p>
+        <div class="dl-option" onclick="execDownload('visual')">
+            <strong>This visual's records</strong>
+            <span id="dlVisualCount">Records matching this specific data point</span>
+        </div>
+        <div class="dl-option" onclick="execDownload('filtered')">
+            <strong>All currently filtered records</strong>
+            <span id="dlFilteredCount">All records matching dashboard filters</span>
+        </div>
+        <div class="dl-option" onclick="execDownload('all')">
+            <strong>All records (full database)</strong>
+            <span id="dlAllCount">Complete unfiltered database</span>
+        </div>
+        <button class="dl-cancel" onclick="closeDlModal()">Cancel</button>
+    </div>
+</div>
+
+<div class="toast" id="toast">✓ Done</div>
 
 <script>
-// ============================================================
-// CENTRALIZED CONFIG - EDIT ONLY THIS SECTION TO UPDATE OPTIONS
-// ============================================================
-const SELECT_OPTIONS = {
-    offerTypes: [
-        "LG Extended Warranty",
-        "Accessory",
-        "Water Filter",
-        "ThinQ Explanation",
-        "Protection Plan",
-        "Smart Diagnosis",
-        "Extended Service Contract"
-    ],
-    
-    offerQualities: [
-        { value: "Adding Value", label: "Adding Value (0%)", penalty: 0 },
-        { value: "Indifferent", label: "Indifferent (-3%)", penalty: -3 },
-        { value: "Pushy / Sales-y", label: "Pushy / Sales-y (-5%)", penalty: -5 }
-    ],
-    
-    followThrough: [
-        { value: "Properly Followed Up", label: "Properly Followed Up (0%)", penalty: 0 },
-        { value: "Partially Addressed", label: "Partially Addressed (-2.5%)", penalty: -2.5 },
-        { value: "Left Hanging", label: "Left Hanging (-5%)", penalty: -5 }
-    ],
-    
-    noOfferReasons: [
-        "Call Transferred",
-        "Irate Customer",
-        "Escalation",
-        "Time Constraint",
-        "Customer Not Ready"
-    ],
-    
-    noInterestReasons: [
-        "Too Pricey",
-        "Not Interested",
-        "Purchased Elsewhere",
-        "Already Has It",
-        "Doesn't See Value",
-        "Other"
-    ]
-};
-
+// Simple password protection
+const correctPassword = import.meta.env.VITE_QA_PASSWORD || "lgqa2026";
+const entered = prompt("Enter password to access LG QA Hub:");
+if (entered !== correctPassword) {
+  document.body.innerHTML = "<h1>Access Denied</h1>";
+  throw new Error("Wrong password");
+}
 // ============================================================
 // QUESTIONS DATA
 // ============================================================
@@ -644,216 +1084,507 @@ const qaQuestions = [
     { id:22, section:"", title:"Mute / Dead Air", w:5.0 }
 ];
 
-// ... (rest of the original script remains the same until the functions we are updating) ...
+const tbody = document.getElementById('qBody');
+qaQuestions.forEach(q => {
+    if(q.section) { const r = document.createElement('tr'); r.innerHTML = `<td colspan="4" class="row-header">▶ ${q.section}</td>`; tbody.appendChild(r); }
+    const tr = document.createElement('tr');
+    tr.className = 'eval-row'; tr.setAttribute('data-weight', q.w); tr.setAttribute('data-section', q.section || "Misc");
+    tr.innerHTML = `<td><div class="q-title"><span class="q-number">${q.id}</span>${q.title}</div></td>
+        <td><select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()"><option value="Yes">Yes</option><option value="No">No</option></select></td>
+        <td><input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note..."></td>
+        <td style="text-align:center;"><span class="weight-badge">${q.w.toFixed(1)}%</span></td>`;
+    tbody.appendChild(tr);
+});
+
+const questionSections = {}, questionTitles = {};
+let curSec = "Greeting / Opening";
+qaQuestions.forEach(q => { if(q.section) curSec = q.section; questionSections[q.id] = curSec; questionTitles[q.id] = q.title; });
+
+const qSlicer = document.getElementById('slicerQuestion');
+qaQuestions.forEach(q => { qSlicer.innerHTML += `<option value="Q${q.id}">Q${q.id} · ${q.title}</option>`; });
 
 // ============================================================
-// DYNAMIC SELECT POPULATION
+// ROSTER DATA
 // ============================================================
-function populateDynamicSelects() {
-    // Offer Type
-    const offerType = document.getElementById('up_OfferType');
-    if (offerType) {
-        offerType.innerHTML = '';
-        SELECT_OPTIONS.offerTypes.forEach(opt => {
-            offerType.innerHTML += `<option value="${opt}">${opt}</option>`;
-        });
-    }
+let roster = [
+    { id:"1926225", awsId:"AWS-001", name:"Dacut, Andrea",   hire:"2023-03-15", coach:"Coach A", lob:"Tier 1", site:"Site A" },
+    { id:"1926226", awsId:"AWS-002", name:"Smith, John",     hire:"2022-07-01", coach:"Coach A", lob:"Tier 1", site:"Site A" },
+    { id:"1926227", awsId:"AWS-003", name:"Miller, Sarah",   hire:"2023-09-20", coach:"Coach B", lob:"Tier 1", site:"Site B" },
+    { id:"1926228", awsId:"AWS-004", name:"Johnson, Michael",hire:"2021-11-05", coach:"Coach B", lob:"Tier 1", site:"Site B" },
+    { id:"1926229", awsId:"AWS-005", name:"Williams, Emma",  hire:"2024-01-10", coach:"Coach C", lob:"Tier 1", site:"Site C" },
+    { id:"1926230", awsId:"AWS-006", name:"Brown, David",    hire:"2022-04-22", coach:"Coach C", lob:"Tier 1", site:"Site C" },
+    { id:"1926231", awsId:"AWS-007", name:"Garcia, Sofia",   hire:"2023-06-30", coach:"Coach A", lob:"Tier 1", site:"Site A" }
+];
 
-    // Offer Quality
-    const offerQual = document.getElementById('up_OfferQuality');
-    if (offerQual) {
-        offerQual.innerHTML = '';
-        SELECT_OPTIONS.offerQualities.forEach(opt => {
-            offerQual.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
-        });
-    }
+function getRosterAgent(name) { return roster.find(r => r.name === name) || {}; }
 
-    // Follow Through
-    const follow = document.getElementById('up_FollowThrough');
-    if (follow) {
-        follow.innerHTML = '';
-        SELECT_OPTIONS.followThrough.forEach(opt => {
-            follow.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
-        });
-    }
+// ============================================================
+// NAV
+// ============================================================
+function switchView(viewId, el) {
+    document.querySelectorAll('.view-section').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    el.classList.add('active');
+    if(viewId === 'dashboard-view') updateDashboard();
+    if(viewId === 'database-view') { initColumnToggles(); renderDBTable(); }
+    if(viewId === 'roster-view') populateRosterTable();
+}
+function switchDashTab(tabId, el) {
+    document.querySelectorAll('.dash-subview').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    el.classList.add('active');
+    updateDashboard();
+}
 
-    // No Offer Reason
-    const noOffer = document.getElementById('up_NoReason');
-    if (noOffer) {
-        noOffer.innerHTML = '';
-        SELECT_OPTIONS.noOfferReasons.forEach(opt => {
-            noOffer.innerHTML += `<option value="${opt}">${opt}</option>`;
-        });
-    }
+// ============================================================
+// DISPLAY MODE
+// ============================================================
+let displayMode = 'pct';
+function setDisplayMode(m) {
+    displayMode = m;
+    ['dispPct','dispCount','dispBoth'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById('disp' + m.charAt(0).toUpperCase() + m.slice(1)).classList.add('active');
+    updateDashboard();
+}
+function getPassThreshold() { return parseFloat(document.getElementById('passThreshold').value) || 88; }
+function getHoldThreshold() { return parseFloat(document.getElementById('holdThreshold').value) || 120; }
 
-    // NEW: No Interest Reason
-    const noInterest = document.getElementById('up_NoInterestReason');
-    if (noInterest) {
-        noInterest.innerHTML = '';
-        SELECT_OPTIONS.noInterestReasons.forEach(opt => {
-            noInterest.innerHTML += `<option value="${opt}">${opt}</option>`;
-        });
+function fmtVal(count, total, pct) {
+    const p = pct !== undefined ? pct : (total ? (count/total*100) : 0);
+    if(displayMode === 'pct') return p.toFixed(1) + '%';
+    if(displayMode === 'count') return count;
+    return `${p.toFixed(1)}% (${count}/${total || 0})`;
+}
+
+// ============================================================
+// FORM — AGENT AUTO-POPULATE
+// ============================================================
+function onAgentSelected() {
+    const sel = document.getElementById('agentSelect');
+    const agentId = sel.value;
+    const agent = roster.find(r => r.id === agentId);
+    const strip = document.getElementById('agentInfoStrip');
+    if(agent) {
+        document.getElementById('ai_aws').textContent   = agent.awsId || '—';
+        document.getElementById('ai_hire').textContent  = agent.hire  || '—';
+        document.getElementById('ai_coach').textContent = agent.coach || '—';
+        document.getElementById('ai_lob').textContent   = agent.lob   || '—';
+        document.getElementById('ai_site').textContent  = agent.site  || '—';
+        strip.classList.remove('hidden');
+        strip.style.display = 'grid';
+    } else {
+        strip.classList.add('hidden');
     }
 }
 
 // ============================================================
-// UPDATED toggleUpsellFields
+// SCORE CALCULATION
 // ============================================================
+let currentNumericalScore = 100;
+let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0 };
+
+function colorSelect(sel, goodValue) { sel.className = "select-yes-no " + (sel.value === goodValue ? "yes" : "no"); }
 function toggleUpsellFields() {
     const offerMade = document.getElementById('up_OfferMade').value;
     const interested = document.getElementById('up_CustInterested').value;
-
-    // Existing logic
-    const showWhenYes = ['row_OfferType', 'row_OfferQuality', 'row_CustomerInterested', 'row_FollowThrough'];
-    const showWhenNo = ['row_OppExisted', 'row_NoReason'];
-
-    showWhenYes.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden', offerMade !== "Yes");
-    });
-    showWhenNo.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle('hidden', offerMade === "Yes");
-    });
-
-    // NEW: Show No Interest Reason only when Customer Interested = No
-    const noInterestRow = document.getElementById('row_NoInterestReason');
-    if (noInterestRow) {
-        noInterestRow.classList.toggle('hidden', interested !== "No");
+    const ids = ['row_OfferType','row_OfferQuality','row_CustomerInterested','row_FollowThrough','row_OppExisted','row_NoReason'];
+    const [rType,rQual,rCust,rFoll,rOpp,rReas] = ids.map(id => document.getElementById(id));
+    if(offerMade === "Yes") {
+        [rType,rQual,rCust].forEach(r => r.classList.remove('hidden'));
+        [rOpp,rReas].forEach(r => r.classList.add('hidden'));
+        if(interested === "Yes") rFoll.classList.remove('hidden');
+        else { rFoll.classList.add('hidden'); document.getElementById('up_FollowThrough').value = "Properly Followed Up"; }
+    } else {
+        [rType,rQual,rCust,rFoll].forEach(r => r.classList.add('hidden'));
+        [rOpp,rReas].forEach(r => r.classList.remove('hidden'));
     }
-
-    calcScore();
+}
+function calcScore() {
+    let score = 100, failedItems = 0, autoFails = 0;
+    for(let i=1; i<=22; i++) {
+        const sel = document.getElementById(`q_${i}_ans`); colorSelect(sel,"Yes");
+        if(sel.value==="No") { score -= parseFloat(sel.closest('tr').getAttribute('data-weight')); failedItems++; }
+    }
+    const oMade = document.getElementById('up_OfferMade'); colorSelect(oMade,"Yes");
+    const oQual = document.getElementById('up_OfferQuality');
+    const cInt  = document.getElementById('up_CustInterested'); colorSelect(cInt,"Yes");
+    const fThr  = document.getElementById('up_FollowThrough');
+    const oOpp  = document.getElementById('up_OppExisted'); colorSelect(oOpp,"No");
+    let upStr = "Pending";
+    if(oMade.value==="Yes") {
+        oQual.className = "select-yes-no " + (oQual.value==="Adding Value" ? "yes" : "no");
+        fThr.className  = "select-yes-no " + (fThr.value==="Properly Followed Up" ? "yes" : "no");
+        if(oQual.value==="Pushy / Sales-y") score -= 5; if(oQual.value==="Indifferent") score -= 3;
+        if(cInt.value==="Yes") { if(fThr.value==="Left Hanging") score -= 5; if(fThr.value==="Partially Addressed") score -= 2.5; }
+        upStr = `Done — ${oQual.value}`;
+    } else {
+        if(oOpp.value==="Yes") { score -= 10; upStr = "No Offer — Missed Opp (-10%)"; } else upStr = "No Offer — N/A";
+    }
+    for(let i=1; i<=5; i++) { const s = document.getElementById(`af_${i}`); colorSelect(s,"No"); if(s.value==="Yes") autoFails++; }
+    if(autoFails > 0) score = 0; if(score < 0) score = 0;
+    currentNumericalScore = score;
+    const threshold = getPassThreshold();
+    const sDiv = document.getElementById('scoreDisplay');
+    sDiv.className = "score-display " + (score >= threshold ? "pass" : "fail");
+    document.getElementById('finalScore').innerText = score.toFixed(1);
+    document.getElementById('scoreDetails').innerHTML = `<strong>Failed Items:</strong> ${failedItems}/22<br><strong>Auto-Fails:</strong> ${autoFails}<br><strong>Personalization:</strong> ${upStr}`;
 }
 
 // ============================================================
-// WEIGHTAGE MANAGER FUNCTIONS
+// SENTIMENT ANALYSIS
 // ============================================================
-function renderWeightTable() {
-    const tbody = document.getElementById('weightTbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    let total = 0;
-
-    qaQuestions.forEach(q => {
-        total += q.w;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><span class="q-number">${q.id}</span></td>
-            <td><strong>${q.title}</strong></td>
-            <td style="font-size:11px; color:#6b7785;">${q.section || '—'}</td>
-            <td>
-                <input type="number" step="0.1" min="0" max="30" value="${q.w}" 
-                       style="width:75px; padding:6px 8px; text-align:center; border:1px solid #d0d6dd; border-radius:4px;"
-                       onchange="updateWeightLive(${q.id}, this.value)">
-            </td>
-            <td>
-                <button class="btn btn-small btn-ghost" onclick="resetSingleWeight(${q.id})">Reset</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    const totalEl = document.getElementById('totalWeight');
-    if (totalEl) totalEl.textContent = total.toFixed(1);
-}
-
-function updateWeightLive(qId, newVal) {
-    const q = qaQuestions.find(item => item.id === qId);
-    if (q) {
-        q.w = parseFloat(newVal) || 0;
-        calcScore();
-        renderWeightTable(); // refresh total
+function analyzeCustomerSentiment(text) {
+    if (!text || text.trim().length < 3) {
+        return { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
     }
-}
-
-function saveWeights() {
-    const weights = qaQuestions.map(q => ({ id: q.id, w: q.w }));
-    localStorage.setItem('qa_weights_v2', JSON.stringify(weights));
-    showToast("✓ Weights saved successfully! They will load on next refresh.");
-}
-
-function loadWeights() {
-    const saved = localStorage.getItem('qa_weights_v2');
-    if (saved) {
-        const weights = JSON.parse(saved);
-        weights.forEach(item => {
-            const q = qaQuestions.find(q => q.id === item.id);
-            if (q) q.w = item.w;
-        });
-    }
-}
-
-function resetSingleWeight(qId) {
-    const q = qaQuestions.find(item => item.id === qId);
-    if (!q) return;
+    const positive = ['good','great','excellent','happy','satisfied','thank','appreciate','resolved','helpful','perfect','love','amazing','quick','easy','professional','friendly','patient'];
+    const negative = ['bad','terrible','frustrated','angry','upset','horrible','worst','refund','escalate','disappointed','slow','rude','unhelpful','issue','problem','not working','waste','confused','annoyed'];
+    const intensifiers = ['very','really','extremely','so','too','highly','incredibly'];
     
-    // Reset to original default (you can customize these)
-    const defaults = {1:4.0,2:4.0,3:4.0,4:5.0,5:5.0,6:5.0,7:15.0,8:5.0,9:5.0,10:7.0,11:4.0,12:3.0,13:4.0,14:2.0,15:2.0,16:2.0,17:2.0,18:3.5,19:3.5,20:5.0,21:5.0,22:5.0};
-    q.w = defaults[qId] || 5;
-    calcScore();
-    renderWeightTable();
-    showToast(`Weight for Q${qId} reset`);
+    const words = text.toLowerCase().split(/\s+/);
+    let posScore = 0, negScore = 0;
+    
+    for (let i = 0; i < words.length; i++) {
+        let w = words[i].replace(/[^a-z]/g, '');
+        let mult = 1;
+        if (i > 0 && intensifiers.includes(words[i-1])) mult = 1.7;
+        if (positive.includes(w)) posScore += mult;
+        if (negative.includes(w)) negScore += mult;
+    }
+    const total = words.length || 1;
+    const compound = Math.max(-1, Math.min(1, (posScore - negScore) / total * 2.8));
+    let label = "Neutral";
+    if (compound > 0.28) label = "Positive";
+    else if (compound < -0.28) label = "Negative";
+    
+    return {
+        compound: parseFloat(compound.toFixed(3)),
+        label,
+        pos: parseFloat(((posScore / total) * 100).toFixed(1)) || 0,
+        neg: parseFloat(((negScore / total) * 100).toFixed(1)) || 0,
+        neu: parseFloat((100 - ((posScore + negScore) / total * 100)).toFixed(1)) || 100
+    };
 }
 
-function resetAllWeights() {
-    if (!confirm("Reset ALL weights to original defaults?")) return;
-    localStorage.removeItem('qa_weights_v2');
-    location.reload();
+function updateSentimentDisplay() {
+    const text = document.getElementById('sentimentText').value;
+    const res = analyzeCustomerSentiment(text);
+    currentSentiment = res;
+    
+    const container = document.getElementById('sentimentResult');
+    const color = res.label === "Positive" ? "#00843D" : (res.label === "Negative" ? "#C8102E" : "#FFB612");
+    const emoji = res.label === "Positive" ? "😊" : (res.label === "Negative" ? "😠" : "😐");
+    
+    container.innerHTML = `
+        <span style="background:${color}; color:white; padding:3px 9px; border-radius:9999px; font-size:11px; font-weight:700;">${emoji} ${res.label}</span>
+        <span style="font-size:16px; font-weight:800; color:${color};">${res.compound}</span>
+        <span style="font-size:10.5px; color:#6b7785;">pos ${res.pos}% / neg ${res.neg}%</span>
+    `;
+}
+
+function analyzeAndApplySentiment() {
+    const text = document.getElementById('sentimentText').value.trim();
+    if (!text) {
+        alert("Please enter some customer feedback or transcript text first.");
+        return;
+    }
+    updateSentimentDisplay();
+    if (currentSentiment.compound > 0.5 && currentNumericalScore < 95) {
+        currentNumericalScore = Math.min(100, currentNumericalScore + 4);
+        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+        showToast("Positive sentiment boosted score +4%");
+    } else if (currentSentiment.compound < -0.5 && currentNumericalScore > 20) {
+        currentNumericalScore = Math.max(0, currentNumericalScore - 4);
+        document.getElementById('finalScore').innerText = currentNumericalScore.toFixed(1);
+        showToast("Negative sentiment adjusted score -4%");
+    }
 }
 
 // ============================================================
-// UPDATED saveEvaluation (includes new field)
+// DATABASE
+// ============================================================
+let evaluationsDB = [];
+
+function showToast(msg, color='#00843D') {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.background = color;
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// SAVE EVALUATION (UPDATED FOR NETLIFY)
 // ============================================================
 async function saveEvaluation() {
-    // ... (keep your existing validation code) ...
-
+    const sel = document.getElementById('agentSelect');
+    if(!sel.value) return showToast("⚠️ Select an Agent first","#C8102E");
+    
+    const cnnVal = document.getElementById('f_CNN').value.trim();
+    if (!cnnVal) return showToast("⚠️ CNN / Case Number is required","#C8102E");
+    
+    const agent = sel.options[sel.selectedIndex].text;
+    const agentInfo = getRosterAgent(agent);
+    const dateVal = document.getElementById('f_Date').value || new Date().toISOString().split('T')[0];
+    
     let record = {
-        // ... existing fields ...
-        "Upsell_NoInterestReason": document.getElementById('up_NoInterestReason')?.value || ""
+        "Eval Date": dateVal, "Month": dateVal.substring(0,7),
+        "CNN": cnnVal,
+        "QA Name": document.getElementById('f_Eval').value || "—",
+        "Agent Name": agent,
+        "Coach": agentInfo.coach || "—",
+        "LOB": agentInfo.lob || "—",
+        "Site": agentInfo.site || "—",
+        "Product Type": document.getElementById('f_Product').value || "—",
+        "Call Type": document.getElementById('f_CallType').value || "—",
+        "Hold Time (s)": parseInt(document.getElementById('f_HoldTime').value) || 0,
+        "Final Score": currentNumericalScore,
+        "Auto-Failed": document.querySelectorAll('#af_1, #af_2, #af_3, #af_4, #af_5').some(el => el.value === "Yes") ? "Yes" : "No",
+        "Sentiment_Compound": currentSentiment.compound || 0,
+        "Sentiment_Label": currentSentiment.label || "Neutral",
+        "Sentiment_Pos": currentSentiment.pos || 0,
+        "Sentiment_Neg": currentSentiment.neg || 0
     };
 
-    // ... rest of record building ...
+    for(let i=1; i<=22; i++) {
+        record[`Q${i}_Answer`] = document.getElementById(`q_${i}_ans`).value;
+        record[`Q${i}_Note`] = document.getElementById(`q_${i}_note`).value || "";
+    }
 
-    // Optimistic update + fetch (keep your existing code)
+    record["Upsell_OfferMade"] = document.getElementById('up_OfferMade').value;
+    record["Upsell_Type"] = document.getElementById('up_OfferType').value;
+    record["Upsell_Quality"] = document.getElementById('up_OfferQuality').value;
+    record["Upsell_OppExisted"] = document.getElementById('up_OppExisted').value;
+    record["Upsell_NoReason"] = document.getElementById('up_NoReason').value;
+    record["Upsell_Interested"] = document.getElementById('up_CustInterested').value;
+    record["Upsell_Followup"] = document.getElementById('up_FollowThrough').value;
+
+    // Optimistic update
+    evaluationsDB.unshift(record);
+    if (document.getElementById('dashboard-view').classList.contains('active')) {
+        updateDashboard();
+    }
+
+    try {
+        const response = await fetch('/.netlify/functions/evaluations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+        });
+
+        if (response.ok) {
+            showToast("✓ Evaluation saved & synced with team!");
+        } else {
+            throw new Error("Save failed");
+        }
+    } catch (error) {
+        showToast("⚠️ Failed to save to cloud. Please try again.", "#C8102E");
+    }
 }
 
 // ============================================================
-// UPDATED initApp
+// INIT (UPDATED FOR NETLIFY)
 // ============================================================
 async function initApp() {
-    // Load saved weights first
-    loadWeights();
-
     try {
         const res = await fetch('/.netlify/functions/evaluations');
         const data = await res.json();
         evaluationsDB = data.records || [];
+        console.log("Loaded", evaluationsDB.length, "evaluations from Netlify");
     } catch (e) {
+        console.log("Using local data (first time or offline)");
         evaluationsDB = [];
     }
 
     populateRosterTable();
     populateDashboardSlicers();
     initColumnToggles();
-    
-    // Populate dynamic selects
-    populateDynamicSelects();
-    
     calcScore();
     document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
     toggleUpsellFields();
 
-    // Render weight table if on that view
-    if (document.getElementById('weightage-view')) {
-        renderWeightTable();
-    }
-
-    // Polling (keep your existing code)
-    setInterval(async () => { /* ... */ }, 10000);
+    // Start polling every 10 seconds for real-time updates
+    setInterval(async () => {
+        try {
+            const res = await fetch('/.netlify/functions/evaluations');
+            const data = await res.json();
+            if (data.lastModified > (window.lastSync || 0)) {
+                evaluationsDB = data.records || [];
+                if (document.getElementById('dashboard-view').classList.contains('active')) {
+                    updateDashboard();
+                }
+                window.lastSync = data.lastModified;
+            }
+        } catch (e) {}
+    }, 10000);
 }
 
 initApp();
+// ==================== IMPORT / EXPORT FIXES ====================
+
+let currentImportType = '';
+
+function showImportModal(type) {
+    currentImportType = type;
+    document.getElementById('importModalTitle').innerText = 
+        type === 'agents' ? 'Import Agents' : 'Import Evaluations';
+    document.getElementById('importModal').classList.add('active');
+}
+
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('active');
+}
+
+function downloadSampleTemplate() {
+    let csv = '';
+    let filename = '';
+
+    if (currentImportType === 'agents') {
+        csv = `name,avayaId,awsId,hire,coach,lob,site\nDacut, Andrea,1926225,AWS-001,2023-03-15,Coach A,Tier 1,Site A`;
+        filename = 'LG_Agents_Sample.csv';
+    } else {
+        csv = `Eval Date,Month,CNN,Agent Name,Coach,Final Score,Auto-Failed\n2026-05-15,2026-05,CNN-123456,Dacut, Andrea,Coach A,92,No`;
+        filename = 'LG_Evaluations_Sample.csv';
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    showToast("✅ Sample template downloaded!");
+}
+
+function triggerFileUpload() {
+    closeImportModal();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.json';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                let newData = file.name.endsWith('.json') 
+                    ? JSON.parse(event.target.result)
+                    : parseCSV(event.target.result);
+
+                if (currentImportType === 'agents') {
+                    newData.forEach(agent => {
+                        const exists = roster.findIndex(a => a.name === agent.name);
+                        if (exists === -1) roster.push(agent);
+                    });
+                    populateRosterTable();
+                    showToast(`✅ ${newData.length} agents imported!`);
+                } else {
+                    for (const rec of newData) {
+                        await fetch('/.netlify/functions/evaluations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(rec)
+                        });
+                    }
+                    const res = await fetch('/.netlify/functions/evaluations');
+                    const data = await res.json();
+                    evaluationsDB = data.records || [];
+                    updateDashboard();
+                    renderDBTable();
+                    showToast(`✅ ${newData.length} evaluations imported!`);
+                }
+            } catch (err) {
+                showToast("❌ Invalid file format", "#C8102E");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const result = [];
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const obj = {};
+        const values = lines[i].split(',');
+        headers.forEach((header, index) => {
+            obj[header] = values[index] || '';
+        });
+        result.push(obj);
+    }
+    return result;
+}
+
+// FIXED Download CSV
+function downloadCSV() {
+    if (!evaluationsDB || evaluationsDB.length === 0) {
+        showToast("No data to export!", "#C8102E");
+        return;
+    }
+
+    const headers = Object.keys(evaluationsDB[0]);
+    let csvContent = headers.join(",") + "\n";
+
+    evaluationsDB.forEach(row => {
+        const values = headers.map(header => {
+            let val = row[header] || "";
+            if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
+                val = `"${val.replace(/"/g, '""')}"`;
+            }
+            return val;
+        });
+        csvContent += values.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `LG_QA_Export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    showToast("✅ CSV downloaded successfully!");
+}
+function addAgent() {
+    const name = document.getElementById('r_Name').value.trim();
+    const avaya = document.getElementById('r_Avaya').value.trim();
+    const coach = document.getElementById('r_Coach').value;
+
+    if (!name || !avaya) {
+        showToast("⚠️ Agent Name and Avaya ID are required", "#C8102E");
+        return;
+    }
+
+    // Check if agent already exists
+    const exists = roster.findIndex(a => a.name.toLowerCase() === name.toLowerCase());
+    if (exists !== -1) {
+        showToast("⚠️ Agent already exists!", "#C8102E");
+        return;
+    }
+
+    // Add new agent
+    roster.push({
+        id: avaya,
+        name: name,
+        awsId: "AWS-" + avaya,
+        hire: new Date().toISOString().split('T')[0],
+        coach: coach,
+        lob: "Tier 1",
+        site: "Site A"
+    });
+
+    // Refresh table
+    populateRosterTable();
+
+    // Clear form
+    document.getElementById('r_Name').value = '';
+    document.getElementById('r_Avaya').value = '';
+
+    showToast("✅ Agent added successfully!");
+}
 </script>
 </body>
 </html>
