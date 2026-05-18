@@ -3331,58 +3331,92 @@ function presetCols(preset) {
 function toggleColPanel() {
     document.getElementById('colTogglePanel').classList.toggle('active');
 }
-
 function renderDBTable() {
     const table = document.getElementById('dbTable');
     if (!table) return;
-    const search = document.getElementById('dbSearch').value.trim();
-    const status = document.getElementById('dbFilterStatus').value;
+
+    const search = document.getElementById('dbSearch').value.trim().toLowerCase();
+    const statusFilter = document.getElementById('dbFilterStatus').value;
     const threshold = getPassThreshold();
 
-    let rows = evaluationsDB;
-    // Fuzzy search first (if there's a query)
-    if (search) {
-        if (typeof Fuse !== 'undefined') {
-            // Rebuild each search so the index reflects any recent saves/edits/deletes (it's fast)
-            rebuildFuseIndex();
-            rows = fuzzyFilterEvaluations(search);
-        } else {
-            // Fall back to plain substring if Fuse didn't load
-            const lc = search.toLowerCase();
-            rows = rows.filter(r => Object.values(r).some(v =>
-                v && typeof v !== 'object' && String(v).toLowerCase().includes(lc)
-            ));
-        }
+    let rows = evaluationsDB || [];
+
+    // Fuzzy search using Fuse.js (if available)
+    if (search && typeof Fuse !== 'undefined') {
+        rebuildFuseIndex();
+        rows = _fuseIndex.search(search).map(r => r.item);
+    } else if (search) {
+        // Fallback simple search
+        rows = rows.filter(r => 
+            (r.cnn && r.cnn.toLowerCase().includes(search)) ||
+            (r.agent_name && r.agent_name.toLowerCase().includes(search)) ||
+            (r.coach && r.coach.toLowerCase().includes(search))
+        );
     }
-    if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
-    if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
-    if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
-    document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
-    const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
-    if (!cols.length) { table.innerHTML = '<thead><tr><th>No columns visible</th></tr></thead>'; return; }
+    // Apply status filter
+    if (statusFilter !== 'All') {
+        rows = rows.filter(r => {
+            const score = parseFloat(r.final_score) || 0;
+            const isAutoFail = r.auto_failed === "Yes";
+            if (statusFilter === 'Pass') return score >= threshold && !isAutoFail;
+            if (statusFilter === 'Fail') return score < threshold && !isAutoFail;
+            if (statusFilter === 'AutoFail') return isAutoFail;
+            return true;
+        });
+    }
 
-    let html = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
-    rows.slice(0, 500).forEach((r, idx) => {
-        html += `<tr onclick="openDetailModal(${evaluationsDB.indexOf(r)})">` + cols.map(c => {
-            const val = r[c.key];
-            if (c.key === 'final_score') {
-                const pass = r.auto_failed !== "Yes" && val >= threshold;
-                return `<td><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
-            }
-            if (c.key === 'auto_failed') return `<td><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
-            if (c.key === 'upsell_offer_made') return `<td><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
-            if (c.key === 'sentiment_label') {
-                const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
-                return `<td><span class="badge ${cls}">${val}</span></td>`;
-            }
-            return `<td title="${val ?? ''}">${val ?? '—'}</td>`;
-        }).join('') + '</tr>';
-    });
-    html += '</tbody>';
-    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
-    table.innerHTML = html;
+    // Update record count
+    const countEl = document.getElementById('dbRecordCount');
+    if (countEl) countEl.textContent = `${rows.length} records`;
+
+    // Build table
+    table.innerHTML = '';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Date</th>
+            <th>CNN</th>
+            <th>Agent</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Coach</th>
+            <th>Site</th>
+            <th style="width:130px;text-align:center">Actions</th>
+        </tr>`;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7785">No records found</td></tr>`;
+    } else {
+        rows.forEach((rec, index) => {
+            const score = parseFloat(rec.final_score) || 0;
+            const isAF = rec.auto_failed === "Yes";
+            let statusHTML = isAF ? `<span class="badge badge-red">Auto-Fail</span>` : 
+                            (score >= threshold ? `<span class="badge badge-green">Pass</span>` : `<span class="badge badge-yellow">Fail</span>`);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${rec.eval_date || '-'}</td>
+                <td><strong>${rec.cnn || '-'}</strong></td>
+                <td>${rec.agent_name || '-'}</td>
+                <td><strong>${score.toFixed(1)}%</strong></td>
+                <td>${statusHTML}</td>
+                <td>${rec.coach || '-'}</td>
+                <td>${rec.site || '-'}</td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button onclick="editRecord(${index})" style="background:#002b5e;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✏️</button>
+                    <button onclick="deleteRecord(${index})" style="background:#C8102E;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer">🗑️</button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+    table.appendChild(tbody);
 }
+
 
 function openDetailModal(idx) {
     const r = evaluationsDB[idx];
