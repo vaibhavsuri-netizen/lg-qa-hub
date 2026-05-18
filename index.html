@@ -1316,6 +1316,68 @@ function showToast(msg, color='#00843D') {
     t.textContent = msg; t.style.background = color;
     t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
 }
+// ==================== SAVE EVALUATION (SUPABASE) ====================
+async function saveEvaluation() {
+    const sel = document.getElementById('agentSelect');
+    if (!sel.value) return showToast("⚠️ Select an Agent first", "#C8102E");
+
+    const cnnVal = document.getElementById('f_CNN').value.trim();
+    if (!cnnVal) return showToast("⚠️ CNN / Case Number is required", "#C8102E");
+
+    const agent = sel.options[sel.selectedIndex].text;
+    const agentInfo = getRosterAgent(agent);
+    const dateVal = document.getElementById('f_Date').value || new Date().toISOString().split('T')[0];
+
+    // Build qa_details JSONB
+    const qaData = {};
+    for (let i = 1; i <= 22; i++) {
+        qaData[`Q${i}_Answer`] = document.getElementById(`q_${i}_ans`).value;
+        qaData[`Q${i}_Note`] = document.getElementById(`q_${i}_note`).value || "";
+    }
+
+    const record = {
+        "Eval Date": dateVal,
+        "Month": dateVal.substring(0, 7),
+        "CNN": cnnVal,
+        "QA Name": document.getElementById('f_Eval').value || "—",
+        "Agent Name": agent,
+        "Coach": agentInfo.coach || "—",
+        "LOB": agentInfo.lob || "—",
+        "Site": agentInfo.site || "—",
+        "Product Type": document.getElementById('f_Product').value || "—",
+        "Call Type": document.getElementById('f_CallType').value || "—",
+        "Hold Time (s)": parseInt(document.getElementById('f_HoldTime').value) || 0,
+        "Final Score": currentNumericalScore,
+        "Auto-Failed": document.querySelectorAll('#af_1, #af_2, #af_3, #af_4, #af_5').some(el => el.value === "Yes") ? "Yes" : "No",
+        "Sentiment_Compound": currentSentiment.compound || 0,
+        "Sentiment_Label": currentSentiment.label || "Neutral",
+        "Sentiment_Pos": currentSentiment.pos || 0,
+        "Sentiment_Neg": currentSentiment.neg || 0,
+        "Upsell_OfferMade": document.getElementById('up_OfferMade').value,
+        "Upsell_Type": document.getElementById('up_OfferType').value,
+        "Upsell_Quality": document.getElementById('up_OfferQuality').value,
+        "Upsell_OppExisted": document.getElementById('up_OppExisted').value,
+        "Upsell_NoReason": document.getElementById('up_NoReason').value,
+        "Upsell_Interested": document.getElementById('up_CustInterested').value,
+        "Upsell_Followup": document.getElementById('up_FollowThrough').value,
+        upsell_notes: document.getElementById('up_Notes').value || "",
+        qa_details: qaData
+    };
+
+    evaluationsDB.unshift({ ...record, ...qaData });
+    if (document.getElementById('dashboard-view').classList.contains('active')) {
+        updateDashboard();
+    }
+
+    try {
+        const { error } = await supabase.from('evaluations').insert(record);
+        if (error) throw error;
+        showToast("✓ Evaluation saved to Supabase!");
+    } catch (error) {
+        showToast("⚠️ Failed to save to Supabase", "#C8102E");
+        console.error(error);
+    }
+}
 // ==================== IMPORT / EXPORT FIXES ====================
 
 let currentImportType = '';
@@ -1376,16 +1438,12 @@ function triggerFileUpload() {
                     populateRosterTable();
                     showToast(`✅ ${newData.length} agents imported!`);
                 } else {
+                    // For evaluations - save to Supabase
                     for (const rec of newData) {
-                        await fetch('/.netlify/functions/evaluations', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(rec)
-                        });
+                        await supabase.from('evaluations').insert(rec);
                     }
-                    const res = await fetch('/.netlify/functions/evaluations');
-                    const data = await res.json();
-                    evaluationsDB = data.records || [];
+                    const { data } = await supabase.from('evaluations').select('*');
+                    evaluationsDB = (data || []).map(row => ({ ...row, ...(row.qa_details || {}) }));
                     updateDashboard();
                     renderDBTable();
                     showToast(`✅ ${newData.length} evaluations imported!`);
