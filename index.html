@@ -1189,6 +1189,42 @@ let roster = [
 ];
 
 function getRosterAgent(name) { return roster.find(r => r.name === name) || {}; }
+// ==================== NAVIGATION ====================
+function switchView(viewId, el) {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show selected view
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.classList.add('active');
+    }
+
+    // Highlight clicked nav
+    if (el) {
+        el.classList.add('active');
+    }
+
+    // Auto refresh when opening certain pages
+    if (viewId === 'dashboard-view' && typeof updateDashboard === 'function') {
+        updateDashboard();
+    }
+
+    if (viewId === 'roster-view' && typeof populateRosterTable === 'function') {
+        populateRosterTable();
+    }
+
+    if (viewId === 'database-view' && typeof renderDBTable === 'function') {
+        renderDBTable();
+    }
+}
 // ==================== POPULATE AGENT SELECT (Form) ====================
 function populateAgentSelect() {
     const select = document.getElementById('agentSelect');
