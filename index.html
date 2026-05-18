@@ -1056,6 +1056,73 @@ if (entered !== correctPassword) {
   document.body.innerHTML = "<h1>Access Denied</h1>";
   throw new Error("Wrong password");
 }
+// ==================== SUPABASE CONFIG ====================
+const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";          // ← CHANGE THIS
+const SUPABASE_ANON_KEY = "sb_publishable_r02NeNyDQ4xLiC_cHyTC2w_GmEPBDnn"; // ← CHANGE THIS with your anon key
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ==================== UPDATED initApp() ====================
+async function initApp() {
+    try {
+        // Load evaluations from Supabase
+        const { data: evalData, error: evalError } = await supabase
+            .from('evaluations')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (evalError) throw evalError;
+
+        evaluationsDB = (evalData || []).map(row => ({
+            ...row,
+            ...(row.qa_details || {})
+        }));
+
+        console.log(`Loaded ${evaluationsDB.length} evaluations from Supabase`);
+
+        // Load agents from Supabase
+        const { data: agentData, error: agentError } = await supabase
+            .from('agents')
+            .select('*')
+            .order('"Agent Name"');
+
+        if (agentError) throw agentError;
+        roster = agentData || [];
+
+        console.log(`Loaded ${roster.length} agents from Supabase`);
+
+    } catch (e) {
+        console.error("Supabase load error:", e);
+        evaluationsDB = [];
+        roster = [];
+    }
+
+    populateRosterTable();
+    populateDashboardSlicers();
+    initColumnToggles();
+    calcScore();
+    document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
+    toggleUpsellFields();
+
+    // Auto-refresh every 10 seconds
+    setInterval(async () => {
+        try {
+            const { data } = await supabase
+                .from('evaluations')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            evaluationsDB = (data || []).map(row => ({
+                ...row,
+                ...(row.qa_details || {})
+            }));
+
+            if (document.getElementById('dashboard-view').classList.contains('active')) {
+                updateDashboard();
+            }
+        } catch (e) {}
+    }, 10000);
+}
 // ============================================================
 // QUESTIONS DATA
 // ============================================================
@@ -1382,44 +1449,6 @@ async function saveEvaluation() {
     }
 }
 
-// ============================================================
-// INIT (UPDATED FOR NETLIFY)
-// ============================================================
-async function initApp() {
-    try {
-        const res = await fetch('/.netlify/functions/evaluations');
-        const data = await res.json();
-        evaluationsDB = data.records || [];
-        console.log("Loaded", evaluationsDB.length, "evaluations from Netlify");
-    } catch (e) {
-        console.log("Using local data (first time or offline)");
-        evaluationsDB = [];
-    }
-
-    populateRosterTable();
-    populateDashboardSlicers();
-    initColumnToggles();
-    calcScore();
-    document.getElementById('f_Date').value = new Date().toISOString().split('T')[0];
-    toggleUpsellFields();
-
-    // Start polling every 10 seconds for real-time updates
-    setInterval(async () => {
-        try {
-            const res = await fetch('/.netlify/functions/evaluations');
-            const data = await res.json();
-            if (data.lastModified > (window.lastSync || 0)) {
-                evaluationsDB = data.records || [];
-                if (document.getElementById('dashboard-view').classList.contains('active')) {
-                    updateDashboard();
-                }
-                window.lastSync = data.lastModified;
-            }
-        } catch (e) {}
-    }, 10000);
-}
-
-initApp();
 // ==================== IMPORT / EXPORT FIXES ====================
 
 let currentImportType = '';
@@ -1586,5 +1615,6 @@ function addAgent() {
     showToast("✅ Agent added successfully!");
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
 </html>
