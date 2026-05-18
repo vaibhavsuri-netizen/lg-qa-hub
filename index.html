@@ -808,7 +808,28 @@
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                     <option value="On Leave">On Leave</option>
+                    <option value="Terminated">Terminated</option>
                 </select>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="r_Email" placeholder="agent@lg.com">
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="r_Phone" placeholder="555-0100">
+            </div>
+            <div class="form-group">
+                <label>Shift</label>
+                <input type="text" id="r_Shift" placeholder="Morning / Evening / Night">
+            </div>
+            <div class="form-group">
+                <label>Team</label>
+                <input type="text" id="r_Team" placeholder="Team name">
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label>Notes</label>
+                <textarea id="r_Notes" rows="2" placeholder="Optional notes about this agent..."></textarea>
             </div>
             <div class="form-group" style="grid-column: 1 / -1; text-align: right; align-self: end;">
                 <button class="btn" onclick="addAgent()">+ Add Agent</button>
@@ -820,7 +841,7 @@
         <div class="section-title"><span class="section-num">📋</span>Active Roster</div>
         <div style="overflow-x:auto;">
             <table id="rosterTable">
-                <thead><tr><th>Name</th><th>Avaya ID</th><th>AWS ID</th><th>Hire Date</th><th>Coach</th><th>LOB</th><th>Site</th><th>Status</th><th>Audits</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Name</th><th>Avaya ID</th><th>AWS ID</th><th>eConnect</th><th>GSFS</th><th>Hire Date</th><th>Coach</th><th>LOB</th><th>Site</th><th>Team</th><th>Shift</th><th>Email</th><th>Phone</th><th>Status</th><th>Audits</th><th>Actions</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -946,20 +967,27 @@ let roster = [
     { id:"1926231", name:"Garcia, Sofia",    awsId:"AWS-007", econnect:"",         gsfs:"",          hire:"2023-06-30", coach:"Coach A", lob:"Tier 1", site:"Site A", status:"Active" }
 ];
 
-// Normalize roster row from Supabase (handles both snake_case and legacy "Title Case" keys)
+// Normalize roster row from Supabase. The DB uses "Title Case With Spaces" keys
+// (per the SQL schema); we also accept legacy snake_case / lowercase shapes.
 function normalizeAgent(r) {
     if (!r) return null;
     return {
-        id:       r.id       || r.avaya_id || r["Avaya ID"]  || "",
-        name:     r.name     || r["Agent Name"] || "",
-        awsId:    r.awsId    || r.aws_id   || r["AWS ID"]    || "",
-        econnect: r.econnect || r.econnect_id || r["eConnect ID"] || "",
-        gsfs:     r.gsfs     || r.gsfs_id  || r["GSFS ID"]   || "",
-        hire:     r.hire     || r.hire_date|| r["Date of Hire"] || "",
-        coach:    r.coach    || r["Coach"] || "",
-        lob:      r.lob      || r["LOB"]   || "",
-        site:     r.site     || r["Site"]  || "",
-        status:   r.status   || r["Status"]|| "Active"
+        id:       r["Avaya ID"]    || r.avaya_id    || r.id    || "",
+        name:     r["Agent Name"]  || r.name        || "",
+        awsId:    r["AWS ID"]      || r.aws_id      || r.awsId || "",
+        econnect: r["eConnect ID"] || r.econnect_id || r.econnect || "",
+        gsfs:     r["GSFS ID"]     || r.gsfs_id     || r.gsfs  || "",
+        hire:     r["Date of Hire"]|| r.hire_date   || r.hire  || "",
+        coach:    r["Coach"]       || r.coach       || "",
+        lob:      r["LOB"]         || r.lob         || "",
+        site:     r["Site"]        || r.site        || "",
+        email:    r["Email"]       || r.email       || "",
+        phone:    r["Phone"]       || r.phone       || "",
+        shift:    r["Shift"]       || r.shift       || "",
+        team:     r["Team"]        || r.team        || "",
+        notes:    r["Notes"]       || r.notes       || "",
+        status:   r["Status"]      || r.status      || "Active",
+        _pk:      r.id || null  // Supabase UUID primary key, used for deletes
     };
 }
 
@@ -975,36 +1003,37 @@ function getRosterAgentById(id) {
 // ============================================================
 let evaluationsDB = [];
 
-// Normalize evaluation row (handles old "Title Case" payloads too)
+// Normalize evaluation row. The DB uses "Title Case With Spaces" keys
+// (per the SQL schema); legacy snake_case is also accepted.
 function normalizeEval(r) {
     if (!r) return null;
     const qa = r.qa_details || {};
     return {
         id:              r.id,
-        eval_date:       r.eval_date       || r["Eval Date"]      || "",
-        month:           r.month           || r["Month"]          || (r.eval_date ? r.eval_date.substring(0,7) : ""),
-        cnn:             r.cnn             || r["CNN"]            || "",
-        qa_name:         r.qa_name         || r["QA Name"]        || "—",
-        agent_name:      r.agent_name      || r["Agent Name"]     || "—",
-        coach:           r.coach           || r["Coach"]          || "—",
-        lob:             r.lob             || r["LOB"]            || "—",
-        site:            r.site            || r["Site"]           || "—",
-        product_type:    r.product_type    || r["Product Type"]   || "—",
-        call_type:       r.call_type       || r["Call Type"]      || "—",
-        hold_time:       Number(r.hold_time      ?? r["Hold Time (s)"] ?? 0),
-        final_score:     Number(r.final_score    ?? r["Final Score"]   ?? 0),
-        auto_failed:     (r.auto_failed   ?? r["Auto-Failed"]   ?? "No"),
-        sentiment_compound: Number(r.sentiment_compound ?? r["Sentiment_Compound"] ?? 0),
-        sentiment_label: r.sentiment_label  || r["Sentiment_Label"] || "Neutral",
-        sentiment_pos:   Number(r.sentiment_pos ?? r["Sentiment_Pos"] ?? 0),
-        sentiment_neg:   Number(r.sentiment_neg ?? r["Sentiment_Neg"] ?? 0),
-        upsell_offer_made:   r.upsell_offer_made   || r["Upsell_OfferMade"]   || "No",
-        upsell_type:         r.upsell_type         || r["Upsell_Type"]        || "",
-        upsell_quality:      r.upsell_quality      || r["Upsell_Quality"]     || "",
-        upsell_opp_existed:  r.upsell_opp_existed  || r["Upsell_OppExisted"]  || "No",
-        upsell_no_reason:    r.upsell_no_reason    || r["Upsell_NoReason"]    || "",
-        upsell_interested:   r.upsell_interested   || r["Upsell_Interested"]  || "",
-        upsell_followup:     r.upsell_followup     || r["Upsell_Followup"]    || "",
+        eval_date:       r["Eval Date"]       || r.eval_date       || "",
+        month:           r["Month"]           || r.month           || ((r["Eval Date"]||r.eval_date||"").substring(0,7)),
+        cnn:             r["CNN"]             || r.cnn             || "",
+        qa_name:         r["QA Name"]         || r.qa_name         || "—",
+        agent_name:      r["Agent Name"]      || r.agent_name      || "—",
+        coach:           r["Coach"]           || r.coach           || "—",
+        lob:             r["LOB"]             || r.lob             || "—",
+        site:            r["Site"]            || r.site            || "—",
+        product_type:    r["Product Type"]    || r.product_type    || "—",
+        call_type:       r["Call Type"]       || r.call_type       || "—",
+        hold_time:       Number(r["Hold Time (s)"] ?? r.hold_time ?? 0),
+        final_score:     Number(r["Final Score"]   ?? r.final_score ?? 0),
+        auto_failed:     (r["Auto-Failed"]    ?? r.auto_failed     ?? "No"),
+        sentiment_compound: Number(r["Sentiment_Compound"] ?? r.sentiment_compound ?? 0),
+        sentiment_label: r["Sentiment_Label"] || r.sentiment_label || "Neutral",
+        sentiment_pos:   Number(r["Sentiment_Pos"] ?? r.sentiment_pos ?? 0),
+        sentiment_neg:   Number(r["Sentiment_Neg"] ?? r.sentiment_neg ?? 0),
+        upsell_offer_made:   r["Upsell_OfferMade"]  || r.upsell_offer_made  || "No",
+        upsell_type:         r["Upsell_Type"]       || r.upsell_type        || "",
+        upsell_quality:      r["Upsell_Quality"]    || r.upsell_quality     || "",
+        upsell_opp_existed:  r["Upsell_OppExisted"] || r.upsell_opp_existed || "No",
+        upsell_no_reason:    r["Upsell_NoReason"]   || r.upsell_no_reason   || "",
+        upsell_interested:   r["Upsell_Interested"] || r.upsell_interested  || "",
+        upsell_followup:     r["Upsell_Followup"]   || r.upsell_followup    || "",
         upsell_notes:        r.upsell_notes        || "",
         created_at:          r.created_at || new Date().toISOString(),
         qa_details: qa
@@ -1251,10 +1280,16 @@ function populateRosterTable() {
             <td><strong>${agent.name || '—'}</strong></td>
             <td>${agent.id || '—'}</td>
             <td>${agent.awsId || '—'}</td>
+            <td>${agent.econnect || '—'}</td>
+            <td>${agent.gsfs || '—'}</td>
             <td>${agent.hire || '—'}</td>
             <td>${agent.coach || '—'}</td>
             <td>${agent.lob || '—'}</td>
             <td>${agent.site || '—'}</td>
+            <td>${agent.team || '—'}</td>
+            <td>${agent.shift || '—'}</td>
+            <td>${agent.email || '—'}</td>
+            <td>${agent.phone || '—'}</td>
             <td><span class="badge ${statusBadge}">${agent.status || 'Active'}</span></td>
             <td>${auditsByAgent[agent.name] || 0}</td>
             <td>
@@ -1271,47 +1306,105 @@ async function addAgent() {
     if (!name || !avaya) { showToast("Name and Avaya ID are required", "#C8102E"); return; }
     if (roster.some(r => r.id === avaya)) { showToast("That Avaya ID already exists", "#C8102E"); return; }
 
-    const newAgent = {
+    const hireDate = document.getElementById('r_Hire').value || new Date().toISOString().split('T')[0];
+
+    // Local canonical shape (lowercase keys, used throughout the JS app)
+    const localAgent = {
         id:       avaya,
         name:     name,
         awsId:    document.getElementById('r_AWS').value.trim()      || "",
         econnect: document.getElementById('r_eConnect').value.trim() || "",
         gsfs:     document.getElementById('r_GSFS').value.trim()     || "",
-        hire:     document.getElementById('r_Hire').value            || new Date().toISOString().split('T')[0],
+        hire:     hireDate,
         coach:    document.getElementById('r_Coach').value,
         lob:      document.getElementById('r_LOB').value.trim()      || "Tier 1",
         site:     document.getElementById('r_Site').value.trim()     || "Site A",
-        status:   document.getElementById('r_Status').value
+        email:    document.getElementById('r_Email').value.trim()    || "",
+        phone:    document.getElementById('r_Phone').value.trim()    || "",
+        shift:    document.getElementById('r_Shift').value.trim()    || "",
+        team:     document.getElementById('r_Team').value.trim()     || "",
+        notes:    document.getElementById('r_Notes').value.trim()    || "",
+        status:   document.getElementById('r_Status').value,
+        _pk:      null
     };
-    roster.push(newAgent);
 
-    // Try to persist to Supabase (best-effort; works locally even if it fails)
-    if (supabaseEnabled) {
-        try {
-            await supabaseClient.from('agents').insert({
-                avaya_id: newAgent.id, name: newAgent.name, aws_id: newAgent.awsId,
-                econnect_id: newAgent.econnect, gsfs_id: newAgent.gsfs, hire_date: newAgent.hire,
-                coach: newAgent.coach, lob: newAgent.lob, site: newAgent.site, status: newAgent.status
-            });
-        } catch (e) { console.warn("Supabase agent insert failed:", e); }
-    }
-
+    // Push optimistically so UI feels snappy
+    roster.push(localAgent);
     populateRosterTable();
     populateAgentSelect();
-    document.querySelectorAll('#roster-view input').forEach(el => el.value = '');
-    showToast("✅ Agent added");
+
+    // Persist to Supabase using the exact Title Case column names from the SQL schema
+    if (supabaseEnabled) {
+        const btn = document.querySelector('#roster-view .btn');
+        if (btn) { btn.disabled = true; btn.textContent = "Saving..."; }
+        try {
+            const payload = {
+                "Agent Name":   localAgent.name,
+                "Avaya ID":     localAgent.id,
+                "AWS ID":       localAgent.awsId   || null,
+                "eConnect ID":  localAgent.econnect|| null,
+                "GSFS ID":      localAgent.gsfs    || null,
+                "Date of Hire": localAgent.hire    || null,
+                "Status":       localAgent.status,
+                "Coach":        localAgent.coach,
+                "LOB":          localAgent.lob     || null,
+                "Site":         localAgent.site    || null,
+                "Email":        localAgent.email   || null,
+                "Phone":        localAgent.phone   || null,
+                "Shift":        localAgent.shift   || null,
+                "Team":         localAgent.team    || null,
+                "Notes":        localAgent.notes   || null
+            };
+            const { data, error } = await supabaseClient
+                .from('agents')
+                .insert(payload)
+                .select()   // return the inserted row so we get the UUID
+                .single();
+            if (error) throw error;
+            // Stash the UUID so we can DELETE by primary key later
+            if (data && data.id) {
+                const ag = roster.find(r => r.id === localAgent.id);
+                if (ag) ag._pk = data.id;
+            }
+            showToast("✅ Agent saved to Supabase");
+        } catch (e) {
+            console.error("Supabase agent insert failed:", e);
+            showToast("Saved locally — Supabase error: " + (e.message || e.code || "unknown"), "#FFB612");
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "+ Add Agent"; }
+        }
+    } else {
+        showToast("✅ Agent added (local only — Supabase offline)", "#FFB612");
+    }
+
+    // Clear the form
+    ['r_Name','r_Avaya','r_AWS','r_eConnect','r_GSFS','r_Hire',
+     'r_LOB','r_Site','r_Email','r_Phone','r_Shift','r_Team','r_Notes']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 
-function removeAgent(idx) {
+async function removeAgent(idx) {
     if (!confirm(`Remove ${roster[idx].name} from roster?`)) return;
     const removed = roster.splice(idx, 1)[0];
     populateRosterTable();
     populateAgentSelect();
     if (supabaseEnabled) {
-        supabaseClient.from('agents').delete().eq('avaya_id', removed.id)
-            .then(() => {}, e => console.warn(e));
+        try {
+            // Prefer deleting by Supabase UUID if we have it (most reliable);
+            // fall back to deleting by Avaya ID (unique constraint).
+            const q = supabaseClient.from('agents').delete();
+            const { error } = removed._pk
+                ? await q.eq('id', removed._pk)
+                : await q.eq('"Avaya ID"', removed.id);
+            if (error) throw error;
+            showToast("Agent removed from Supabase", "#FFB612");
+        } catch (e) {
+            console.error("Supabase delete failed:", e);
+            showToast("Removed locally — Supabase error", "#FFB612");
+        }
+    } else {
+        showToast("Agent removed (local only)", "#FFB612");
     }
-    showToast("Agent removed", "#FFB612");
 }
 
 // ============================================================
@@ -1356,48 +1449,53 @@ async function saveEvaluation() {
     const agentInfo = getRosterAgentById(sel.value);
     const dateVal = document.getElementById('f_Date').value || new Date().toISOString().split('T')[0];
 
-    // Build qa_details (per-question answers and notes)
+    // Build qa_details (per-question answers and notes) — matches SQL schema's JSONB shape
     const qaData = {};
     for (let i = 1; i <= 22; i++) {
         qaData[`Q${i}_Answer`] = document.getElementById(`q_${i}_ans`).value;
         qaData[`Q${i}_Note`]   = document.getElementById(`q_${i}_note`).value || "";
     }
-    // Auto-fail flags
+    // Auto-fail flags (stored inside qa_details JSONB)
     const afFlags = [1,2,3,4,5].some(i => document.getElementById(`af_${i}`).value === "Yes");
     for (let i = 1; i <= 5; i++) qaData[`AF_${i}`] = document.getElementById(`af_${i}`).value;
 
-    const record = {
-        eval_date:       dateVal,
-        month:           dateVal.substring(0, 7),
-        cnn:             cnnVal,
-        qa_name:         document.getElementById('f_Eval').value || "—",
-        agent_name:      agent,
-        coach:           agentInfo ? agentInfo.coach : "—",
-        lob:             agentInfo ? agentInfo.lob   : "—",
-        site:            agentInfo ? agentInfo.site  : "—",
-        product_type:    document.getElementById('f_Product').value || "—",
-        call_type:       document.getElementById('f_CallType').value || "—",
-        hold_time:       parseInt(document.getElementById('f_HoldTime').value) || 0,
-        final_score:     currentNumericalScore,
-        auto_failed:     afFlags ? "Yes" : "No",
-        sentiment_compound: currentSentiment.compound || 0,
-        sentiment_label: currentSentiment.label || "Neutral",
-        sentiment_pos:   currentSentiment.pos || 0,
-        sentiment_neg:   currentSentiment.neg || 0,
-        upsell_offer_made:   document.getElementById('up_OfferMade').value,
-        upsell_type:         document.getElementById('up_OfferType').value,
-        upsell_quality:      document.getElementById('up_OfferQuality').value,
-        upsell_opp_existed:  document.getElementById('up_OppExisted').value,
-        upsell_no_reason:    document.getElementById('up_NoReason').value,
-        upsell_interested:   document.getElementById('up_CustInterested').value,
-        upsell_followup:     document.getElementById('up_FollowThrough').value,
-        upsell_notes:        document.getElementById('up_Notes').value || "",
+    // === PAYLOAD FOR SUPABASE — uses the exact Title Case columns from your SQL schema ===
+    const supabasePayload = {
+        "Eval Date":       dateVal,
+        "Month":           dateVal.substring(0, 7),
+        "CNN":             cnnVal,
+        "QA Name":         document.getElementById('f_Eval').value || null,
+        "Agent Name":      agent,
+        "Coach":           agentInfo ? agentInfo.coach : null,
+        "LOB":             agentInfo ? agentInfo.lob   : null,
+        "Site":            agentInfo ? agentInfo.site  : null,
+        "Product Type":    document.getElementById('f_Product').value  || null,
+        "Call Type":       document.getElementById('f_CallType').value || null,
+        "Hold Time (s)":   parseInt(document.getElementById('f_HoldTime').value) || 0,
+        "Final Score":     currentNumericalScore,
+        "Auto-Failed":     afFlags ? "Yes" : "No",
+        "Sentiment_Compound": currentSentiment.compound || 0,
+        "Sentiment_Label": currentSentiment.label || "Neutral",
+        "Sentiment_Pos":   currentSentiment.pos || 0,
+        "Sentiment_Neg":   currentSentiment.neg || 0,
+        "Upsell_OfferMade":  document.getElementById('up_OfferMade').value     || null,
+        "Upsell_Type":       document.getElementById('up_OfferType').value     || null,
+        "Upsell_Quality":    document.getElementById('up_OfferQuality').value  || null,
+        "Upsell_OppExisted": document.getElementById('up_OppExisted').value    || null,
+        "Upsell_NoReason":   document.getElementById('up_NoReason').value      || null,
+        "Upsell_Interested": document.getElementById('up_CustInterested').value|| null,
+        "Upsell_Followup":   document.getElementById('up_FollowThrough').value || null,
+        upsell_notes:        document.getElementById('up_Notes').value || null,
         qa_details:          qaData,
-        created_at:          new Date().toISOString()
+        metadata: {
+            saved_from: "LG QA Hub",
+            saved_at:   new Date().toISOString(),
+            agent_id:   sel.value
+        }
     };
 
-    // Add locally first for instant feedback
-    const local = normalizeEval(record);
+    // Local view (already-normalized snake_case shape used by dashboard/db views)
+    const local = normalizeEval(supabasePayload);
     evaluationsDB.unshift(local);
 
     // Update dashboard if open
@@ -1405,16 +1503,25 @@ async function saveEvaluation() {
     if (document.getElementById('database-view').classList.contains('active'))  renderDBTable();
 
     if (supabaseEnabled) {
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true; btn.textContent = "Saving...";
         try {
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true; btn.textContent = "Saving...";
-            const { error } = await supabaseClient.from('evaluations').insert(record);
-            btn.disabled = false; btn.textContent = "💾 Save Evaluation";
+            const { data, error } = await supabaseClient
+                .from('evaluations')
+                .insert(supabasePayload)
+                .select()
+                .single();
             if (error) throw error;
+            if (data && data.id) local.id = data.id;  // keep DB id for future edits
             showToast("✓ Saved to Supabase!");
         } catch (e) {
             console.error("Supabase save error:", e);
-            showToast("Saved locally — Supabase failed", "#FFB612");
+            const msg = (e && e.message) ? e.message
+                : (e && e.code === "23505") ? "Duplicate CNN — that case number already exists"
+                : "unknown error";
+            showToast("Saved locally — Supabase: " + msg, "#FFB612");
+        } finally {
+            btn.disabled = false; btn.textContent = "💾 Save Evaluation";
         }
     } else {
         showToast("✓ Saved locally (Supabase offline)", "#FFB612");
@@ -2429,7 +2536,7 @@ async function initApp() {
         }
         try {
             const { data: agentData, error: agentErr } = await supabaseClient
-                .from('agents').select('*').order('name', { ascending: true });
+                .from('agents').select('*').order('"Agent Name"', { ascending: true });
             if (agentErr) throw agentErr;
             if (agentData && agentData.length) {
                 roster = agentData.map(normalizeAgent).filter(Boolean);
