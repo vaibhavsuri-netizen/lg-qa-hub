@@ -144,9 +144,35 @@
     .kpi-box.indigo::before { background: var(--header-blue); }
     .kpi-box.teal::before { background: var(--accent-teal); }
     .kpi-box.orange::before { background: var(--warn-orange); }
-    .kpi-box h3 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.8px; font-weight: 600; }
-    .kpi-box .val { font-size: 30px; font-weight: 800; color: var(--text-dark); line-height: 1; margin-bottom: 6px; }
+    .kpi-box h3 { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.8px; font-weight: 600; }
+    .kpi-box .val { font-size: 32px; font-weight: 800; color: var(--text-dark); line-height: 1; margin-bottom: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
     .kpi-box .val-sub { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
+    /* HEADLINE KPI — for the giant "story" tile at the top of a tab */
+    .headline-kpi-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+    @media (max-width: 1000px) { .headline-kpi-row { grid-template-columns: 1fr 1fr; } }
+    .kpi-headline { padding: 22px 26px; border-radius: var(--radius-md); background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); position: relative; overflow: hidden; }
+    .kpi-headline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--header-blue); }
+    .kpi-headline h3 { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; margin: 0 0 12px; letter-spacing: 1px; font-weight: 700; }
+    .kpi-headline .big { font-size: 48px; font-weight: 800; color: var(--header-blue); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .kpi-headline .narrative { font-size: 13px; color: var(--text-dark); line-height: 1.5; }
+    .kpi-headline .narrative strong { color: var(--header-blue); }
+
+    /* NARRATIVE on charts — one-line insight under each chart header */
+    .chart-narrative { font-size: 12px; color: var(--text-dark); line-height: 1.4; padding: 8px 12px; background: linear-gradient(90deg, rgba(0,43,94,0.04) 0%, rgba(0,43,94,0) 100%); border-left: 3px solid var(--header-blue); border-radius: 0 6px 6px 0; margin-bottom: 14px; font-weight: 500; }
+    .chart-narrative.positive { border-left-color: var(--pass-green); background: linear-gradient(90deg, rgba(0,132,61,0.05) 0%, rgba(0,132,61,0) 100%); }
+    .chart-narrative.negative { border-left-color: var(--fail-red); background: linear-gradient(90deg, rgba(200,16,46,0.05) 0%, rgba(200,16,46,0) 100%); }
+    .chart-narrative.warning  { border-left-color: var(--warn-yellow); background: linear-gradient(90deg, rgba(255,182,18,0.07) 0%, rgba(255,182,18,0) 100%); }
+    .chart-narrative .num { font-weight: 700; color: var(--header-blue); font-variant-numeric: tabular-nums; }
+    .chart-narrative.positive .num { color: var(--pass-green); }
+    .chart-narrative.negative .num { color: var(--fail-red); }
+    .chart-narrative.warning  .num { color: #b45309; }
+
+    /* DONUT CENTER LABEL */
+    .donut-wrapper { position: relative; height: 220px; }
+    .donut-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; }
+    .donut-center .dn-num { font-size: 28px; font-weight: 800; color: var(--text-dark); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+    .donut-center .dn-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; font-weight: 600; }
 
     /* PERF BARS */
     .perf-strip { display: flex; flex-direction: column; gap: 10px; }
@@ -573,6 +599,30 @@
 
     <!-- OVERVIEW -->
     <div id="dash-overview" class="dash-subview active">
+        <!-- Hero headline row: the one-glance story -->
+        <div class="headline-kpi-row">
+            <div class="kpi-headline">
+                <h3>Headline</h3>
+                <div class="big" id="heroScore">—</div>
+                <div class="narrative" id="heroNarrative">Loading…</div>
+            </div>
+            <div class="kpi-headline" style="cursor:pointer;" onclick="drillKPI('all')">
+                <h3>Audits This Period</h3>
+                <div class="big" id="heroAudits" style="color:var(--text-dark);">0</div>
+                <div class="narrative" id="heroAuditsSub" style="color:var(--text-muted);">—</div>
+            </div>
+            <div class="kpi-headline" style="cursor:pointer;" onclick="drillKPI('passed')">
+                <h3>Pass Rate</h3>
+                <div class="big" id="heroPass" style="color:var(--pass-green);">0%</div>
+                <div class="narrative" id="heroPassSub" style="color:var(--text-muted);">—</div>
+            </div>
+            <div class="kpi-headline" style="cursor:pointer;" onclick="drillKPI('autoFail')">
+                <h3>Auto-Fail Rate</h3>
+                <div class="big" id="heroAuto" style="color:var(--fail-red);">0%</div>
+                <div class="narrative" id="heroAutoSub" style="color:var(--text-muted);">—</div>
+            </div>
+        </div>
+
         <div class="kpi-row">
             <div class="kpi-box green clickable" onclick="drillKPI('all')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
             <div class="kpi-box indigo clickable" onclick="drillKPI('all')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
@@ -715,11 +765,17 @@
             <div class="dash-col" style="flex:1.2;">
                 <div class="dash-card">
                     <div class="dash-card-header"><div>Offer Quality<div class="dash-card-subtitle">How offers are being presented</div></div></div>
-                    <div class="donut-wrapper"><canvas id="pieHow"></canvas></div>
+                    <div class="donut-wrapper">
+                        <canvas id="pieHow"></canvas>
+                        <div class="donut-center"><div class="dn-num" id="pieHowCenter">—</div><div class="dn-label">Adding Value</div></div>
+                    </div>
                 </div>
                 <div class="dash-card">
                     <div class="dash-card-header"><div>Follow-Through Execution<div class="dash-card-subtitle">What happens after a Yes</div></div></div>
-                    <div class="donut-wrapper"><canvas id="pieExec"></canvas></div>
+                    <div class="donut-wrapper">
+                        <canvas id="pieExec"></canvas>
+                        <div class="donut-center"><div class="dn-num" id="pieExecCenter">—</div><div class="dn-label">Properly FU</div></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -833,7 +889,7 @@
             <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="debouncedSearch()">
+            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="renderDBTable()">
             <select id="dbFilterStatus" onchange="renderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
@@ -1051,13 +1107,7 @@
 // LG QA HUB — Application Logic
 // ==================================================================
 'use strict';
-let searchTimeout;
-function debouncedSearch() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        renderDBTable();
-    }, 300); // Waits 300 milliseconds after you stop typing to run the search
-}
+
 // ============================================================
 // CONFIG
 // ============================================================
@@ -2137,19 +2187,93 @@ function destroyChart(id) {
 }
 
 function makeChart(id, cfg) {
+    destroyChart(id);
     const canvas = document.getElementById(id);
     if (!canvas) return null;
-
-    if (chartInstances[id]) {
-        // If chart exists, update it smoothly
-        chartInstances[id].data = cfg.data;
-        if (cfg.options) chartInstances[id].options = cfg.options;
-        chartInstances[id].update();
-    } else {
-        // Create new chart only if it doesn't exist yet
-        chartInstances[id] = new Chart(canvas, cfg);
-    }
+    chartInstances[id] = new Chart(canvas, cfg);
     return chartInstances[id];
+}
+
+// ============================================================
+// GLOBAL CHART.JS DEFAULTS — applied once. Gives every chart in the
+// dashboard a consistent, polished, more-readable look.
+// ============================================================
+(function setupChartDefaults() {
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.font.family   = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    Chart.defaults.font.size     = 12;
+    Chart.defaults.font.weight   = '500';
+    Chart.defaults.color         = '#475569';  // slate-600
+    Chart.defaults.borderColor   = '#e2e8f0';  // slate-200
+    Chart.defaults.animation.duration = 600;
+    Chart.defaults.animation.easing   = 'easeOutQuart';
+
+    // Tooltip — dark, generous padding, sharp typography
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';  // slate-900
+    Chart.defaults.plugins.tooltip.titleColor = '#f8fafc';
+    Chart.defaults.plugins.tooltip.titleFont = { size: 12, weight: '700' };
+    Chart.defaults.plugins.tooltip.bodyColor = '#cbd5e1';
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12, weight: '500' };
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.displayColors = true;
+    Chart.defaults.plugins.tooltip.boxPadding = 6;
+    Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,0.1)';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+    // Legend — top, smaller boxes
+    Chart.defaults.plugins.legend.position = 'top';
+    Chart.defaults.plugins.legend.align = 'end';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.padding = 14;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.font = { size: 11, weight: '600' };
+
+    // Element styles
+    Chart.defaults.elements.line.borderWidth = 2.5;
+    Chart.defaults.elements.line.tension = 0.3;
+    Chart.defaults.elements.point.radius = 3;
+    Chart.defaults.elements.point.hoverRadius = 6;
+    Chart.defaults.elements.point.borderWidth = 2;
+    Chart.defaults.elements.point.backgroundColor = '#fff';
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.arc.borderWidth = 2;
+    Chart.defaults.elements.arc.borderColor = '#fff';
+
+    // Scales — lighter gridlines, no borders
+    if (Chart.defaults.scale) {
+        Chart.defaults.scale.grid = Chart.defaults.scale.grid || {};
+        Chart.defaults.scale.grid.color = 'rgba(148, 163, 184, 0.12)';  // very light
+        Chart.defaults.scale.grid.drawBorder = false;
+        Chart.defaults.scale.grid.tickColor = 'transparent';
+        Chart.defaults.scale.ticks = Chart.defaults.scale.ticks || {};
+        Chart.defaults.scale.ticks.padding = 8;
+    }
+    // Override Chart.defaults.scales for each axis type
+    ['linear','category','time','logarithmic','radialLinear'].forEach(t => {
+        if (Chart.defaults.scales && Chart.defaults.scales[t]) {
+            Chart.defaults.scales[t].grid = { ...Chart.defaults.scales[t].grid, color: 'rgba(148, 163, 184, 0.12)', drawBorder: false, tickColor: 'transparent' };
+            Chart.defaults.scales[t].ticks = { ...Chart.defaults.scales[t].ticks, padding: 8, font: { size: 11 } };
+        }
+    });
+})();
+
+// Convenience: render a one-line narrative headline above a chart card
+function setChartNarrative(cardSelector, html) {
+    const card = typeof cardSelector === 'string' ? document.querySelector(cardSelector) : cardSelector;
+    if (!card) return;
+    let n = card.querySelector('.chart-narrative');
+    if (!n) {
+        n = document.createElement('div');
+        n.className = 'chart-narrative';
+        // Insert after card-header
+        const header = card.querySelector('.dash-card-header');
+        if (header && header.nextSibling) header.parentNode.insertBefore(n, header.nextSibling);
+        else if (header) card.appendChild(n);
+        else card.insertBefore(n, card.firstChild);
+    }
+    n.innerHTML = html;
 }
 
 const CHART_COLORS = {
@@ -2203,6 +2327,63 @@ function renderOverview(data, threshold, holdThr) {
     const holdTimes = data.map(r => r.hold_time).filter(h => h > 0);
     const avgHold = holdTimes.length ? holdTimes.reduce((s,h) => s+h, 0) / holdTimes.length : 0;
     const overHold = data.filter(r => r.hold_time > holdThr).length;
+    const target = getScoreTarget();
+
+    // ---- HERO HEADLINE ROW ----
+    const heroScoreEl = document.getElementById('heroScore');
+    if (heroScoreEl) {
+        const scoreColor = avg >= target ? 'var(--pass-green)' : avg >= threshold ? '#b45309' : 'var(--fail-red)';
+        heroScoreEl.textContent = avg.toFixed(1) + '%';
+        heroScoreEl.style.color = scoreColor;
+
+        // Compute a meaningful comparison: this period vs previous equal-length period
+        const sortedDates = data.map(r => new Date(r.eval_date)).filter(d => !isNaN(d)).sort((a,b) => a-b);
+        let narrative;
+        if (!total) {
+            narrative = `No audits in the current filter window. Adjust the date range above.`;
+        } else if (sortedDates.length >= 4) {
+            const first = sortedDates[0], last = sortedDates[sortedDates.length-1];
+            const span = last - first;
+            const prevStart = new Date(first.getTime() - span);
+            const prev = evaluationsDB.filter(r => {
+                const d = new Date(r.eval_date);
+                return !isNaN(d) && d >= prevStart && d < first;
+            });
+            if (prev.length >= 2) {
+                const prevAvg = prev.reduce((s,r)=>s+r.final_score,0)/prev.length;
+                const delta = avg - prevAvg;
+                const dir = delta >= 0 ? '▲' : '▼';
+                const dirColor = delta >= 0 ? 'var(--pass-green)' : 'var(--fail-red)';
+                narrative = `${total} audit${total===1?'':'s'}, <strong>${dir} <span style="color:${dirColor};">${Math.abs(delta).toFixed(1)}pp</span></strong> vs prior period (${prevAvg.toFixed(1)}%). ${avg >= target ? 'Above' : 'Below'} ${target}% target.`;
+            } else {
+                narrative = `${total} audit${total===1?'':'s'} in this window. ${avg >= target ? 'Above' : 'Below'} ${target}% target by <strong>${Math.abs(avg-target).toFixed(1)}pp</strong>.`;
+            }
+        } else {
+            narrative = `${total} audit${total===1?'':'s'} in this window. ${avg >= target ? 'Above' : 'Below'} ${target}% target by <strong>${Math.abs(avg-target).toFixed(1)}pp</strong>.`;
+        }
+        document.getElementById('heroNarrative').innerHTML = narrative;
+    }
+    const heroAudits = document.getElementById('heroAudits');
+    if (heroAudits) {
+        heroAudits.textContent = total.toLocaleString();
+        const offerRate = total ? (offers/total*100).toFixed(0) : 0;
+        document.getElementById('heroAuditsSub').innerHTML = `<strong>${offers}</strong> offers · <strong>${convs}</strong> conversions · ${offerRate}% offer rate`;
+    }
+    const heroPass = document.getElementById('heroPass');
+    if (heroPass) {
+        const pr = total ? (passed/total*100) : 0;
+        heroPass.textContent = pr.toFixed(1) + '%';
+        heroPass.style.color = pr >= 80 ? 'var(--pass-green)' : pr >= 60 ? '#b45309' : 'var(--fail-red)';
+        document.getElementById('heroPassSub').innerHTML = `<strong>${passed}</strong> of ${total} at ≥${threshold}% threshold`;
+    }
+    const heroAuto = document.getElementById('heroAuto');
+    if (heroAuto) {
+        const ar = total ? (autoFails/total*100) : 0;
+        heroAuto.textContent = ar.toFixed(1) + '%';
+        heroAuto.style.color = ar === 0 ? 'var(--pass-green)' : ar < 5 ? '#b45309' : 'var(--fail-red)';
+        document.getElementById('heroAutoSub').innerHTML = `<strong>${autoFails}</strong> case${autoFails===1?'':'s'} require immediate review`;
+    }
+    // ---- /HERO ----
 
     const mode = getDisplayMode();
     document.getElementById('kpiAvgScore').textContent = avg.toFixed(1) + '%';
@@ -2245,17 +2426,36 @@ function renderOverview(data, threshold, holdThr) {
     });
     const months = Object.keys(byMonth).sort();
     const targetScore = getScoreTarget();
+
+    // Auto narrative for the trend chart
+    if (months.length >= 2) {
+        const first = byMonth[months[0]], last = byMonth[months[months.length-1]];
+        const firstAvg = first.sum/first.total, lastAvg = last.sum/last.total;
+        const delta = lastAvg - firstAvg;
+        const cls = delta >= 1.5 ? 'positive' : delta <= -1.5 ? 'negative' : '';
+        const dir = delta >= 0 ? 'up' : 'down';
+        const card = document.getElementById('trendChart')?.closest('.dash-card');
+        setChartNarrative(card,
+            `<strong>${months[months.length-1]}</strong> averaged <span class="num">${lastAvg.toFixed(1)}%</span> — ${dir} <span class="num">${Math.abs(delta).toFixed(1)}pp</span> since ${months[0]}. ` +
+            (lastAvg >= targetScore ? `Above the ${targetScore}% target.` : `${(targetScore-lastAvg).toFixed(1)}pp below the ${targetScore}% target.`));
+    } else if (months.length === 1) {
+        const m = byMonth[months[0]];
+        const card = document.getElementById('trendChart')?.closest('.dash-card');
+        setChartNarrative(card, `Only one month in window (${months[0]}). Avg <span class="num">${(m.sum/m.total).toFixed(1)}%</span> across <span class="num">${m.total}</span> audit${m.total===1?'':'s'}.`);
+    }
+
     makeChart('trendChart', {
         type: 'line',
         data: {
             labels: months,
             datasets: [
-                { label: 'Avg Score', data: months.map(m => +(byMonth[m].sum/byMonth[m].total).toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.1)', yAxisID: 'y', tension: 0.3, fill: true },
-                { label: 'Auto-Fail %', data: months.map(m => +(byMonth[m].autoFails/byMonth[m].total*100).toFixed(1)), borderColor: CHART_COLORS.red, backgroundColor: 'rgba(200,16,46,0.05)', yAxisID: 'y1', tension: 0.3 }
+                { label: 'Avg Score', data: months.map(m => +(byMonth[m].sum/byMonth[m].total).toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', yAxisID: 'y', tension: 0.35, fill: true, pointBorderColor: CHART_COLORS.blue, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 7 },
+                { label: 'Auto-Fail %', data: months.map(m => +(byMonth[m].autoFails/byMonth[m].total*100).toFixed(1)), borderColor: CHART_COLORS.red, backgroundColor: 'rgba(200,16,46,0.05)', yAxisID: 'y1', tension: 0.35, fill: false, borderDash: [6,4], pointBorderColor: CHART_COLORS.red, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 3 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
             onClick: (ev, els) => {
                 if (!els.length) return;
                 const monthLabel = months[els[0].index];
@@ -2263,20 +2463,17 @@ function renderOverview(data, threshold, holdThr) {
                 openMonthlyDrillModal(monthLabel, monthData);
             },
             scales: {
-                y: { position: 'left', min: 0, max: 100, title: { display: true, text: 'Avg Score %' } },
-                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %' } }
+                y:  { position: 'left',  min: 0, max: 100, title: { display: true, text: 'Avg Score %', color: CHART_COLORS.blue, font: { weight: '600', size: 11 } }, ticks: { callback: v => v + '%', color: CHART_COLORS.blue, font: { weight: '500' } } },
+                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %', color: CHART_COLORS.red, font: { weight: '600', size: 11 } }, ticks: { callback: v => v + '%', color: CHART_COLORS.red, font: { weight: '500' } } }
             },
             plugins: {
+                tooltip: { callbacks: { label: (ctx) => `  ${ctx.dataset.label}: ${ctx.formattedValue}%` } },
                 annotation: {
                     annotations: {
                         target: {
-                            type: 'line',
-                            yMin: targetScore, yMax: targetScore,
-                            yScaleID: 'y',
-                            borderColor: CHART_COLORS.green,
-                            borderWidth: 2,
-                            borderDash: [6, 4],
-                            label: { display: true, content: `Target ${targetScore}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 10 }, padding: 4 }
+                            type: 'line', yMin: targetScore, yMax: targetScore, yScaleID: 'y',
+                            borderColor: CHART_COLORS.green, borderWidth: 2, borderDash: [6, 4],
+                            label: { display: true, content: `Target ${targetScore}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 10, weight: '700' }, padding: 4, borderRadius: 4 }
                         }
                     }
                 }
@@ -2317,27 +2514,60 @@ function renderOverview(data, threshold, holdThr) {
         else if (s < 90) buckets[3]++;
         else buckets[4]++;
     });
+    const distLabels = ['<60%','60–69%','70–79%','80–89%','90–100%'];
+    const distTotal = buckets.reduce((s,n)=>s+n,0);
+
+    // Narrative: where the mass of calls sits
+    if (distTotal > 0) {
+        const peakIdx = buckets.indexOf(Math.max(...buckets));
+        const top90Pct = (buckets[4] / distTotal * 100);
+        const below70Pct = ((buckets[0] + buckets[1]) / distTotal * 100);
+        let txt, cls = '';
+        if (below70Pct >= 15) {
+            txt = `<span class="num">${below70Pct.toFixed(1)}%</span> of audits fell below 70% — concerning long tail. Most common bucket: <strong>${distLabels[peakIdx]}</strong>.`;
+            cls = 'negative';
+        } else if (top90Pct >= 50) {
+            txt = `<span class="num">${top90Pct.toFixed(1)}%</span> of audits scored 90% or higher — distribution skewed positive.`;
+            cls = 'positive';
+        } else {
+            txt = `Most audits land in <strong>${distLabels[peakIdx]}</strong> (<span class="num">${(buckets[peakIdx]/distTotal*100).toFixed(1)}%</span>). Distribution is concentrated mid-range.`;
+        }
+        const card = document.getElementById('distChart')?.closest('.dash-card');
+        setChartNarrative(card, txt);
+        if (cls && card) card.querySelector('.chart-narrative')?.classList.add(cls);
+    }
+
     makeChart('distChart', {
         type: 'bar',
         data: {
-            labels: ['<60%','60–69%','70–79%','80–89%','90–100%'],
+            labels: distLabels,
             datasets: [{
                 label: 'Calls',
                 data: buckets,
-                backgroundColor: [CHART_COLORS.red, '#e62a4a', CHART_COLORS.yellow, CHART_COLORS.cyan, CHART_COLORS.green]
+                backgroundColor: [CHART_COLORS.red, '#e62a4a', CHART_COLORS.yellow, CHART_COLORS.cyan, CHART_COLORS.green],
+                borderRadius: 6,
+                borderSkipped: false
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: {
+                    label: (ctx) => `  ${ctx.formattedValue} call${ctx.raw===1?'':'s'} (${distTotal ? (ctx.raw/distTotal*100).toFixed(1) : 0}%)`
+                } }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Audit count', font: { weight: '600', size: 11 } }, ticks: { precision: 0 } },
+                x: { ticks: { font: { weight: '600' } } }
+            },
             onClick: (ev, els) => {
                 if (!els.length) return;
                 const i = els[0].index;
                 const ranges = [[0,60],[60,70],[70,80],[80,90],[90,101]];
                 const [lo, hi] = ranges[i];
                 const subset = data.filter(r => r.final_score >= lo && r.final_score < hi);
-                const labels = ['<60%','60–69%','70–79%','80–89%','90–100%'];
-                openDrillModal(`Score range: ${labels[i]}`, `${subset.length} record${subset.length===1?'':'s'}`, subset);
+                openDrillModal(`Score range: ${distLabels[i]}`, `${subset.length} record${subset.length===1?'':'s'}`, subset);
             }
         }
     });
@@ -2519,20 +2749,21 @@ function renderTrends(data, threshold) {
         data: {
             labels: weeks.map(w => w.label),
             datasets: [
-                { type: 'bar', label: 'Audits', data: weeks.map(w => w.count), backgroundColor: 'rgba(0,174,239,0.3)', yAxisID: 'y1' },
-                { type: 'line', label: 'Avg Score', data: weeks.map(w => +w.avg.toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.1)', tension: 0.3, fill: true, yAxisID: 'y' }
+                { type: 'bar',  label: 'Audits',    data: weeks.map(w => w.count),          backgroundColor: 'rgba(0,174,239,0.35)', borderColor: CHART_COLORS.cyan, borderWidth: 1, yAxisID: 'y1', order: 2 },
+                { type: 'line', label: 'Avg Score', data: weeks.map(w => +w.avg.toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', tension: 0.35, fill: true, yAxisID: 'y', pointBorderColor: CHART_COLORS.blue, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 7, order: 1 }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
             onClick: (ev, els) => {
                 if (!els.length) return;
                 const w = weeks[els[0].index];
                 openDrillModal(`Week of ${w.label}`, `${w.count} record${w.count===1?'':'s'} · avg ${w.avg.toFixed(1)}%`, w.records || []);
             },
             scales: {
-                y: { position: 'left', min: 0, max: 100 },
-                y1: { position: 'right', min: 0, grid: { drawOnChartArea: false } }
+                y:  { position: 'left',  min: 0, max: 100, title: { display: true, text: 'Score %', color: CHART_COLORS.blue, font: { weight: '600', size: 11 } }, ticks: { callback: v => v + '%', color: CHART_COLORS.blue } },
+                y1: { position: 'right', min: 0, grid: { drawOnChartArea: false }, title: { display: true, text: 'Audits', color: CHART_COLORS.cyan, font: { weight: '600', size: 11 } }, ticks: { precision: 0, color: CHART_COLORS.cyan } }
             }
         }
     });
@@ -2812,12 +3043,21 @@ function renderUpsell(data) {
         const q = r.upsell_quality || 'Adding Value';
         if (howCounts[q] !== undefined) { howCounts[q]++; howRecords[q].push(r); }
     });
+    const howTotal = Object.values(howCounts).reduce((s,n)=>s+n,0);
+    const valuePct = howTotal ? (howCounts['Adding Value']/howTotal*100) : 0;
+    const ctr1 = document.getElementById('pieHowCenter');
+    if (ctr1) { ctr1.textContent = howTotal ? valuePct.toFixed(0)+'%' : '—'; ctr1.style.color = valuePct >= 70 ? 'var(--pass-green)' : valuePct >= 50 ? '#b45309' : 'var(--fail-red)'; }
     const howLabels = Object.keys(howCounts);
     makeChart('pieHow', {
         type: 'doughnut',
-        data: { labels: howLabels, datasets: [{ data: Object.values(howCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        data: { labels: howLabels, datasets: [{ data: Object.values(howCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red], borderWidth: 3, borderColor: '#fff' }] },
         options: {
             responsive: true, maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', align: 'center', labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: '500' } } },
+                tooltip: { callbacks: { label: (ctx) => `  ${ctx.label}: ${ctx.formattedValue} (${howTotal ? (ctx.raw/howTotal*100).toFixed(1) : 0}%)` } }
+            },
             onClick: (ev, els) => {
                 if (!els.length) return;
                 const lbl = howLabels[els[0].index];
@@ -2833,12 +3073,21 @@ function renderUpsell(data) {
         const f = r.upsell_followup || 'Properly Followed Up';
         if (execCounts[f] !== undefined) { execCounts[f]++; execRecords[f].push(r); }
     });
+    const execTotal = Object.values(execCounts).reduce((s,n)=>s+n,0);
+    const fuPct = execTotal ? (execCounts['Properly Followed Up']/execTotal*100) : 0;
+    const ctr2 = document.getElementById('pieExecCenter');
+    if (ctr2) { ctr2.textContent = execTotal ? fuPct.toFixed(0)+'%' : '—'; ctr2.style.color = fuPct >= 80 ? 'var(--pass-green)' : fuPct >= 50 ? '#b45309' : 'var(--fail-red)'; }
     const execLabels = Object.keys(execCounts);
     makeChart('pieExec', {
         type: 'doughnut',
-        data: { labels: execLabels, datasets: [{ data: Object.values(execCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red] }] },
+        data: { labels: execLabels, datasets: [{ data: Object.values(execCounts), backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red], borderWidth: 3, borderColor: '#fff' }] },
         options: {
             responsive: true, maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', align: 'center', labels: { boxWidth: 10, padding: 12, font: { size: 11, weight: '500' } } },
+                tooltip: { callbacks: { label: (ctx) => `  ${ctx.label}: ${ctx.formattedValue} (${execTotal ? (ctx.raw/execTotal*100).toFixed(1) : 0}%)` } }
+            },
             onClick: (ev, els) => {
                 if (!els.length) return;
                 const lbl = execLabels[els[0].index];
@@ -3335,145 +3584,54 @@ function toggleColPanel() {
 function renderDBTable() {
     const table = document.getElementById('dbTable');
     if (!table) return;
-
-    const search = document.getElementById('dbSearch').value.trim().toLowerCase();
-    const statusFilter = document.getElementById('dbFilterStatus').value;
+    const search = document.getElementById('dbSearch').value.trim();
+    const status = document.getElementById('dbFilterStatus').value;
     const threshold = getPassThreshold();
 
-    let rows = evaluationsDB || [];
-
-    // Apply search
+    let rows = evaluationsDB;
+    // Fuzzy search first (if there's a query)
     if (search) {
-        rows = rows.filter(r => {
-            const values = Object.values(r).join(' ').toLowerCase();
-            return values.includes(search);
-        });
+        if (typeof Fuse !== 'undefined') {
+            // Rebuild each search so the index reflects any recent saves/edits/deletes (it's fast)
+            rebuildFuseIndex();
+            rows = fuzzyFilterEvaluations(search);
+        } else {
+            // Fall back to plain substring if Fuse didn't load
+            const lc = search.toLowerCase();
+            rows = rows.filter(r => Object.values(r).some(v =>
+                v && typeof v !== 'object' && String(v).toLowerCase().includes(lc)
+            ));
+        }
     }
+    if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
+    if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
+    if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
+    document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
-    // Apply status filter
-    if (statusFilter !== 'All') {
-        rows = rows.filter(r => {
-            const score = parseFloat(r["Final Score"]) || 0;
-            const isAutoFail = r["Auto-Failed"] === "Yes";
-            if (statusFilter === 'Pass') return score >= threshold && !isAutoFail;
-            if (statusFilter === 'Fail') return score < threshold && !isAutoFail;
-            if (statusFilter === 'AutoFail') return isAutoFail;
-            return true;
-        });
-    }
+    const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
+    if (!cols.length) { table.innerHTML = '<thead><tr><th>No columns visible</th></tr></thead>'; return; }
 
-    const countEl = document.getElementById('dbRecordCount');
-    if (countEl) countEl.textContent = `${rows.length} records`;
-
-    table.innerHTML = '';
-
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-        <tr>
-            <th>Date</th>
-            <th>CNN</th>
-            <th>Agent</th>
-            <th>Score</th>
-            <th>Status</th>
-            <th>Coach</th>
-            <th>Site</th>
-            <th style="width:130px;text-align:center">Actions</th>
-        </tr>`;
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-
-    if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7785">No records found</td></tr>`;
-    } else {
-        rows.forEach((rec, index) => {
-            const score = parseFloat(rec["Final Score"]) || 0;
-            const isAF = rec["Auto-Failed"] === "Yes";
-            let statusHTML = isAF ? `<span class="badge badge-red">Auto-Fail</span>` : 
-                            (score >= threshold ? `<span class="badge badge-green">Pass</span>` : `<span class="badge badge-yellow">Fail</span>`);
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${rec["Eval Date"] || '-'}</td>
-                <td><strong>${rec["CNN"] || '-'}</strong></td>
-                <td>${rec["Agent Name"] || '-'}</td>
-                <td><strong>${score.toFixed(1)}%</strong></td>
-                <td>${statusHTML}</td>
-                <td>${rec["Coach"] || '-'}</td>
-                <td>${rec["Site"] || '-'}</td>
-                <td style="text-align:center; white-space:nowrap;">
-                    <button onclick="editRecord(${index})" style="background:#002b5e;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✏️</button>
-                    <button onclick="deleteRecord(${index})" style="background:#C8102E;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer">🗑️</button>
-                </td>`;
-            tbody.appendChild(tr);
-        });
-    }
-    table.appendChild(tbody);
+    let html = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
+    rows.slice(0, 500).forEach((r, idx) => {
+        html += `<tr onclick="openDetailModal(${evaluationsDB.indexOf(r)})">` + cols.map(c => {
+            const val = r[c.key];
+            if (c.key === 'final_score') {
+                const pass = r.auto_failed !== "Yes" && val >= threshold;
+                return `<td><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
+            }
+            if (c.key === 'auto_failed') return `<td><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'upsell_offer_made') return `<td><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'sentiment_label') {
+                const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
+                return `<td><span class="badge ${cls}">${val}</span></td>`;
+            }
+            return `<td title="${val ?? ''}">${val ?? '—'}</td>`;
+        }).join('') + '</tr>';
+    });
+    html += '</tbody>';
+    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
+    table.innerHTML = html;
 }
-
-    // Apply status filter
-    if (statusFilter !== 'All') {
-        rows = rows.filter(r => {
-            const score = parseFloat(r.final_score) || 0;
-            const isAutoFail = r.auto_failed === "Yes";
-            if (statusFilter === 'Pass') return score >= threshold && !isAutoFail;
-            if (statusFilter === 'Fail') return score < threshold && !isAutoFail;
-            if (statusFilter === 'AutoFail') return isAutoFail;
-            return true;
-        });
-    }
-
-    // Update record count
-    const countEl = document.getElementById('dbRecordCount');
-    if (countEl) countEl.textContent = `${rows.length} records`;
-
-    // Build table
-    table.innerHTML = '';
-
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-        <tr>
-            <th>Date</th>
-            <th>CNN</th>
-            <th>Agent</th>
-            <th>Score</th>
-            <th>Status</th>
-            <th>Coach</th>
-            <th>Site</th>
-            <th style="width:130px;text-align:center">Actions</th>
-        </tr>`;
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-
-    if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7785">No records found</td></tr>`;
-    } else {
-        rows.forEach((rec, index) => {
-            const score = parseFloat(rec.final_score) || 0;
-            const isAF = rec.auto_failed === "Yes";
-            let statusHTML = isAF ? `<span class="badge badge-red">Auto-Fail</span>` : 
-                            (score >= threshold ? `<span class="badge badge-green">Pass</span>` : `<span class="badge badge-yellow">Fail</span>`);
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${rec.eval_date || '-'}</td>
-                <td><strong>${rec.cnn || '-'}</strong></td>
-                <td>${rec.agent_name || '-'}</td>
-                <td><strong>${score.toFixed(1)}%</strong></td>
-                <td>${statusHTML}</td>
-                <td>${rec.coach || '-'}</td>
-                <td>${rec.site || '-'}</td>
-                <td style="text-align:center; white-space:nowrap;">
-                    <button onclick="editRecord(${index})" style="background:#002b5e;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✏️</button>
-                    <button onclick="deleteRecord(${index})" style="background:#C8102E;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer">🗑️</button>
-                </td>`;
-            tbody.appendChild(tr);
-        });
-    }
-    table.appendChild(tbody);
-}
-
 
 function openDetailModal(idx) {
     const r = evaluationsDB[idx];
@@ -5018,142 +5176,6 @@ async function initApp() {
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loginPwd').focus();
 });
-<!-- ==================== EDIT / DELETE (FINAL CLEAN VERSION) ==================== -->
-
-function renderDBTable() {
-    const table = document.getElementById('dbTable');
-    if (!table) return;
-
-    const search = (document.getElementById('dbSearch')?.value || '').toLowerCase();
-    const filter = document.getElementById('dbFilterStatus')?.value || 'All';
-
-    table.innerHTML = '';
-
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-        <tr>
-            <th>Date</th><th>CNN</th><th>Agent</th><th>Score</th>
-            <th>Status</th><th>Coach</th><th>Site</th>
-            <th style="width:130px;text-align:center">Actions</th>
-        </tr>`;
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    let data = evaluationsDB || [];
-
-    if (search) data = data.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search)));
-    if (filter !== 'All') {
-        data = data.filter(r => {
-            const s = parseFloat(r["Final Score"]) || 0;
-            const af = r["Auto-Failed"] === "Yes";
-            if (filter === 'Pass') return s >= 88 && !af;
-            if (filter === 'Fail') return s < 88 && !af;
-            if (filter === 'AutoFail') return af;
-            return true;
-        });
-    }
-
-    const count = document.getElementById('dbRecordCount');
-    if (count) count.textContent = `${data.length} records`;
-
-    if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7785">No records found</td></tr>`;
-    } else {
-        data.forEach((rec, i) => {
-            const score = parseFloat(rec["Final Score"]) || 0;
-            const status = rec["Auto-Failed"] === "Yes" ? 
-                `<span class="badge badge-red">Auto-Fail</span>` : 
-                (score >= 88 ? `<span class="badge badge-green">Pass</span>` : `<span class="badge badge-yellow">Fail</span>`);
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${rec["Eval Date"] || '-'}</td>
-                <td><strong>${rec["CNN"] || '-'}</strong></td>
-                <td>${rec["Agent Name"] || '-'}</td>
-                <td><strong>${score.toFixed(1)}%</strong></td>
-                <td>${status}</td>
-                <td>${rec["Coach"] || '-'}</td>
-                <td>${rec["Site"] || '-'}</td>
-                <td style="text-align:center">
-                    <button onclick="editRecord(${i})" style="background:#002b5e;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-right:4px">✏️</button>
-                    <button onclick="deleteRecord(${i})" style="background:#C8102E;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer">🗑️</button>
-                </td>`;
-            tbody.appendChild(tr);
-        });
-    }
-    table.appendChild(tbody);
-}
-
-// Simple Edit Modal
-let editIndex = null;
-
-function editRecord(i) {
-    editIndex = i;
-    const r = evaluationsDB[i];
-    
-    const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999';
-    modal.innerHTML = `
-        <div style="background:white;border-radius:10px;width:90%;max-width:500px;padding:24px">
-            <h3 style="margin-top:0;color:#002b5e">Edit Record</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><label>Agent</label><input id="e1" value="${r["Agent Name"]||''}" style="width:100%"></div>
-                <div><label>CNN</label><input id="e2" value="${r["CNN"]||''}" style="width:100%"></div>
-                <div><label>Score</label><input id="e3" type="number" step="0.1" value="${r["Final Score"]||0}" style="width:100%"></div>
-                <div><label>Coach</label><input id="e4" value="${r["Coach"]||''}" style="width:100%"></div>
-            </div>
-            <div style="margin:12px 0">
-                <label>Auto-Failed</label>
-                <select id="e5" style="width:100%">
-                    <option value="No" ${r["Auto-Failed"]==="No"?"selected":""}>No</option>
-                    <option value="Yes" ${r["Auto-Failed"]==="Yes"?"selected":""}>Yes</option>
-                </select>
-            </div>
-            <div style="text-align:right;margin-top:16px">
-                <button onclick="this.closest('.modal').remove()" style="padding:8px 16px;margin-right:8px">Cancel</button>
-                <button onclick="saveEdit(this)" style="background:#002b5e;color:white;padding:8px 20px;border:none;border-radius:4px">Save</button>
-            </div>
-        </div>
-    `;
-    modal.className = 'modal';
-    document.body.appendChild(modal);
-}
-
-function saveEdit(btn) {
-    const modal = btn.closest('.modal');
-    const r = evaluationsDB[editIndex];
-    
-    r["Agent Name"] = document.getElementById('e1').value;
-    r["CNN"] = document.getElementById('e2').value;
-    r["Final Score"] = parseFloat(document.getElementById('e3').value) || 0;
-    r["Coach"] = document.getElementById('e4').value;
-    r["Auto-Failed"] = document.getElementById('e5').value;
-
-    modal.remove();
-    renderDBTable();
-    showToast("✅ Record updated!");
-}
-
-async function deleteRecord(i) {
-    if (!confirm("Delete this record?")) return;
-    
-    const r = evaluationsDB[i];
-    try {
-        if (r.id) await supabase.from('evaluations').delete().eq('id', r.id);
-    } catch(e){}
-    
-    evaluationsDB.splice(i, 1);
-    renderDBTable();
-    showToast("🗑️ Deleted", "#C8102E");
-}
-
-// Auto open table when clicking Database tab
-document.addEventListener('click', function(e) {
-    if (e.target.textContent.includes('Database Export')) {
-        setTimeout(renderDBTable, 300);
-    }
-});
-
 </script>
 </body>
 </html>
