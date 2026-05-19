@@ -3396,6 +3396,16 @@ function applyFilterStateFromURL() {
 function copyDashboardLink() {
     encodeFilterState();
     navigator.clipboard.writeText(window.location.href).then(() => {
+        showToast("🔗 Dashboard link copied to clipboard");
+    });
+}
+
+// ============================================================
+// WEBSOCKET REAL-TIME SYNC (Supabase Realtime)
+// ============================================================
+let realtimeSubscription = null;
+
+function initRealtimeSync() {
     if (!supabaseEnabled || !window.supabase) return;
     try {
         // Subscribe to evaluations changes
