@@ -540,7 +540,72 @@
     #dbTable { font-size: 12px; }
     #dbTable th { position: sticky; top: 0; z-index: 10; font-size: 10.5px; white-space: nowrap; background: #f0f4f9; }
     #dbTable td { font-size: 11.5px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; padding: 8px 10px; }
-    #dbTable tr:hover td { background: #f8fafc; cursor: pointer; }
+    #dbTable tr:hover td { background: #f8fafc; }
+    #dbTable tr:hover { background: #f8fafc; }
+    
+    /* Action buttons in table */
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 4px;
+        transition: all 0.2s;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .btn-icon:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    .btn-icon.edit { color: #00aeef; border: 1px solid #00aeef; }
+    .btn-icon.edit:hover { background: #00aeef; color: white; }
+    .btn-icon.delete { color: #C8102E; border: 1px solid #C8102E; }
+    .btn-icon.delete:hover { background: #C8102E; color: white; }
+    .btn-icon.view { color: #6b7785; border: 1px solid #d0d6dd; }
+    .btn-icon.view:hover { background: #6b7785; color: white; }
+    
+    /* Checkbox styling */
+    #dbTable input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: var(--header-blue);
+    }
+    
+    /* Bulk action toolbar */
+    .bulk-actions {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+        border: 1px solid #fee;
+        border-radius: var(--radius-sm);
+        margin-bottom: 12px;
+        animation: slideDown 0.3s ease;
+    }
+    .bulk-actions.active {
+        display: flex;
+    }
+    .bulk-actions span {
+        font-size: 12px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .bulk-actions .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
     .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; white-space: nowrap; }
     .badge-green { background: rgba(0,132,61,0.12); color: var(--pass-green); }
     .badge-red { background: rgba(200,16,46,0.12); color: var(--fail-red); }
@@ -1328,6 +1393,11 @@
             </div>
         </div>
         <div class="col-toggle-grid" id="colToggleGrid"></div>
+    </div>
+    <div class="bulk-actions" id="bulkActions">
+        <span id="selectedCount">0 selected</span>
+        <button class="btn btn-small" onclick="bulkDeleteSelected()">🗑 Delete Selected</button>
+        <button class="btn btn-ghost btn-small" onclick="clearSelection()">Clear</button>
     </div>
     <div class="card" style="padding:12px;">
         <div class="db-table-wrapper"><table id="dbTable"></table></div>
@@ -4701,26 +4771,121 @@ function renderDBTable() {
     const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
     if (!cols.length) { table.innerHTML = '<thead><tr><th>No columns visible</th></tr></thead>'; return; }
 
-    let html = '<thead><tr>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
+    let html = '<thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th><th>Actions</th>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
     rows.slice(0, 500).forEach((r, idx) => {
-        html += `<tr onclick="openDetailModal(${evaluationsDB.indexOf(r)})">` + cols.map(c => {
-            const val = r[c.key];
-            if (c.key === 'final_score') {
-                const pass = r.auto_failed !== "Yes" && val >= threshold;
-                return `<td><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
-            }
-            if (c.key === 'auto_failed') return `<td><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
-            if (c.key === 'upsell_offer_made') return `<td><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
-            if (c.key === 'sentiment_label') {
-                const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
-                return `<td><span class="badge ${cls}">${val}</span></td>`;
-            }
-            return `<td title="${val ?? ''}">${val ?? '—'}</td>`;
-        }).join('') + '</tr>';
+        const mainIdx = evaluationsDB.indexOf(r);
+        html += `<tr data-idx="${mainIdx}">` +
+            `<td><input type="checkbox" class="row-select" value="${mainIdx}" onclick="event.stopPropagation();"></td>` +
+            `<td style="white-space:nowrap;">` +
+            `<button class="btn-icon edit" onclick="event.stopPropagation(); openEvalEditModal(${mainIdx});" title="Edit">✎</button>` +
+            `<button class="btn-icon delete" onclick="event.stopPropagation(); deleteEvaluation(${mainIdx});" title="Delete">🗑</button>` +
+            `<button class="btn-icon view" onclick="event.stopPropagation(); openDetailModal(${mainIdx});" title="View">👁</button>` +
+            `</td>` +
+            cols.map(c => {
+                const val = r[c.key];
+                if (c.key === 'final_score') {
+                    const pass = r.auto_failed !== "Yes" && val >= threshold;
+                    return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
+                }
+                if (c.key === 'auto_failed') return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
+                if (c.key === 'upsell_offer_made') return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
+                if (c.key === 'sentiment_label') {
+                    const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
+                    return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${cls}">${val}</span></td>`;
+                }
+                return `<td onclick="openDetailModal(${mainIdx})" title="${val ?? ''}">${val ?? '—'}</td>`;
+            }).join('') + '</tr>';
     });
     html += '</tbody>';
-    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
+    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length + 2}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
     table.innerHTML = html;
+    
+    // Attach checkbox listeners for bulk actions
+    attachCheckboxListeners();
+}
+
+// Bulk selection functions
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-select');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBulkActionBar();
+}
+
+function updateBulkActionBar() {
+    const selected = document.querySelectorAll('.row-select:checked');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (selected.length > 0) {
+        bulkActions.classList.add('active');
+        selectedCount.textContent = `${selected.length} selected`;
+    } else {
+        bulkActions.classList.remove('active');
+    }
+}
+
+function clearSelection() {
+    document.getElementById('selectAll').checked = false;
+    document.querySelectorAll('.row-select').forEach(cb => cb.checked = false);
+    updateBulkActionBar();
+}
+
+function getSelectedIndices() {
+    return [...document.querySelectorAll('.row-select:checked')].map(cb => parseInt(cb.value));
+}
+
+async function bulkDeleteSelected() {
+    const indices = getSelectedIndices();
+    if (indices.length === 0) return;
+    
+    if (!confirm(`Delete ${indices.length} selected record${indices.length === 1 ? '' : 's'}?
+
+This cannot be undone.`)) return;
+    
+    // Sort in descending order so removing doesn't shift indices
+    indices.sort((a, b) => b - a);
+    
+    let deletedCount = 0;
+    let failedCount = 0;
+    
+    for (const idx of indices) {
+        const r = evaluationsDB[idx];
+        if (!r) continue;
+        
+        // Remove from local array
+        evaluationsDB.splice(idx, 1);
+        deletedCount++;
+        
+        // Remove from Supabase if enabled
+        if (supabaseEnabled && r.id) {
+            try {
+                const { error } = await supabaseClient.from('evaluations').delete().eq('id', r.id);
+                if (error) {
+                    console.error("Delete failed for", r.id, error);
+                    failedCount++;
+                }
+            } catch (e) {
+                console.error("Delete error for", r.id, e);
+                failedCount++;
+            }
+        }
+    }
+    
+    // Refresh UI
+    renderDBTable();
+    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
+    clearSelection();
+    
+    const msg = deletedCount > 0 ? `✓ Deleted ${deletedCount} record${deletedCount === 1 ? '' : 's'}` : 'No records deleted';
+    showToast(msg + (failedCount > 0 ? ` (${failedCount} failed)` : ''), failedCount > 0 ? '#FFB612' : '#00843D');
+}
+
+// Attach checkbox listeners after table renders
+function attachCheckboxListeners() {
+    document.querySelectorAll('.row-select').forEach(cb => {
+        cb.addEventListener('change', updateBulkActionBar);
+    });
 }
 
 function openDetailModal(idx) {
@@ -4737,8 +4902,8 @@ function openDetailModal(idx) {
 
     const actionBar = `
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border-light);">
-            <button class="btn btn-small" onclick="openEvalEditModal(${idx})">✎ Edit Record</button>
-            <button class="btn btn-secondary btn-small" onclick="deleteEvaluation(${idx})" style="background:#C8102E; color:white; border-color:#C8102E;">🗑 Delete</button>
+            <button class="btn btn-small btn-secondary" onclick="openEvalEditModal(${idx})">✎ Edit Record</button>
+            <button class="btn btn-small btn-danger" onclick="deleteEvaluation(${idx})">🗑 Delete</button>
         </div>`;
 
     const body = `
