@@ -241,10 +241,6 @@
     .sparkline-neutral { stroke: var(--accent-cyan); }
     .export-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; opacity: 0; transition: opacity 0.2s; }
     .dash-card:hover .export-btn { opacity: 1; }
-    .live-predictor { position: fixed; bottom: 20px; right: 20px; background: white; padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 2px solid var(--header-blue); z-index: 1000; min-width: 200px; }
-    .predictor-score { font-size: 36px; font-weight: 800; color: var(--header-blue); }
-    .predictor-bar { height: 6px; background: var(--border-light); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-    .predictor-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
     .pattern-alert { background: linear-gradient(135deg, #fff5f5, #fff); border-left: 4px solid var(--fail-red); padding: 12px 16px; margin: 8px 0; border-radius: var(--radius-sm); }
     .btn-secondary { background: linear-gradient(135deg, var(--header-blue), var(--header-blue-light)); box-shadow: 0 2px 8px rgba(0,43,94,0.25); }
     .btn-secondary:hover { box-shadow: 0 4px 12px rgba(0,43,94,0.35); }
@@ -880,18 +876,8 @@
 
     <div style="text-align:right; padding: 10px 0 30px;">
         <button class="btn btn-ghost" onclick="resetForm()" style="margin-right: 10px;">↻ Clear Form</button>
+        <button class="btn btn-ghost hidden" id="cancelEditBtn" onclick="cancelEditMode()" style="margin-right: 10px;">✕ Cancel Edit</button>
         <button class="btn" id="saveBtn" onclick="saveEvaluation()">💾 Save Evaluation</button>
-    </div>
-
-    <!-- Live Score Predictor -->
-    <div class="live-predictor" id="livePredictor">
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Live Score Prediction</div>
-        <div class="predictor-score" id="predictorScore">100%</div>
-        <div style="font-size:12px; color:var(--text-muted);" id="predictorStatus">Pass — No deductions</div>
-        <div class="predictor-bar"><div class="predictor-fill" id="predictorFill" style="width:100%; background:var(--pass-green);"></div></div>
-        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
-            <span>0%</span><span>Pass: 88%</span><span>100%</span>
-        </div>
     </div>
 </div>
 
@@ -1413,6 +1399,7 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button class="btn btn-small" onclick="syncSelectionOptionsToSupabase()">☁️ Save to Supabase</button>
             <button class="btn btn-small" onclick="loadFromSupabaseAndRefresh()">↻ Load from Supabase</button>
+            <button class="btn btn-secondary btn-small" onclick="showSelectionOptionsTableSQL(); alert('SQL to create table has been printed to browser console. Open DevTools (F12) to see it.')">📋 Show Create Table SQL</button>
             <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
         </div>
     </div>
@@ -1797,6 +1784,10 @@ function normalizeEval(r) {
 // ============================================================
 let currentNumericalScore = 100;
 let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+
+// Track when editing an existing evaluation
+let currentEditingEvalId = null;
+let currentEditingEvalIdx = null;
 const DEFAULT_SELECTION_OPTIONS = {
     up_OfferType: ['LG Extended Warranty', 'Accessory', 'Water Filter', 'ThinQ Explanation'],
     up_OfferQuality: ['Adding Value', 'Indifferent', 'Pushy / Sales-y'],
@@ -1834,8 +1825,23 @@ async function syncSelectionOptionsToSupabase() {
         return false;
     }
     updateSyncStatus("Syncing to Supabase...");
+    
     try {
-        const { error } = await supabaseClient
+        // First check if the table exists by trying a simple select
+        const { error: checkError } = await supabaseClient
+            .from('selection_options')
+            .select('option_type')
+            .limit(1);
+        
+        if (checkError && checkError.message?.includes('does not exist')) {
+            console.error("selection_options table does not exist in Supabase");
+            updateSyncStatus("Table missing — create 'selection_options' in Supabase");
+            showToast("Database table missing — see console for SQL", "#C8102E");
+            return false;
+        }
+        
+        // Perform the upsert - ensure values is properly formatted as JSONB
+        const { data, error } = await supabaseClient
             .from('selection_options')
             .upsert([
                 { option_type: 'up_OfferType', values: selectionOptions.up_OfferType, updated_at: new Date().toISOString() },
@@ -1843,17 +1849,65 @@ async function syncSelectionOptionsToSupabase() {
                 { option_type: 'up_NoReason', values: selectionOptions.up_NoReason, updated_at: new Date().toISOString() },
                 { option_type: 'up_DeclineReason', values: selectionOptions.up_DeclineReason, updated_at: new Date().toISOString() },
                 { option_type: 'up_FollowThrough', values: selectionOptions.up_FollowThrough, updated_at: new Date().toISOString() }
-            ], { onConflict: 'option_type' });
-        if (error) throw error;
+            ], { 
+                onConflict: 'option_type',
+                returning: 'minimal'
+            });
+            
+        if (error) {
+            console.error("Supabase upsert error:", error);
+            throw error;
+        }
+        
+        console.log("Sync successful:", data);
         updateSyncStatus("Synced to Supabase ✓");
         showToast("✓ Options synced to Supabase");
         return true;
     } catch (e) {
         console.error("Supabase sync failed:", e);
-        updateSyncStatus("Sync failed — changes saved locally");
+        console.error("Error details:", e.message, e.details, e.hint);
+        
+        let errorMsg = "Sync failed — changes saved locally";
+        if (e.message?.includes('permission denied') || e.message?.includes('row-level security')) {
+            errorMsg = "RLS blocking writes — check Supabase policies";
+        } else if (e.message?.includes('does not exist')) {
+            errorMsg = "Table missing — create selection_options table";
+        }
+        
+        updateSyncStatus(errorMsg);
         showToast("Saved locally — Supabase sync failed", "#FFB612");
         return false;
     }
+}
+
+// Helper to show SQL for creating the table
+function showSelectionOptionsTableSQL() {
+    const sql = `
+-- Create the selection_options table in Supabase SQL Editor
+CREATE TABLE IF NOT EXISTS selection_options (
+    option_type TEXT PRIMARY KEY,
+    values JSONB NOT NULL DEFAULT '[]',
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE selection_options ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for authenticated users (adjust as needed)
+CREATE POLICY "Allow all" ON selection_options
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- Insert default values
+INSERT INTO selection_options (option_type, values, updated_at) VALUES
+    ('up_OfferType', '["LG Extended Warranty","Accessory","Water Filter","ThinQ Explanation"]', NOW()),
+    ('up_OfferQuality', '["Adding Value","Indifferent","Pushy / Sales-y"]', NOW()),
+    ('up_NoReason', '["Call Transferred","Irate Customer","Escalation"]', NOW()),
+    ('up_DeclineReason', '["Not Interested","Too Expensive","Not Needed","Already Has Coverage","Needs Time to Think"]', NOW()),
+    ('up_FollowThrough', '["Properly Followed Up","Partially Addressed","Left Hanging"]', NOW())
+ON CONFLICT (option_type) DO NOTHING;
+`;
+    console.log("SQL to create selection_options table:\n" + sql);
+    return sql;
 }
 
 async function loadSelectionOptionsFromSupabase() {
@@ -2056,7 +2110,6 @@ function calcScore() {
         `<strong>Failed Items:</strong> ${failedItems}/22<br>` +
         `<strong>Auto-Fails:</strong> ${autoFails}<br>` +
         `<strong>Personalization:</strong> ${upStr}`;
-    updateLivePredictor();
 }
 
 function getPassThreshold() {
@@ -2871,7 +2924,18 @@ async function saveEvaluation() {
 
     // Local view (already-normalized snake_case shape used by dashboard/db views)
     const local = normalizeEval(supabasePayload);
-    evaluationsDB.unshift(local);
+    
+    // Check if we're in edit mode
+    const isEditing = currentEditingEvalIdx !== null;
+    
+    if (isEditing) {
+        // Update existing record
+        local.id = currentEditingEvalId;  // Preserve the original ID
+        evaluationsDB[currentEditingEvalIdx] = local;
+    } else {
+        // Add new record
+        evaluationsDB.unshift(local);
+    }
     
     // Clear caches after data mutation
     clearDataCaches();
@@ -2882,18 +2946,32 @@ async function saveEvaluation() {
 
     if (supabaseEnabled) {
         const btn = document.getElementById('saveBtn');
-        btn.disabled = true; btn.textContent = "Saving...";
+        const originalText = btn.textContent;
+        btn.disabled = true; btn.textContent = isEditing ? "Updating..." : "Saving...";
         try {
-            // For debugging: log the exact payload so the console shows what we sent
-            console.log("Saving evaluation to Supabase:", supabasePayload);
-            const { data, error } = await supabaseClient
-                .from('evaluations')
-                .insert(supabasePayload)
-                .select()
-                .single();
-            if (error) throw error;
-            if (data && data.id) local.id = data.id;  // keep DB id for future edits
-            showToast("✓ Saved to Supabase!");
+            if (isEditing && currentEditingEvalId) {
+                // Update existing record in Supabase
+                console.log("Updating evaluation in Supabase:", supabasePayload);
+                const { data, error } = await supabaseClient
+                    .from('evaluations')
+                    .update(supabasePayload)
+                    .eq('id', currentEditingEvalId)
+                    .select()
+                    .single();
+                if (error) throw error;
+                showToast("✓ Updated in Supabase!");
+            } else {
+                // Insert new record in Supabase
+                console.log("Saving evaluation to Supabase:", supabasePayload);
+                const { data, error } = await supabaseClient
+                    .from('evaluations')
+                    .insert(supabasePayload)
+                    .select()
+                    .single();
+                if (error) throw error;
+                if (data && data.id) local.id = data.id;  // keep DB id for future edits
+                showToast("✓ Saved to Supabase!");
+            }
         } catch (e) {
             // Pull every field Supabase gives us so we can actually see the failure
             console.error("Supabase save error — full object:", e);
@@ -2909,10 +2987,32 @@ async function saveEvaluation() {
             const msg = parts.length ? parts.join(" — ") : "see console";
             showToast("⚠️ Supabase save failed: " + msg, "#C8102E");
         } finally {
-            btn.disabled = false; btn.textContent = "💾 Save Evaluation";
+            btn.disabled = false;
+            if (isEditing) {
+                // Clear edit mode after successful save
+                currentEditingEvalIdx = null;
+                currentEditingEvalId = null;
+                btn.textContent = "💾 Save Evaluation";
+                btn.classList.remove('btn-secondary');
+                document.getElementById('cancelEditBtn').classList.add('hidden');
+                resetForm();
+                showToast("✓ Changes saved — form reset for new evaluation");
+            } else {
+                btn.textContent = originalText;
+            }
         }
     } else {
-        showToast("✓ Saved locally (Supabase offline)", "#FFB612");
+        if (isEditing) {
+            currentEditingEvalIdx = null;
+            currentEditingEvalId = null;
+            document.getElementById('saveBtn').textContent = "💾 Save Evaluation";
+            document.getElementById('saveBtn').classList.remove('btn-secondary');
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            resetForm();
+            showToast("✓ Updated locally — form reset", "#FFB612");
+        } else {
+            showToast("✓ Saved locally (Supabase offline)", "#FFB612");
+        }
     }
 }
 
@@ -3296,45 +3396,6 @@ function applyFilterStateFromURL() {
 function copyDashboardLink() {
     encodeFilterState();
     navigator.clipboard.writeText(window.location.href).then(() => {
-        showToast("🔗 Dashboard link copied to clipboard");
-    });
-}
-
-// ============================================================
-// LIVE QA SCORE PREDICTOR
-// ============================================================
-function updateLivePredictor() {
-    const score = currentNumericalScore || 100;
-    const threshold = getPassThreshold();
-    const el = document.getElementById('predictorScore');
-    const status = document.getElementById('predictorStatus');
-    const fill = document.getElementById('predictorFill');
-    if (!el || !status || !fill) return;
-    el.textContent = score.toFixed(1) + '%';
-    const isPass = score >= threshold;
-    const isAutoFail = document.querySelectorAll('.select-yes-no.yes[id^="af_"]').length > 0;
-    if (isAutoFail) {
-        status.textContent = '🔴 AUTO-FAIL — Score = 0%';
-        status.style.color = 'var(--fail-red)';
-        fill.style.background = 'var(--fail-red)';
-    } else if (isPass) {
-        status.textContent = `✅ PASS — ${(score - threshold).toFixed(1)}pp above threshold`;
-        status.style.color = 'var(--pass-green)';
-        fill.style.background = 'var(--pass-green)';
-    } else {
-        status.textContent = `❌ FAIL — ${(threshold - score).toFixed(1)}pp below threshold`;
-        status.style.color = 'var(--fail-red)';
-        fill.style.background = 'var(--fail-red)';
-    }
-    fill.style.width = score + '%';
-}
-
-// ============================================================
-// WEBSOCKET REAL-TIME SYNC (Supabase Realtime)
-// ============================================================
-let realtimeSubscription = null;
-
-function initRealtimeSync() {
     if (!supabaseEnabled || !window.supabase) return;
     try {
         // Subscribe to evaluations changes
@@ -5146,147 +5207,104 @@ function closeDetailModal() {
 }
 
 // ============================================================
-// EDIT EVALUATION RECORD (in-place edit, syncs to Supabase)
+// EDIT EVALUATION RECORD (load into QA form for editing)
 // ============================================================
 function openEvalEditModal(idx) {
     const r = evaluationsDB[idx];
     if (!r) return;
     closeDetailModal();
+    
+    // Set editing state
+    currentEditingEvalIdx = idx;
+    currentEditingEvalId = r.id || null;
+    
+    // Populate the main QA form with record data
+    document.getElementById('f_Date').value = r.eval_date || new Date().toISOString().split('T')[0];
+    document.getElementById('f_CNN').value = r.cnn || '';
+    document.getElementById('f_Eval').value = r.qa_name || '';
+    document.getElementById('f_HoldTime').value = r.hold_time || 0;
+    document.getElementById('f_Product').value = r.product_type || '';
+    document.getElementById('f_CallType').value = r.call_type || '';
+    
+    // Set agent select if the agent exists in roster
+    const agentSelect = document.getElementById('agentSelect');
+    const agentInfo = roster.find(a => a.name === r.agent_name);
+    if (agentInfo) {
+        agentSelect.value = agentInfo.id;
+        onAgentSelected();
+    }
+    
+    // Populate QA questions (22 questions)
     const qa = r.qa_details || {};
-    const coaches = [...new Set(roster.map(a => a.coach).filter(Boolean))];
-    if (!coaches.length) coaches.push('Coach A','Coach B','Coach C');
+    for (let i = 1; i <= 22; i++) {
+        const ans = document.getElementById(`q_${i}_ans`);
+        const note = document.getElementById(`q_${i}_note`);
+        if (ans) ans.value = qa[`Q${i}_Answer`] || 'Yes';
+        if (note) note.value = qa[`Q${i}_Note`] || '';
+    }
+    
+    // Populate auto-fail flags
+    for (let i = 1; i <= 5; i++) {
+        const af = document.getElementById(`af_${i}`);
+        if (af) af.value = qa[`AF_${i}`] || 'No';
+    }
+    
+    // Populate upsell fields
+    document.getElementById('up_OfferMade').value = r.upsell_offer_made || 'No';
+    document.getElementById('up_OfferType').value = r.upsell_type || 'LG Extended Warranty';
+    document.getElementById('up_OfferQuality').value = r.upsell_quality || 'Adding Value';
+    document.getElementById('up_CustInterested').value = r.upsell_interested || 'Yes';
+    document.getElementById('up_DeclineReason').value = r.upsell_no_reason || (selectionOptions.up_DeclineReason?.[0] || '');
+    document.getElementById('up_FollowThrough').value = r.upsell_followup || 'Properly Followed Up';
+    document.getElementById('up_OppExisted').value = r.upsell_opp_existed || 'No';
+    document.getElementById('up_Notes').value = r.upsell_notes || '';
+    
+    // Populate sentiment data
+    currentSentiment = {
+        compound: r.sentiment_compound || 0,
+        label: r.sentiment_label || "Neutral",
+        pos: r.sentiment_pos || 0,
+        neg: r.sentiment_neg || 0,
+        neu: 100 - (r.sentiment_pos || 0) - (r.sentiment_neg || 0)
+    };
+    renderSentimentBadge(currentSentiment);
+    
+    // Toggle upsell fields based on offer made
+    toggleUpsellFields();
+    
+    // Recalculate score
+    throttledCalcScore();
+    
+    // Update button to show "Update" instead of "Save"
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = '💾 Update Evaluation';
+    saveBtn.classList.add('btn-secondary');
+    
+    // Show cancel edit button
+    document.getElementById('cancelEditBtn').classList.remove('hidden');
+    
+    // Switch to QA form view
+    const qaNavLink = document.querySelector('.nav-link[onclick*="qa-form-view"]');
+    switchView('qa-form-view', qaNavLink);
+    
+    showToast(`Editing evaluation for ${r.agent_name}`);
+}
 
-    // Build per-question rows for inline editing
-    const qaRows = qaQuestions.map(q => {
-        const ans  = qa[`Q${q.id}_Answer`] || 'Yes';
-        const note = qa[`Q${q.id}_Note`]   || '';
-        return `
-            <tr>
-                <td style="font-size:13px;">Q${q.id}. ${q.title}</td>
-                <td style="width:90px;">
-                    <select id="e_q_${q.id}_ans" class="select-yes-no ${ans==='Yes'?'yes':'no'}" onchange="this.className='select-yes-no '+(this.value==='Yes'?'yes':'no')">
-                        <option value="Yes" ${ans==='Yes'?'selected':''}>Yes</option>
-                        <option value="No"  ${ans==='No' ?'selected':''}>No</option>
-                    </select>
-                </td>
-                <td><input type="text" id="e_q_${q.id}_note" value="${(note||'').replace(/"/g,'&quot;')}" placeholder="Note..."></td>
-            </tr>`;
-    }).join('');
-
-    const afRows = [1,2,3,4,5].map(i => {
-        const v = qa[`AF_${i}`] || 'No';
-        return `
-            <div class="form-group">
-                <label>Auto-Fail #${i}</label>
-                <select id="e_af_${i}" class="select-yes-no ${v==='Yes'?'no':'yes'}">
-                    <option value="No"  ${v==='No' ?'selected':''}>No</option>
-                    <option value="Yes" ${v==='Yes'?'selected':''}>Yes</option>
-                </select>
-            </div>`;
-    }).join('');
-
-    const body = `
-        <input type="hidden" id="e_eval_idx" value="${idx}">
-        <input type="hidden" id="e_eval_dbid" value="${r.id || ''}">
-        <div class="detail-section">
-            <div class="detail-section-title">Core Information</div>
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <div class="form-group"><label>Eval Date *</label><input type="date" id="e_date" value="${r.eval_date||''}"></div>
-                <div class="form-group"><label>CNN *</label><input type="text" id="e_cnn" value="${r.cnn||''}"></div>
-                <div class="form-group"><label>QA Name</label><input type="text" id="e_qaname" value="${r.qa_name||''}"></div>
-                <div class="form-group"><label>Agent Name</label><input type="text" id="e_agent" value="${r.agent_name||''}"></div>
-                <div class="form-group"><label>Coach</label><input type="text" id="e_coach" value="${r.coach||''}" list="coachList"></div>
-                <div class="form-group"><label>LOB</label><input type="text" id="e_lob" value="${r.lob||''}"></div>
-                <div class="form-group"><label>Site</label><input type="text" id="e_site" value="${r.site||''}"></div>
-                <div class="form-group"><label>Product Type</label><input type="text" id="e_product" value="${r.product_type||''}"></div>
-                <div class="form-group"><label>Call Type</label><input type="text" id="e_calltype" value="${r.call_type||''}"></div>
-                <div class="form-group"><label>Hold Time (s)</label><input type="number" id="e_hold" value="${r.hold_time||0}" min="0"></div>
-                <div class="form-group"><label>Final Score (%)</label><input type="number" id="e_score" value="${(r.final_score||0).toFixed(1)}" min="0" max="100" step="0.1"></div>
-                <div class="form-group"><label>Auto-Failed</label>
-                    <select id="e_autofail" class="select-yes-no ${r.auto_failed==='Yes'?'no':'yes'}">
-                        <option value="No"  ${r.auto_failed!=='Yes'?'selected':''}>No</option>
-                        <option value="Yes" ${r.auto_failed==='Yes'?'selected':''}>Yes</option>
-                    </select>
-                </div>
-            </div>
-            <datalist id="coachList">${coaches.map(c=>`<option value="${c}">`).join('')}</datalist>
-        </div>
-
-        <div class="detail-section">
-            <div class="detail-section-title">Sentiment</div>
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-                <div class="form-group"><label>Compound (-1 to 1)</label><input type="number" id="e_sent_c" value="${r.sentiment_compound||0}" step="0.01" min="-1" max="1"></div>
-                <div class="form-group"><label>Label</label>
-                    <select id="e_sent_l">
-                        <option ${r.sentiment_label==='Positive'?'selected':''}>Positive</option>
-                        <option ${r.sentiment_label==='Neutral'?'selected':''}>Neutral</option>
-                        <option ${r.sentiment_label==='Negative'?'selected':''}>Negative</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Positive %</label><input type="number" id="e_sent_p" value="${r.sentiment_pos||0}" step="0.1" min="0" max="100"></div>
-                <div class="form-group"><label>Negative %</label><input type="number" id="e_sent_n" value="${r.sentiment_neg||0}" step="0.1" min="0" max="100"></div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <div class="detail-section-title">Personalization / Upsell</div>
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <div class="form-group"><label>Offer Made</label>
-                    <select id="e_up_made">
-                        <option ${r.upsell_offer_made==='Yes'?'selected':''}>Yes</option>
-                        <option ${r.upsell_offer_made==='No' ?'selected':''}>No</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Type</label><input type="text" id="e_up_type" value="${r.upsell_type||''}"></div>
-                <div class="form-group"><label>Quality</label>
-                    <select id="e_up_qual">
-                        <option value="">—</option>
-                        <option ${r.upsell_quality==='Adding Value'?'selected':''}>Adding Value</option>
-                        <option ${r.upsell_quality==='Indifferent'?'selected':''}>Indifferent</option>
-                        <option ${r.upsell_quality==='Pushy / Sales-y'?'selected':''}>Pushy / Sales-y</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Customer Interested</label>
-                    <select id="e_up_int">
-                        <option value="">—</option>
-                        <option ${r.upsell_interested==='Yes'?'selected':''}>Yes</option>
-                        <option ${r.upsell_interested==='No' ?'selected':''}>No</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Follow-through</label>
-                    <select id="e_up_fol">
-                        <option value="">—</option>
-                        <option ${r.upsell_followup==='Properly Followed Up'?'selected':''}>Properly Followed Up</option>
-                        <option ${r.upsell_followup==='Partially Addressed'?'selected':''}>Partially Addressed</option>
-                        <option ${r.upsell_followup==='Left Hanging'?'selected':''}>Left Hanging</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Opp. Existed</label>
-                    <select id="e_up_opp">
-                        <option ${r.upsell_opp_existed==='Yes'?'selected':''}>Yes</option>
-                        <option ${r.upsell_opp_existed!=='Yes'?'selected':''}>No</option>
-                    </select>
-                </div>
-                <div class="form-group" style="grid-column: 1 / -1;"><label>Upsell Notes</label><textarea id="e_up_notes" rows="2">${r.upsell_notes||''}</textarea></div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <div class="detail-section-title">QA Criteria (22 Questions)</div>
-            <table><thead><tr><th>Question</th><th>Answer</th><th>Note</th></tr></thead><tbody>${qaRows}</tbody></table>
-        </div>
-
-        <div class="detail-section">
-            <div class="detail-section-title">Auto-Fail Flags</div>
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">${afRows}</div>
-        </div>
-
-        <div style="display:flex; gap:10px; justify-content:flex-end; padding:14px 0;">
-            <button class="btn btn-ghost" onclick="closeEvalEditModal()">Cancel</button>
-            <button class="btn" id="saveEvalEditBtn" onclick="saveEvalEdit()">💾 Save Changes</button>
-        </div>`;
-    document.getElementById('editEvalBody').innerHTML = body;
-    document.getElementById('editEvalModal').classList.add('active');
+function cancelEditMode() {
+    // Clear editing state
+    currentEditingEvalIdx = null;
+    currentEditingEvalId = null;
+    
+    // Reset form
+    resetForm();
+    
+    // Reset button text and hide cancel button
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = '💾 Save Evaluation';
+    saveBtn.classList.remove('btn-secondary');
+    document.getElementById('cancelEditBtn').classList.add('hidden');
+    
+    showToast("Edit cancelled — form cleared");
 }
 
 function closeEvalEditModal() {
@@ -6910,6 +6928,23 @@ async function initApp() {
     populateDashboardSlicers();
     // Load selection options: try Supabase first, fall back to localStorage
     loadSelectionOptions(); // Load defaults/localStorage first
+    
+    // Check if selection_options table exists in Supabase and print SQL if not
+    if (supabaseEnabled) {
+        try {
+            const { error: checkError } = await supabaseClient
+                .from('selection_options')
+                .select('option_type')
+                .limit(1);
+            if (checkError && checkError.message?.includes('does not exist')) {
+                console.warn("⚠️ selection_options table does not exist in Supabase. Run this SQL to create it:");
+                showSelectionOptionsTableSQL();
+                showToast("⚠️ selection_options table missing — see console", "#FFB612");
+                updateSyncStatus("Table missing — see console for SQL");
+            }
+        } catch (e) { /* silent */ }
+    }
+    
     const loadedFromSupabase = await loadSelectionOptionsFromSupabase();
     if (loadedFromSupabase) {
         applySelectionOptions();
