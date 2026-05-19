@@ -5243,8 +5243,8 @@ function openEvalEditModal(idx) {
     // Toggle upsell fields based on offer made
     toggleUpsellFields();
     
-    // Recalculate score immediately (not throttled for edit mode)
-    setTimeout(() => calcScore(), 0);
+    // Recalculate score after DOM updates settle
+    setTimeout(() => calcScore(), 100);
     
     // Update button to show "Update" instead of "Save"
     const saveBtn = document.getElementById('saveBtn');
