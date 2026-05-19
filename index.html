@@ -5180,6 +5180,29 @@ function openEvalEditModal(idx) {
     if (agentInfo) {
         agentSelect.value = agentInfo.id;
         onAgentSelected();
+    } else if (r.agent_name) {
+        // Agent not in roster - create temporary option
+        const existingOption = Array.from(agentSelect.options).find(opt => opt.text === r.agent_name);
+        if (!existingOption) {
+            const tempOption = document.createElement('option');
+            tempOption.value = 'temp_' + r.agent_name;
+            tempOption.textContent = r.agent_name + ' (⚠️ not in roster)';
+            agentSelect.appendChild(tempOption);
+            agentSelect.value = tempOption.value;
+        } else {
+            agentSelect.value = existingOption.value;
+        }
+        // Show agent info strip with warning
+        const strip = document.getElementById('agentInfoStrip');
+        document.getElementById('ai_aws').textContent = '—';
+        document.getElementById('ai_hire').textContent = '—';
+        document.getElementById('ai_coach').textContent = r.coach || '—';
+        document.getElementById('ai_lob').textContent = r.lob || '—';
+        document.getElementById('ai_site').textContent = r.site || '—';
+        strip.classList.remove('hidden');
+        strip.style.display = 'grid';
+        strip.style.borderColor = '#FFB612';
+        showToast(`⚠️ ${r.agent_name} not found in roster`, '#FFB612');
     }
     
     // Populate QA questions (22 questions)
@@ -5220,8 +5243,8 @@ function openEvalEditModal(idx) {
     // Toggle upsell fields based on offer made
     toggleUpsellFields();
     
-    // Recalculate score
-    throttledCalcScore();
+    // Recalculate score immediately (not throttled for edit mode)
+    setTimeout(() => calcScore(), 0);
     
     // Update button to show "Update" instead of "Save"
     const saveBtn = document.getElementById('saveBtn');
