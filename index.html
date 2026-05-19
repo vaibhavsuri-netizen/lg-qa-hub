@@ -9,6 +9,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.0.0/dist/gridstack-all.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/gridstack@10.0.0/dist/gridstack.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -28,8 +34,12 @@
         --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
         --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
         --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+        --shadow-glow: 0 0 40px rgba(0,174,239,0.15);
         --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.3);
+        --glass-blur: blur(20px);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: var(--font-family); background: var(--bg-main); display: flex; height: 100vh; overflow: hidden; color: var(--text-dark); font-size: 14px; }
@@ -242,6 +252,288 @@
     .btn-ghost { background: white; color: var(--header-blue); border: 1px solid var(--border-medium); box-shadow: none; }
     .btn-ghost:hover { background: var(--bg-main); box-shadow: var(--shadow-sm); }
     .btn-danger { background: linear-gradient(135deg, var(--fail-red), #800028); }
+
+    /* =========================================
+       ADVANCED DASHBOARD VISUAL ENHANCEMENTS
+       ========================================= */
+
+    /* Glassmorphism Cards */
+    .dash-card.glass {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 8px 32px rgba(0,43,94,0.08);
+    }
+    .dash-card.glass:hover {
+        box-shadow: 0 8px 32px rgba(0,43,94,0.15);
+        transform: translateY(-3px);
+    }
+
+    /* Enhanced KPI Cards with glow effects */
+    .kpi-box.glow {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 4px 20px rgba(0,174,239,0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .kpi-box.glow:hover {
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: var(--shadow-glow);
+    }
+    .kpi-box .trend-indicator {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    .kpi-box .trend-up { background: rgba(0,132,61,0.12); color: var(--pass-green); }
+    .kpi-box .trend-down { background: rgba(200,16,46,0.12); color: var(--fail-red); }
+
+    /* Animated counters */
+    @keyframes countUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-count {
+        animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* Pulse animation for live indicators */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--pass-green);
+        font-weight: 600;
+    }
+    .live-indicator::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--pass-green);
+        animation: pulse 2s infinite;
+    }
+
+    /* Gradient borders */
+    .gradient-border {
+        position: relative;
+        background: white;
+        border-radius: var(--radius-md);
+    }
+    .gradient-border::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-md);
+        padding: 2px;
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    /* Shimmer loading effect */
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    .shimmer {
+        background: linear-gradient(90deg, var(--bg-main) 25%, #e8ecf1 50%, var(--bg-main) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+
+    /* Floating cards animation */
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    .float-animation {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    /* Enhanced chart containers */
+    .chart-wrapper {
+        position: relative;
+        min-height: 280px;
+        border-radius: var(--radius-sm);
+        background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    }
+    .chart-wrapper.tall { min-height: 380px; }
+    .chart-wrapper::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-sm);
+        pointer-events: none;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    /* GridStack dashboard grid */
+    .grid-stack {
+        background: transparent;
+    }
+    .grid-stack-item {
+        border-radius: var(--radius-md);
+    }
+    .grid-stack-item-content {
+        height: 100%;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+    .grid-stack-item .dash-card {
+        height: 100%;
+        margin: 0;
+    }
+
+    /* Sortable tabs */
+    .dash-tabs.sortable-ghost {
+        opacity: 0.5;
+        background: var(--bg-main);
+    }
+    .dash-tabs.sortable-drag {
+        opacity: 1;
+        background: white;
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Enhanced export buttons */
+    .export-btn-group {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: all 0.3s ease;
+        transform: translateY(-5px);
+    }
+    .dash-card:hover .export-btn-group {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .export-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        background: white;
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .export-btn:hover {
+        background: var(--bg-main);
+        border-color: var(--header-blue);
+        color: var(--header-blue);
+    }
+
+    /* Floating Action Menu */
+    .fab-menu {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .fab-btn {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--lg-red), var(--lg-red-dark));
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(165,0,52,0.35);
+        cursor: pointer;
+        font-size: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .fab-btn:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 6px 20px rgba(165,0,52,0.45);
+    }
+    .fab-menu-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        opacity: 0;
+        transform: translateY(20px);
+        pointer-events: none;
+        transition: all 0.3s;
+    }
+    .fab-menu.active .fab-menu-items {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+    .fab-item {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: white;
+        border: 1px solid var(--border-medium);
+        box-shadow: var(--shadow-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        transition: all 0.2s;
+    }
+    .fab-item:hover {
+        transform: scale(1.15);
+        border-color: var(--header-blue);
+    }
+
+    /* Progress ring for KPIs */
+    .progress-ring {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 44px;
+        height: 44px;
+    }
+    .progress-ring circle {
+        fill: none;
+        stroke-width: 4;
+    }
+    .progress-ring .bg {
+        stroke: var(--border-light);
+    }
+    .progress-ring .progress {
+        stroke: var(--accent-cyan);
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+
+    /* ANIMATED BACKGROUND */
+    .main {
+        background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 50%, #f0f4f8 100%);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
 
     /* DATABASE */
     .db-table-wrapper { overflow: auto; max-height: 70vh; border-radius: var(--radius-sm); border: 1px solid var(--border-light); }
@@ -541,9 +833,14 @@
 <!-- ========== DASHBOARD ========== -->
 <div id="dashboard-view" class="view-section">
     <div class="dash-header-bar">
-        <div>
-            <h2>📊 Analytics Hub</h2>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px;"><span id="filterCountLabel">0 records</span></div>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div>
+                <h2>📊 Analytics Hub</h2>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
+                    <span id="filterCountLabel" style="font-size:12px; color:var(--text-muted);">0 records</span>
+                    <span class="live-indicator">Live</span>
+                </div>
+            </div>
         </div>
         <div class="slicer-group">
             <div class="slicer-item"><label>Date Range</label>
@@ -2652,9 +2949,9 @@ async function exportChartAsPDF(chartId, filename) {
 
 function createExportButtons(chartId) {
     return `
-        <div class="export-btn">
-            <button class="btn btn-ghost btn-small" onclick="exportChartAsPNG('${chartId}')" title="Export PNG">📷 PNG</button>
-            <button class="btn btn-ghost btn-small" onclick="exportChartAsPDF('${chartId}')" title="Export PDF">📄 PDF</button>
+        <div class="export-btn-group">
+            <button class="export-btn" onclick="exportChartAsPNG('${chartId}')" title="Export PNG">📷 PNG</button>
+            <button class="export-btn" onclick="exportChartAsPDF('${chartId}')" title="Export PDF">📄 PDF</button>
         </div>`;
 }
 
@@ -2912,26 +3209,24 @@ function renderOverview(data, threshold, holdThr) {
     // ---- /HERO ----
 
     const mode = getDisplayMode();
-    document.getElementById('kpiAvgScore').textContent = avg.toFixed(1) + '%';
-    document.getElementById('kpiTotal').textContent = total;
-    document.getElementById('kpiAuto').textContent =
-        mode === 'count' ? String(autoFails) :
-        total ? ((autoFails/total)*100).toFixed(1)+'%' : '0%';
+    
+    // Use animated counters for key KPIs
+    animateCounter('kpiAvgScore', avg, 800, '%');
+    animateCounter('kpiTotal', total, 600, '');
+    const kpiAutoVal = mode === 'count' ? autoFails : (total ? (autoFails/total)*100 : 0);
+    animateCounter('kpiAuto', kpiAutoVal, 800, mode === 'count' ? '' : '%');
     document.getElementById('kpiAutoCount').textContent =
         mode === 'pct' ? `${total ? ((autoFails/total)*100).toFixed(1) : 0}% rate` : `${autoFails} case${autoFails===1?'':'s'}`;
-    document.getElementById('kpiOffer').textContent =
-        mode === 'count' ? String(offers) :
-        total ? ((offers/total)*100).toFixed(1)+'%' : '0%';
+    const kpiOfferVal = mode === 'count' ? offers : (total ? (offers/total)*100 : 0);
+    animateCounter('kpiOffer', kpiOfferVal, 800, mode === 'count' ? '' : '%');
     document.getElementById('kpiOfferCount').textContent =
         mode === 'pct' ? `${total ? ((offers/total)*100).toFixed(1) : 0}% rate` : `${offers} offer${offers===1?'':'s'}`;
-    document.getElementById('kpiConv').textContent =
-        mode === 'count' ? String(convs) :
-        offers ? ((convs/offers)*100).toFixed(1)+'%' : '0%';
+    const kpiConvVal = mode === 'count' ? convs : (offers ? (convs/offers)*100 : 0);
+    animateCounter('kpiConv', kpiConvVal, 800, mode === 'count' ? '' : '%');
     document.getElementById('kpiConvCount').textContent =
         mode === 'pct' ? `${offers ? ((convs/offers)*100).toFixed(1) : 0}% of offers` : `${convs} win${convs===1?'':'s'}`;
-    document.getElementById('kpiPass').textContent =
-        mode === 'count' ? String(passed) :
-        total ? ((passed/total)*100).toFixed(1)+'%' : '0%';
+    const kpiPassVal = mode === 'count' ? passed : (total ? (passed/total)*100 : 0);
+    animateCounter('kpiPass', kpiPassVal, 800, mode === 'count' ? '' : '%');
     document.getElementById('kpiPassCount').textContent =
         mode === 'pct' ? `${total ? ((passed/total)*100).toFixed(1) : 0}% rate` : `${passed}/${total}`;
     document.getElementById('kpiMedian').textContent = median.toFixed(1) + '%';
@@ -5900,6 +6195,306 @@ function generateSampleData() {
 }
 
 // ============================================================
+// ADVANCED DASHBOARD VISUALIZATIONS
+// ============================================================
+
+// Initialize GridStack for draggable dashboard widgets
+let gridStackInstance = null;
+function initGridStack() {
+    if (typeof GridStack === 'undefined') return;
+    const gridEl = document.querySelector('.grid-stack');
+    if (!gridEl) return;
+    gridStackInstance = GridStack.init({
+        cellHeight: 60,
+        margin: 10,
+        animate: true,
+        draggable: { handle: '.dash-card-header' },
+        resizable: { handles: 'se, sw, ne, nw' }
+    }, gridEl);
+}
+
+// Initialize SortableJS for reorderable tabs
+function initSortableTabs() {
+    const tabsContainer = document.querySelector('.dash-tabs');
+    if (!tabsContainer || typeof Sortable === 'undefined') return;
+    new Sortable(tabsContainer, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        onEnd: function(evt) {
+            showToast('Tab order updated');
+            encodeFilterState();
+        }
+    });
+}
+
+// ECharts wrapper with beautiful defaults
+const echartsInstances = {};
+function makeEChart(containerId, option) {
+    if (typeof echarts === 'undefined') return null;
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    if (echartsInstances[containerId]) {
+        echartsInstances[containerId].dispose();
+    }
+    const chart = echarts.init(container, null, { renderer: 'canvas' });
+    const defaultOption = {
+        backgroundColor: 'transparent',
+        textStyle: { fontFamily: 'Inter, -apple-system, sans-serif' },
+        animation: true,
+        animationDuration: 800,
+        animationEasing: 'cubicOut'
+    };
+    chart.setOption({ ...defaultOption, ...option });
+    echartsInstances[containerId] = chart;
+    
+    // Auto-resize
+    const resizeObserver = new ResizeObserver(() => chart.resize());
+    resizeObserver.observe(container);
+    
+    return chart;
+}
+
+// Animated counter for KPIs
+function animateCounter(elementId, targetValue, duration = 1000, suffix = '') {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const start = parseFloat(el.textContent) || 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+        const current = start + (targetValue - start) * easeProgress;
+        el.textContent = current.toFixed(1) + suffix;
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+    requestAnimationFrame(update);
+}
+
+// Render stunning ECharts gauge for score KPIs
+function renderScoreGauge(containerId, value, title) {
+    const option = {
+        series: [{
+            type: 'gauge',
+            startAngle: 180,
+            endAngle: 0,
+            min: 0,
+            max: 100,
+            radius: '90%',
+            center: ['50%', '70%'],
+            splitNumber: 5,
+            itemStyle: {
+                color: value >= 88 ? '#00843D' : value >= 70 ? '#FFB612' : '#C8102E',
+                shadowColor: 'rgba(0,138,255,0.45)',
+                shadowBlur: 10,
+                shadowOffsetX: 2,
+                shadowOffsetY: 2
+            },
+            progress: {
+                show: true,
+                roundCap: true,
+                width: 18
+            },
+            pointer: {
+                icon: 'path://M2090.36389,615.30999 L2090.36389,615.30999 C2091.48372,615.30999 2092.40383,616.194028 2092.44859,617.312956 L2096.90698,728.755929 C2097.05155,732.369577 2094.9513,735.675246 2091.3811,737.324817 C2088.15936,738.787129 2084.4633,738.771037 2081.25646,737.281232 L1470.59607,463.634978 C1467.10983,462.20861 1465.24889,458.428534 1466.35517,454.868531 L1469.88372,442.742941 C1471.03583,439.041614 1475.02413,437.572329 1478.12659,439.76877 L2090.36389,615.30999 Z',
+                length: '75%',
+                width: 16,
+                offsetCenter: [0, '5%']
+            },
+            axisLine: {
+                roundCap: true,
+                lineStyle: { width: 18 }
+            },
+            axisTick: { splitNumber: 2, lineStyle: { width: 2, color: '#999' } },
+            splitLine: { length: 12, lineStyle: { width: 3, color: '#999' } },
+            axisLabel: { distance: 25, color: '#999', fontSize: 10 },
+            title: { show: true, offsetCenter: [0, '30%'], fontSize: 14, fontWeight: 'bold' },
+            detail: {
+                backgroundColor: '#fff',
+                borderColor: '#999',
+                width: '60%',
+                lineHeight: 40,
+                height: 40,
+                borderRadius: 8,
+                offsetCenter: [0, '45%'],
+                valueAnimation: true,
+                formatter: function(value) {
+                    return '{value|' + value.toFixed(1) + '}{unit|%}';
+                },
+                rich: {
+                    value: { fontSize: 28, fontWeight: 'bolder', color: '#002b5e' },
+                    unit: { fontSize: 14, color: '#6b7785', padding: [0, 0, -10, 4] }
+                }
+            },
+            data: [{ value: value, name: title }]
+        }]
+    };
+    return makeEChart(containerId, option);
+}
+
+// Render beautiful ECharts bar/race chart
+function renderRaceChart(containerId, data, title) {
+    const sortedData = [...data].sort((a, b) => b.value - a.value).slice(0, 10);
+    const option = {
+        title: { text: title, left: 'center', textStyle: { fontSize: 14, color: '#002b5e' } },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderColor: '#e4e8ed',
+            borderWidth: 1,
+            textStyle: { color: '#1a2332' }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { color: '#f0f4f9' } },
+            axisLabel: { color: '#6b7785' }
+        },
+        yAxis: {
+            type: 'category',
+            data: sortedData.map(d => d.name).reverse(),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#002b5e', fontWeight: 600 }
+        },
+        series: [{
+            type: 'bar',
+            data: sortedData.map(d => d.value).reverse(),
+            itemStyle: {
+                borderRadius: [0, 4, 4, 0],
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: '#00aeef' },
+                    { offset: 1, color: '#002b5e' }
+                ])
+            },
+            barWidth: '60%',
+            label: {
+                show: true,
+                position: 'right',
+                formatter: '{c}%',
+                color: '#002b5e',
+                fontWeight: 'bold'
+            },
+            animationDuration: 1500,
+            animationEasing: 'elasticOut'
+        }]
+    };
+    return makeEChart(containerId, option);
+}
+
+// Render trend line chart with area gradient
+function renderTrendChart(containerId, dates, values, title) {
+    const option = {
+        title: { text: title, left: 'center', textStyle: { fontSize: 14, color: '#002b5e' } },
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderColor: '#e4e8ed',
+            formatter: function(params) {
+                return params[0].axisValue + '<br/>' +
+                    '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + params[0].color + ';margin-right:5px;"></span>' +
+                    params[0].value.toFixed(1) + '%';
+            }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: dates,
+            axisLine: { lineStyle: { color: '#e4e8ed' } },
+            axisLabel: { color: '#6b7785', rotate: 45 }
+        },
+        yAxis: {
+            type: 'value',
+            min: 0,
+            max: 100,
+            splitLine: { lineStyle: { color: '#f0f4f9' } },
+            axisLabel: { color: '#6b7785', formatter: '{value}%' }
+        },
+        series: [{
+            type: 'line',
+            data: values,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 8,
+            lineStyle: {
+                width: 3,
+                color: '#00aeef'
+            },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(0,174,239,0.3)' },
+                    { offset: 1, color: 'rgba(0,174,239,0.05)' }
+                ])
+            },
+            itemStyle: {
+                color: '#00aeef',
+                borderColor: '#fff',
+                borderWidth: 2
+            }
+        }]
+    };
+    return makeEChart(containerId, option);
+}
+
+// Floating Action Menu toggle
+function toggleFabMenu() {
+    const menu = document.querySelector('.fab-menu');
+    if (menu) menu.classList.toggle('active');
+}
+
+// Scroll to top function
+function scrollToTop() {
+    const main = document.querySelector('.main');
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Refresh dashboard data
+function refreshDashboardData() {
+    showToast('Refreshing data...', '#00aeef');
+    updateDashboard();
+    setTimeout(() => showToast('✓ Dashboard updated'), 500);
+}
+
+// Add floating action button menu to dashboard
+function addFabMenu() {
+    if (document.querySelector('.fab-menu')) return;
+    const fab = document.createElement('div');
+    fab.className = 'fab-menu';
+    fab.innerHTML = `
+        <div class="fab-menu-items">
+            <button class="fab-item" onclick="scrollToTop()" title="Scroll to top">⬆️</button>
+            <button class="fab-item" onclick="refreshDashboardData()" title="Refresh data">🔄</button>
+            <button class="fab-item" onclick="copyDashboardLink()" title="Copy shareable link">🔗</button>
+        </div>
+        <button class="fab-btn" onclick="toggleFabMenu()">+</button>
+    `;
+    document.body.appendChild(fab);
+}
+
+// Initialize advanced dashboard features
+function initAdvancedDashboard() {
+    initGridStack();
+    initSortableTabs();
+    addFabMenu();
+    
+    // Add glass effect to cards on overview tab
+    const overviewCards = document.querySelectorAll('#dash-overview .dash-card');
+    overviewCards.forEach(card => card.classList.add('glass'));
+    
+    // Add glow effect to KPI boxes
+    const kpiBoxes = document.querySelectorAll('.kpi-box');
+    kpiBoxes.forEach(box => box.classList.add('glow'));
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 async function initApp() {
@@ -5967,6 +6562,9 @@ async function initApp() {
     // Initialize real-time sync
     initRealtimeSync();
 
+    // Initialize advanced dashboard features (GridStack, SortableJS, ECharts, FAB menu)
+    initAdvancedDashboard();
+
     // Periodic refresh from Supabase
     if (supabaseEnabled) {
         setInterval(async () => {
@@ -5996,4 +6594,3 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
