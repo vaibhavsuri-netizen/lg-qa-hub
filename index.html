@@ -5243,8 +5243,14 @@ function openEvalEditModal(idx) {
     // Toggle upsell fields based on offer made
     toggleUpsellFields();
     
-    // Recalculate score after DOM updates settle
-    setTimeout(() => calcScore(), 100);
+    // Set score directly from record first (immediate)
+    currentNumericalScore = r.final_score || 0;
+    document.getElementById('finalScore').innerText = (r.final_score || 0).toFixed(1);
+    
+    // Recalculate score after DOM updates settle (multiple attempts)
+    setTimeout(() => calcScore(), 50);
+    setTimeout(() => calcScore(), 150);
+    setTimeout(() => calcScore(), 300);
     
     // Update button to show "Update" instead of "Save"
     const saveBtn = document.getElementById('saveBtn');
