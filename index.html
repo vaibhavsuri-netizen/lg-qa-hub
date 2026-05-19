@@ -818,29 +818,29 @@
         <div class="section-title"><span class="section-num">3</span>Personalization / Upselling</div>
         <table>
             <tr><td style="font-weight:600; width:32%;">Offer Made?</td>
-                <td style="width:28%;"><select id="up_OfferMade" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
+                <td style="width:28%;"><select id="up_OfferMade" class="select-yes-no yes" onchange="toggleUpsellFields(); throttledCalcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
                 <td rowspan="8"><textarea id="up_Notes" placeholder="Personalization Notes..." style="height:220px; resize:vertical;"></textarea></td>
             </tr>
             <tr id="row_OfferType"><td><div class="q-title">What was Offered?</div></td>
-                <td><select id="up_OfferType" onchange="calcScore()"><option>LG Extended Warranty</option><option>Accessory</option><option>Water Filter</option><option>ThinQ Explanation</option></select></td>
+                <td><select id="up_OfferType" onchange="throttledCalcScore()"><option>LG Extended Warranty</option><option>Accessory</option><option>Water Filter</option><option>ThinQ Explanation</option></select></td>
             </tr>
             <tr id="row_OfferQuality"><td><div class="q-title">Offer Quality (Rate the HOW)</div></td>
-                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="calcScore()"><option value="Adding Value">Adding Value (0%)</option><option value="Indifferent">Indifferent (-3%)</option><option value="Pushy / Sales-y">Pushy / Sales-y (-5%)</option></select></td>
+                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="throttledCalcScore()"><option value="Adding Value">Adding Value (0%)</option><option value="Indifferent">Indifferent (-3%)</option><option value="Pushy / Sales-y">Pushy / Sales-y (-5%)</option></select></td>
             </tr>
             <tr id="row_OppExisted" class="hidden"><td><div class="q-title">Opportunity Existed?</div></td>
-                <td><select id="up_OppExisted" class="select-yes-no no" onchange="calcScore()"><option value="Yes">Yes (-10% Penalty)</option><option value="No">No (N/A)</option></select></td>
+                <td><select id="up_OppExisted" class="select-yes-no no" onchange="throttledCalcScore()"><option value="Yes">Yes (-10% Penalty)</option><option value="No">No (N/A)</option></select></td>
             </tr>
             <tr id="row_NoReason" class="hidden"><td><div class="q-title">Reason for No Offer</div></td>
-                <td><select id="up_NoReason" onchange="calcScore()"><option>Call Transferred</option><option>Irate Customer</option><option>Escalation</option></select></td>
+                <td><select id="up_NoReason" onchange="throttledCalcScore()"><option>Call Transferred</option><option>Irate Customer</option><option>Escalation</option></select></td>
             </tr>
             <tr id="row_CustomerInterested"><td><div class="q-title">Customer Interested?</div></td>
-                <td><select id="up_CustInterested" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
+                <td><select id="up_CustInterested" class="select-yes-no yes" onchange="toggleUpsellFields(); throttledCalcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
             </tr>
             <tr id="row_DeclineReason" class="hidden"><td><div class="q-title">Reason Not Interested</div></td>
-                <td><select id="up_DeclineReason" onchange="calcScore()"></select></td>
+                <td><select id="up_DeclineReason" onchange="throttledCalcScore()"></select></td>
             </tr>
             <tr id="row_FollowThrough"><td><div class="q-title">Follow-Through</div></td>
-                <td><select id="up_FollowThrough" class="select-yes-no yes" onchange="calcScore()"><option value="Properly Followed Up">Properly Followed Up (0%)</option><option value="Partially Addressed">Partially Addressed (-2.5%)</option><option value="Left Hanging">Left Hanging (-5%)</option></select></td>
+                <td><select id="up_FollowThrough" class="select-yes-no yes" onchange="throttledCalcScore()"><option value="Properly Followed Up">Properly Followed Up (0%)</option><option value="Partially Addressed">Partially Addressed (-2.5%)</option><option value="Left Hanging">Left Hanging (-5%)</option></select></td>
             </tr>
         </table>
     </div>
@@ -848,11 +848,11 @@
     <div class="card" style="border-left: 4px solid var(--fail-red);">
         <div class="section-title danger"><span class="section-num">4</span>Auto-Fail Criteria</div>
         <table>
-            <tr><td style="width:70%;"><div class="q-title">1. Documentation Failure</div><div class="q-desc">Missing or incomplete case notes</div></td><td><select id="af_1" class="select-yes-no no" onchange="calcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
-            <tr><td><div class="q-title">2. Call Disconnection</div><div class="q-desc">Agent intentionally disconnected</div></td><td><select id="af_2" class="select-yes-no no" onchange="calcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
-            <tr><td><div class="q-title">3. Inappropriate Behavior</div><div class="q-desc">Unprofessional language or misconduct</div></td><td><select id="af_3" class="select-yes-no no" onchange="calcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
-            <tr><td><div class="q-title">4. No Follow-up</div><div class="q-desc">Failure to follow up on committed action</div></td><td><select id="af_4" class="select-yes-no no" onchange="calcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
-            <tr><td><div class="q-title">5. Escalation Failure</div><div class="q-desc">Mishandling of escalation procedures</div></td><td><select id="af_5" class="select-yes-no no" onchange="calcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
+            <tr><td style="width:70%;"><div class="q-title">1. Documentation Failure</div><div class="q-desc">Missing or incomplete case notes</div></td><td><select id="af_1" class="select-yes-no no" onchange="throttledCalcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
+            <tr><td><div class="q-title">2. Call Disconnection</div><div class="q-desc">Agent intentionally disconnected</div></td><td><select id="af_2" class="select-yes-no no" onchange="throttledCalcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
+            <tr><td><div class="q-title">3. Inappropriate Behavior</div><div class="q-desc">Unprofessional language or misconduct</div></td><td><select id="af_3" class="select-yes-no no" onchange="throttledCalcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
+            <tr><td><div class="q-title">4. No Follow-up</div><div class="q-desc">Failure to follow up on committed action</div></td><td><select id="af_4" class="select-yes-no no" onchange="throttledCalcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
+            <tr><td><div class="q-title">5. Escalation Failure</div><div class="q-desc">Mishandling of escalation procedures</div></td><td><select id="af_5" class="select-yes-no no" onchange="throttledCalcScore()"><option value="No">No</option><option value="Yes">Yes</option></select></td></tr>
         </table>
     </div>
 
@@ -926,28 +926,28 @@
                 </select>
             </div>
             <div class="slicer-item" id="customDateFrom" style="display:none;"><label>From</label>
-                <input type="date" id="dateFrom" onchange="updateDashboard(); encodeFilterState();">
+                <input type="date" id="dateFrom" onchange="debouncedUpdateDashboard(); encodeFilterState();">
             </div>
             <div class="slicer-item" id="customDateTo" style="display:none;"><label>To</label>
-                <input type="date" id="dateTo" onchange="updateDashboard(); encodeFilterState();">
+                <input type="date" id="dateTo" onchange="debouncedUpdateDashboard(); encodeFilterState();">
             </div>
             <div class="slicer-item"><label>Agent</label>
-                <select id="slicerAgent" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Agents</option></select>
+                <select id="slicerAgent" onchange="debouncedUpdateDashboard(); encodeFilterState();"><option value="All">All Agents</option></select>
             </div>
             <div class="slicer-item"><label>Coach</label>
-                <select id="slicerCoach" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Coaches</option></select>
+                <select id="slicerCoach" onchange="debouncedUpdateDashboard(); encodeFilterState();"><option value="All">All Coaches</option></select>
             </div>
             <div class="slicer-item"><label>LOB</label>
-                <select id="slicerLOB" onchange="updateDashboard(); encodeFilterState();"><option value="All">All LOBs</option></select>
+                <select id="slicerLOB" onchange="debouncedUpdateDashboard(); encodeFilterState();"><option value="All">All LOBs</option></select>
             </div>
             <div class="slicer-item"><label>Product</label>
-                <select id="slicerProduct" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Products</option></select>
+                <select id="slicerProduct" onchange="debouncedUpdateDashboard(); encodeFilterState();"><option value="All">All Products</option></select>
             </div>
             <div class="slicer-item"><label>Site</label>
-                <select id="slicerSite" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Sites</option></select>
+                <select id="slicerSite" onchange="debouncedUpdateDashboard(); encodeFilterState();"><option value="All">All Sites</option></select>
             </div>
             <div class="slicer-item"><label>Status</label>
-                <select id="slicerStatus" onchange="updateDashboard(); encodeFilterState();">
+                <select id="slicerStatus" onchange="debouncedUpdateDashboard(); encodeFilterState();">
                     <option value="All">All</option><option value="Pass">Passed</option>
                     <option value="Fail">Failed</option><option value="AutoFail">Auto-Failed</option>
                 </select>
@@ -963,19 +963,19 @@
 
     <div class="display-settings-bar">
         <label>Pass Threshold:</label>
-        <input type="number" id="passThreshold" value="88" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <input type="number" id="passThreshold" value="88" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="debouncedUpdateDashboard()">
         <span style="font-size:12px; color:var(--text-muted);">%</span>
         <div class="settings-sep"></div>
         <label>Hold Time Threshold:</label>
-        <input type="number" id="holdThreshold" value="120" min="0" style="width:80px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <input type="number" id="holdThreshold" value="120" min="0" style="width:80px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="debouncedUpdateDashboard()">
         <span style="font-size:12px; color:var(--text-muted);">seconds</span>
         <div class="settings-sep"></div>
         <label>Score Target:</label>
-        <input type="number" id="scoreTarget" value="92" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="updateDashboard()">
+        <input type="number" id="scoreTarget" value="92" min="0" max="100" style="width:70px; padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;" onchange="debouncedUpdateDashboard()">
         <span style="font-size:12px; color:var(--text-muted);">%</span>
         <div class="settings-sep"></div>
         <label>Display:</label>
-        <select id="displayMode" onchange="updateDashboard()" style="padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;">
+        <select id="displayMode" onchange="debouncedUpdateDashboard()" style="padding:5px 8px; border:1px solid var(--border-medium); border-radius:4px; font-size:12px;">
             <option value="both" selected>Count & %</option>
             <option value="count">Count only</option>
             <option value="pct">% only</option>
@@ -1373,8 +1373,8 @@
             <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="renderDBTable()">
-            <select id="dbFilterStatus" onchange="renderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
+            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="debouncedRenderDBTable()">
+            <select id="dbFilterStatus" onchange="debouncedRenderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
                 <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
             </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
@@ -1696,7 +1696,7 @@ function buildQuestionsTable() {
         row.setAttribute('data-section', q.section);
         row.innerHTML = `
             <td><div class="q-title"><span class="q-number">${q.id}</span>${q.title}</div></td>
-            <td><select id="q_${q.id}_ans" class="select-yes-no yes" onchange="calcScore()">
+            <td><select id="q_${q.id}_ans" class="select-yes-no yes" onchange="throttledCalcScore()">
                 <option value="Yes">Yes</option><option value="No">No</option>
             </select></td>
             <td><input type="text" id="q_${q.id}_note" class="feedback" placeholder="Add note..."></td>
@@ -2067,6 +2067,196 @@ function getHoldThreshold() {
     const el = document.getElementById('holdThreshold');
     return el ? (parseFloat(el.value) || 120) : 120;
 }
+
+// ============================================================
+// EFFICIENCY UTILITIES — debounce, throttle, memoization, virtualization
+// ============================================================
+
+// Debounce: delay execution until after wait period of no calls
+function debounce(fn, wait = 300) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), wait);
+    };
+}
+
+// Throttle: limit execution to once per wait period
+function throttle(fn, limit = 100) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            fn.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+// Memoize: cache function results
+function memoize(fn, keyFn = JSON.stringify) {
+    const cache = new Map();
+    return function(...args) {
+        const key = keyFn(args);
+        if (cache.has(key)) return cache.get(key);
+        const result = fn.apply(this, args);
+        cache.set(key, result);
+        return result;
+    };
+}
+
+// LRU Cache: limited size memoization
+function createLRUCache(maxSize = 100) {
+    const cache = new Map();
+    return {
+        get: (key) => cache.get(key),
+        set: (key, value) => {
+            if (cache.size >= maxSize) {
+                const firstKey = cache.keys().next().value;
+                cache.delete(firstKey);
+            }
+            cache.set(key, value);
+        },
+        has: (key) => cache.has(key),
+        clear: () => cache.clear()
+    };
+}
+
+// Virtual list renderer for large tables
+const virtualListCache = createLRUCache(50);
+function renderVirtualList(container, items, itemHeight, renderFn, visibleCount = 20) {
+    const containerHeight = container.clientHeight;
+    const scrollTop = container.scrollTop;
+    const startIdx = Math.floor(scrollTop / itemHeight);
+    const endIdx = Math.min(startIdx + visibleCount, items.length);
+    
+    const visibleItems = items.slice(startIdx, endIdx);
+    const totalHeight = items.length * itemHeight;
+    
+    let html = `<div style="height:${totalHeight}px; position:relative;">`;
+    html += `<div style="position:absolute; top:${startIdx * itemHeight}px;">`;
+    html += visibleItems.map((item, i) => renderFn(item, startIdx + i)).join('');
+    html += '</div></div>';
+    
+    container.innerHTML = html;
+    return { startIdx, endIdx };
+}
+
+// Intersection Observer for lazy chart loading
+const chartObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const chartId = entry.target.dataset.chartId;
+            if (chartId && window.pendingCharts && window.pendingCharts[chartId]) {
+                window.pendingCharts[chartId]();
+                delete window.pendingCharts[chartId];
+            }
+            chartObserver.unobserve(entry.target);
+        }
+    });
+}, { rootMargin: '100px' });
+
+// Lazy chart loader
+function lazyLoadChart(containerId, renderFn) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!window.pendingCharts) window.pendingCharts = {};
+    window.pendingCharts[containerId] = renderFn;
+    container.dataset.chartId = containerId;
+    chartObserver.observe(container);
+}
+
+// RAF batching for DOM updates
+const rafQueue = new Map();
+function batchDOMUpdate(key, updateFn) {
+    if (rafQueue.has(key)) return;
+    rafQueue.set(key, updateFn);
+    requestAnimationFrame(() => {
+        const fn = rafQueue.get(key);
+        if (fn) {
+            fn();
+            rafQueue.delete(key);
+        }
+    });
+}
+
+// Optimized Fuse index with incremental updates
+let _fuseIndex = null;
+let _fuseIndexVersion = 0;
+function getFuseIndex() {
+    if (!_fuseIndex || _fuseIndexVersion !== evaluationsDB.length) {
+        _fuseIndex = new Fuse(evaluationsDB, {
+            keys: ['agent_name', 'cnn', 'coach', 'site', 'qa_name'],
+            threshold: 0.35,
+            ignoreLocation: true
+        });
+        _fuseIndexVersion = evaluationsDB.length;
+    }
+    return _fuseIndex;
+}
+
+// Data cache for expensive calculations
+const dataCache = createLRUCache(20);
+function getCachedData(key, computeFn) {
+    if (dataCache.has(key)) return dataCache.get(key);
+    const result = computeFn();
+    dataCache.set(key, result);
+    return result;
+}
+
+// Clear all caches (call after data mutations)
+function clearDataCaches() {
+    dataCache.clear();
+    _fuseIndex = null;
+    _fuseIndexVersion = 0;
+}
+
+// Web Worker for heavy computations (sentiment analysis)
+let _sentimentWorker = null;
+function getSentimentWorker() {
+    if (!_sentimentWorker) {
+        const workerCode = `
+            const SENTIMENT_LEXICON = ${JSON.stringify({
+                'excellent': 4, 'amazing': 4, 'great': 3, 'good': 2, 'bad': -3, 'terrible': -5,
+                'horrible': -5, 'love': 3, 'hate': -4, 'happy': 3, 'unhappy': -3,
+                'frustrated': -3, 'satisfied': 3, 'disappointed': -3, 'helpful': 3,
+                'unhelpful': -3, 'resolved': 3, 'problem': -1, 'issue': -1
+            })};
+            self.onmessage = function(e) {
+                const text = e.data;
+                let score = 0, count = 0;
+                const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+                words.forEach(word => {
+                    if (SENTIMENT_LEXICON[word]) {
+                        score += SENTIMENT_LEXICON[word];
+                        count++;
+                    }
+                });
+                const compound = count > 0 ? score / count : 0;
+                const label = compound > 0.1 ? 'Positive' : compound < -0.1 ? 'Negative' : 'Neutral';
+                self.postMessage({ compound, label, pos: Math.max(0, compound), neg: Math.max(0, -compound) });
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        _sentimentWorker = new Worker(URL.createObjectURL(blob));
+    }
+    return _sentimentWorker;
+}
+
+// Optimized sentiment analysis with worker
+function analyzeSentimentAsync(text) {
+    return new Promise((resolve) => {
+        const worker = getSentimentWorker();
+        worker.onmessage = (e) => resolve(e.data);
+        worker.postMessage(text);
+    });
+}
+
+// Debounced versions of expensive functions
+const debouncedUpdateDashboard = debounce(updateDashboard, 100);
+const debouncedRenderDBTable = debounce(renderDBTable, 150);
+const throttledCalcScore = throttle(calcScore, 50);
 
 // ============================================================
 // SENTIMENT
@@ -2587,7 +2777,7 @@ function resetForm() {
     document.getElementById('sentimentResult').innerHTML = '';
     currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
     toggleUpsellFields();
-    calcScore();
+    throttledCalcScore();
     showToast("Form cleared", "#0056b3");
 }
 
@@ -2682,6 +2872,9 @@ async function saveEvaluation() {
     // Local view (already-normalized snake_case shape used by dashboard/db views)
     const local = normalizeEval(supabasePayload);
     evaluationsDB.unshift(local);
+    
+    // Clear caches after data mutation
+    clearDataCaches();
 
     // Update dashboard if open
     if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
@@ -2837,7 +3030,7 @@ function onPeriodChange() {
             to.value = new Date().toISOString().substring(0, 10);
         }
     }
-    updateDashboard();
+    debouncedUpdateDashboard();
     encodeFilterState();
 }
 
@@ -2871,7 +3064,7 @@ function resetFilters() {
         .forEach(id => document.getElementById(id).value = 'All');
     document.getElementById('customDateFrom').style.display = 'none';
     document.getElementById('customDateTo').style.display   = 'none';
-    updateDashboard();
+    debouncedUpdateDashboard();
 }
 
 // ============================================================
@@ -3168,6 +3361,8 @@ function handleRealtimeUpdate(payload) {
     } else if (payload.eventType === 'DELETE') {
         evaluationsDB = evaluationsDB.filter(e => e.id !== payload.old.id);
     }
+    // Clear caches after data mutation
+    clearDataCaches();
     // Refresh dashboard if active
     if (document.getElementById('dashboard-view').classList.contains('active')) {
         updateDashboard();
@@ -4722,19 +4917,19 @@ function initColumnToggles() {
 function toggleCol(key, on) {
     if (on && !visibleColumns.includes(key)) visibleColumns.push(key);
     if (!on) visibleColumns = visibleColumns.filter(k => k !== key);
-    renderDBTable();
+    debouncedRenderDBTable();
 }
 
 function toggleAllCols(on) {
     visibleColumns = on ? ALL_COLUMNS.map(c => c.key) : [];
     initColumnToggles();
-    renderDBTable();
+    debouncedRenderDBTable();
 }
 
 function presetCols(preset) {
     if (preset === 'compact') visibleColumns = ['eval_date','agent_name','final_score','auto_failed'];
     initColumnToggles();
-    renderDBTable();
+    debouncedRenderDBTable();
 }
 
 function toggleColPanel() {
@@ -4872,7 +5067,8 @@ This cannot be undone.`)) return;
         }
     }
     
-    // Refresh UI
+    // Refresh UI and clear caches
+    clearDataCaches();
     renderDBTable();
     if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
     clearSelection();
@@ -5188,6 +5384,7 @@ async function deleteEvaluation(idx) {
 
     // Remove locally first
     evaluationsDB.splice(idx, 1);
+    clearDataCaches();
     closeDetailModal();
     renderDBTable();
     if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
@@ -5674,6 +5871,7 @@ async function confirmImport(kind) {
                 }
             } else { inserted++; }
         }
+        clearDataCaches();
         renderDBTable();
         if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
         closeImportModal();
@@ -6224,23 +6422,25 @@ async function downloadAllScorecardsPDF() {
 
 // ============================================================
 // FUSE.JS — fuzzy search across the Database view
+// Uses optimized getFuseIndex() from efficiency utilities
 // ============================================================
-let _fuseIndex = null;
-
 function rebuildFuseIndex() {
     if (typeof Fuse === 'undefined') return;
     _fuseIndex = new Fuse(evaluationsDB, {
         keys: ['cnn', 'agent_name', 'coach', 'qa_name', 'lob', 'site', 'product_type', 'call_type'],
-        threshold: 0.35,   // 0 = exact only; 1 = match anything
+        threshold: 0.35,
         ignoreLocation: true,
         includeScore: false
     });
+    _fuseIndexVersion = evaluationsDB.length;
 }
 
-// Fuse-powered filter, used by renderDBTable when a search query is present
+// Fuse-powered filter, uses cached index from getFuseIndex()
 function fuzzyFilterEvaluations(query) {
-    if (!query || !_fuseIndex) return evaluationsDB;
-    return _fuseIndex.search(query).map(r => r.item);
+    if (!query) return evaluationsDB;
+    const fuse = getFuseIndex();
+    if (!fuse) return evaluationsDB;
+    return fuse.search(query).map(r => r.item);
 }
 
 // CSV DOWNLOAD
@@ -6719,7 +6919,7 @@ async function initApp() {
     initColumnToggles();
     document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
     toggleUpsellFields();
-    calcScore();
+    throttledCalcScore();
 
     // Apply filters from URL if present
     applyFilterStateFromURL();
