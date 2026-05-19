@@ -218,6 +218,24 @@
     /* BUTTONS */
     .btn { background: linear-gradient(135deg, var(--lg-red), var(--lg-red-dark)); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-size: 13px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(165,0,52,0.25); font-family: inherit; }
     .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(165,0,52,0.35); }
+    .option-manager-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    .option-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .option-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg-main); border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 13px; }
+    .option-add-row { display: flex; gap: 8px; margin-top: 12px; }
+    .option-add-row input { flex: 1; padding: 9px 12px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-family: var(--font-family); }
+    .sparkline { width: 80px; height: 24px; }
+    .sparkline svg { width: 100%; height: 100%; }
+    .sparkline path { fill: none; stroke-width: 2; stroke-linecap: round; }
+    .sparkline-positive { stroke: var(--pass-green); }
+    .sparkline-negative { stroke: var(--fail-red); }
+    .sparkline-neutral { stroke: var(--accent-cyan); }
+    .export-btn { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 11px; opacity: 0; transition: opacity 0.2s; }
+    .dash-card:hover .export-btn { opacity: 1; }
+    .live-predictor { position: fixed; bottom: 20px; right: 20px; background: white; padding: 16px 20px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 2px solid var(--header-blue); z-index: 1000; min-width: 200px; }
+    .predictor-score { font-size: 36px; font-weight: 800; color: var(--header-blue); }
+    .predictor-bar { height: 6px; background: var(--border-light); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    .predictor-fill { height: 100%; border-radius: 3px; transition: width 0.3s, background 0.3s; }
+    .pattern-alert { background: linear-gradient(135deg, #fff5f5, #fff); border-left: 4px solid var(--fail-red); padding: 12px 16px; margin: 8px 0; border-radius: var(--radius-sm); }
     .btn-secondary { background: linear-gradient(135deg, var(--header-blue), var(--header-blue-light)); box-shadow: 0 2px 8px rgba(0,43,94,0.25); }
     .btn-secondary:hover { box-shadow: 0 4px 12px rgba(0,43,94,0.35); }
     .btn-small { padding: 7px 14px; font-size: 12px; }
@@ -348,6 +366,7 @@
         <div class="nav-link" data-view="dashboard-view" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
         <div class="nav-link" data-view="database-view" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
         <div class="nav-link" data-view="roster-view" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
+        <div class="nav-link" data-view="refreshes-view" onclick="switchView('refreshes-view', this)"><span>🔄</span>Refreshes / Options</div>
     </div>
     <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
 </div>
@@ -460,6 +479,9 @@
             <tr id="row_CustomerInterested"><td><div class="q-title">Customer Interested?</div></td>
                 <td><select id="up_CustInterested" class="select-yes-no yes" onchange="toggleUpsellFields(); calcScore();"><option value="Yes">Yes</option><option value="No">No</option></select></td>
             </tr>
+            <tr id="row_DeclineReason" class="hidden"><td><div class="q-title">Reason Not Interested</div></td>
+                <td><select id="up_DeclineReason" onchange="calcScore()"></select></td>
+            </tr>
             <tr id="row_FollowThrough"><td><div class="q-title">Follow-Through</div></td>
                 <td><select id="up_FollowThrough" class="select-yes-no yes" onchange="calcScore()"><option value="Properly Followed Up">Properly Followed Up (0%)</option><option value="Partially Addressed">Partially Addressed (-2.5%)</option><option value="Left Hanging">Left Hanging (-5%)</option></select></td>
             </tr>
@@ -503,6 +525,17 @@
         <button class="btn btn-ghost" onclick="resetForm()" style="margin-right: 10px;">↻ Clear Form</button>
         <button class="btn" id="saveBtn" onclick="saveEvaluation()">💾 Save Evaluation</button>
     </div>
+
+    <!-- Live Score Predictor -->
+    <div class="live-predictor" id="livePredictor">
+        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Live Score Prediction</div>
+        <div class="predictor-score" id="predictorScore">100%</div>
+        <div style="font-size:12px; color:var(--text-muted);" id="predictorStatus">Pass — No deductions</div>
+        <div class="predictor-bar"><div class="predictor-fill" id="predictorFill" style="width:100%; background:var(--pass-green);"></div></div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:4px;">
+            <span>0%</span><span>Pass: 88%</span><span>100%</span>
+        </div>
+    </div>
 </div>
 
 <!-- ========== DASHBOARD ========== -->
@@ -514,7 +547,7 @@
         </div>
         <div class="slicer-group">
             <div class="slicer-item"><label>Date Range</label>
-                <select id="slicerPeriod" onchange="onPeriodChange()">
+                <select id="slicerPeriod" onchange="onPeriodChange(); encodeFilterState();">
                     <option value="All">All Time</option>
                     <option value="L7D">Last 7 Days</option>
                     <option value="L30D" selected>Last 30 Days</option>
@@ -531,34 +564,37 @@
                 </select>
             </div>
             <div class="slicer-item" id="customDateFrom" style="display:none;"><label>From</label>
-                <input type="date" id="dateFrom" onchange="updateDashboard()">
+                <input type="date" id="dateFrom" onchange="updateDashboard(); encodeFilterState();">
             </div>
             <div class="slicer-item" id="customDateTo" style="display:none;"><label>To</label>
-                <input type="date" id="dateTo" onchange="updateDashboard()">
+                <input type="date" id="dateTo" onchange="updateDashboard(); encodeFilterState();">
             </div>
             <div class="slicer-item"><label>Agent</label>
-                <select id="slicerAgent" onchange="updateDashboard()"><option value="All">All Agents</option></select>
+                <select id="slicerAgent" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Agents</option></select>
             </div>
             <div class="slicer-item"><label>Coach</label>
-                <select id="slicerCoach" onchange="updateDashboard()"><option value="All">All Coaches</option></select>
+                <select id="slicerCoach" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Coaches</option></select>
             </div>
             <div class="slicer-item"><label>LOB</label>
-                <select id="slicerLOB" onchange="updateDashboard()"><option value="All">All LOBs</option></select>
+                <select id="slicerLOB" onchange="updateDashboard(); encodeFilterState();"><option value="All">All LOBs</option></select>
             </div>
             <div class="slicer-item"><label>Product</label>
-                <select id="slicerProduct" onchange="updateDashboard()"><option value="All">All Products</option></select>
+                <select id="slicerProduct" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Products</option></select>
             </div>
             <div class="slicer-item"><label>Site</label>
-                <select id="slicerSite" onchange="updateDashboard()"><option value="All">All Sites</option></select>
+                <select id="slicerSite" onchange="updateDashboard(); encodeFilterState();"><option value="All">All Sites</option></select>
             </div>
             <div class="slicer-item"><label>Status</label>
-                <select id="slicerStatus" onchange="updateDashboard()">
+                <select id="slicerStatus" onchange="updateDashboard(); encodeFilterState();">
                     <option value="All">All</option><option value="Pass">Passed</option>
                     <option value="Fail">Failed</option><option value="AutoFail">Auto-Failed</option>
                 </select>
             </div>
             <div class="slicer-item"><label>&nbsp;</label>
                 <button class="reset-btn" onclick="resetFilters()">↻ Reset</button>
+            </div>
+            <div class="slicer-item"><label>&nbsp;</label>
+                <button class="btn btn-ghost btn-small" onclick="copyDashboardLink()" title="Copy shareable link with current filters">🔗 Copy Link</button>
             </div>
         </div>
     </div>
@@ -591,9 +627,12 @@
         <button class="dash-tab active" data-tab="dash-overview" onclick="switchDashTab('dash-overview', this)">🎯 Overview</button>
         <button class="dash-tab" data-tab="dash-trends" onclick="switchDashTab('dash-trends', this)">📈 Trends</button>
         <button class="dash-tab" data-tab="dash-qa" onclick="switchDashTab('dash-qa', this)">🔍 QA Deep Dive</button>
+        <button class="dash-tab" data-tab="dash-questions" onclick="switchDashTab('dash-questions', this)">❓ Questions</button>
         <button class="dash-tab" data-tab="dash-upsell" onclick="switchDashTab('dash-upsell', this)">💼 Upsell</button>
         <button class="dash-tab" data-tab="dash-agents" onclick="switchDashTab('dash-agents', this)">🏆 Agents</button>
+        <button class="dash-tab" data-tab="dash-tenure" onclick="switchDashTab('dash-tenure', this)">⏳ Tenure</button>
         <button class="dash-tab" data-tab="dash-segment" onclick="switchDashTab('dash-segment', this)">🗂️ Segments</button>
+        <button class="dash-tab" data-tab="dash-coaching" onclick="switchDashTab('dash-coaching', this)">🎯 Coaching</button>
         <button class="dash-tab" data-tab="dash-insights" onclick="switchDashTab('dash-insights', this)">💡 Insights</button>
     </div>
 
@@ -828,6 +867,89 @@
         </div>
     </div>
 
+    <div id="dash-tenure" class="dash-subview">
+        <div class="kpi-row">
+            <div class="kpi-box indigo"><h3>New Hire Avg</h3><div class="val" id="tenureNewAvg">0%</div><div class="val-sub" id="tenureNewCount">0 audits</div></div>
+            <div class="kpi-box blue"><h3>Tenured Avg</h3><div class="val" id="tenureTenuredAvg">0%</div><div class="val-sub" id="tenureTenuredCount">0 audits</div></div>
+            <div class="kpi-box green"><h3>Veteran Avg</h3><div class="val" id="tenureVeteranAvg">0%</div><div class="val-sub" id="tenureVeteranCount">0 audits</div></div>
+            <div class="kpi-box purple"><h3>Best Tenure Band</h3><div class="val" id="tenureBestBand">—</div><div class="val-sub" id="tenureBestScore">—</div></div>
+        </div>
+        <div class="dash-container">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>QA Score by Tenure<div class="dash-card-subtitle">Average score and volume by hire-date band</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="tenureScoreChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Tenure Risk Mix<div class="dash-card-subtitle">Pass, fail, and auto-fail distribution</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="tenureRiskChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUESTION TRENDING -->
+    <div id="dash-questions" class="dash-subview">
+        <div class="kpi-row">
+            <div class="kpi-box red"><h3>Weakest Question</h3><div class="val" id="weakestQ">—</div><div class="val-sub" id="weakestQRate">No data</div></div>
+            <div class="kpi-box green"><h3>Strongest Question</h3><div class="val" id="strongestQ">—</div><div class="val-sub" id="strongestQRate">No data</div></div>
+            <div class="kpi-box yellow"><h3>Trending Down</h3><div class="val" id="trendingDown">—</div><div class="val-sub" id="trendingDownCount">No questions declining</div></div>
+            <div class="kpi-box purple"><h3>Questions Tracked</h3><div class="val" id="questionsTracked">22</div><div class="val-sub">Across all evaluations</div></div>
+        </div>
+        <div class="dash-container">
+            <div class="dash-col" style="flex:1.5;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Question Pass Rate Trends<div class="dash-card-subtitle">Pass % over time for each question</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="questionTrendChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Question Performance Matrix<div class="dash-card-subtitle">Pass rate vs question weight (bubble = volume)</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="questionMatrixChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>Question Details — Last 30 Days<div class="dash-card-subtitle">Click any row to see failing records</div></div></div>
+                    <div id="questionDetailsList" style="max-height:400px; overflow-y:auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COACHING -->
+    <div id="dash-coaching" class="dash-subview">
+        <div class="kpi-row">
+            <div class="kpi-box red"><h3>Need Coaching</h3><div class="val" id="needCoaching">0</div><div class="val-sub">Agents with 2+ fails in 7 days</div></div>
+            <div class="kpi-box yellow"><h3>Auto-Fail Risk</h3><div class="val" id="autoFailRisk">0</div><div class="val-sub">Agents with 2+ auto-fails in 7 days</div></div>
+            <div class="kpi-box orange"><h3>Pattern Detected</h3><div class="val" id="patternCount">0</div><div class="val-sub">Recurring failure patterns</div></div>
+            <div class="kpi-box green"><h3>Coached Recently</h3><div class="val" id="recentlyCoached">0</div><div class="val-sub">Agents coached in last 14 days</div></div>
+        </div>
+        <div class="dash-container">
+            <div class="dash-col" style="flex:1;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>🚨 Priority Coaching Queue<div class="dash-card-subtitle">Ranked by weighted impact score</div></div></div>
+                    <div id="coachingQueue" style="max-height:500px; overflow-y:auto;"></div>
+                </div>
+            </div>
+            <div class="dash-col" style="flex:1;">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>📊 Pattern Detection Alerts<div class="dash-card-subtitle">Automatic anomaly detection</div></div></div>
+                    <div id="patternAlerts"></div>
+                </div>
+                <div class="dash-card" style="margin-top:18px;">
+                    <div class="dash-card-header"><div>🎯 Coaching Impact Tracker<div class="dash-card-subtitle">Before/after scores for coached agents</div></div></div>
+                    <div id="coachingImpact"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SEGMENTS -->
     <div id="dash-segment" class="dash-subview">
         <div class="dash-container">
@@ -913,6 +1035,21 @@
     <div class="card" style="padding:12px;">
         <div class="db-table-wrapper"><table id="dbTable"></table></div>
     </div>
+</div>
+
+<div id="refreshes-view" class="view-section">
+    <div class="page-header">
+        <div>
+            <div class="page-title">🔄 Refreshes / Selection Options</div>
+            <div class="page-subtitle">Add or remove dropdown selections used in the evaluation form. <span id="syncStatus" style="color:var(--text-muted); font-size:12px;"></span></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-small" onclick="syncSelectionOptionsToSupabase()">☁️ Save to Supabase</button>
+            <button class="btn btn-small" onclick="loadFromSupabaseAndRefresh()">↻ Load from Supabase</button>
+            <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
+        </div>
+    </div>
+    <div class="option-manager-grid" id="optionManagerGrid"></div>
 </div>
 
 <!-- ========== ROSTER VIEW ========== -->
@@ -1113,6 +1250,14 @@
 // ============================================================
 // NOTE: client-side password gate is convenience only — not real security.
 // For real access control use Supabase Auth + Row Level Security.
+//
+// SUPABASE TABLE: selection_options (optional — only needed for shared dropdown options)
+//   Columns:
+//     option_type: text (PRIMARY KEY) — e.g., 'up_OfferType', 'up_DeclineReason'
+//     values: jsonb — array of strings
+//     updated_at: timestamptz
+//   RLS Policy: Enable read for all; restrict write to admins or authenticated users
+//
 const APP_PASSWORD = "lgqa2026";
 
 const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";
@@ -1272,6 +1417,7 @@ function normalizeEval(r) {
         upsell_opp_existed:  r["Upsell_OppExisted"] || r.upsell_opp_existed || "No",
         upsell_no_reason:    r["Upsell_NoReason"]   || r.upsell_no_reason   || "",
         upsell_interested:   r["Upsell_Interested"] || r.upsell_interested  || "",
+        upsell_decline_reason: r["Upsell_DeclineReason"] || r.upsell_decline_reason || qa.Upsell_DeclineReason || "",
         upsell_followup:     r["Upsell_Followup"]   || r.upsell_followup    || "",
         upsell_notes:        r.upsell_notes        || "",
         created_at:          r.created_at || new Date().toISOString(),
@@ -1284,6 +1430,183 @@ function normalizeEval(r) {
 // ============================================================
 let currentNumericalScore = 100;
 let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+const DEFAULT_SELECTION_OPTIONS = {
+    up_OfferType: ['LG Extended Warranty', 'Accessory', 'Water Filter', 'ThinQ Explanation'],
+    up_OfferQuality: ['Adding Value', 'Indifferent', 'Pushy / Sales-y'],
+    up_NoReason: ['Call Transferred', 'Irate Customer', 'Escalation'],
+    up_DeclineReason: ['Not Interested', 'Too Expensive', 'Not Needed', 'Already Has Coverage', 'Needs Time to Think'],
+    up_FollowThrough: ['Properly Followed Up', 'Partially Addressed', 'Left Hanging']
+};
+const OPTION_LABELS = {
+    up_OfferType: 'What was Offered?',
+    up_OfferQuality: 'Offer Quality',
+    up_NoReason: 'Reason for No Offer',
+    up_DeclineReason: 'Reason Not Interested',
+    up_FollowThrough: 'Follow-Through'
+};
+let selectionOptions = {};
+
+function loadSelectionOptions() {
+    try {
+        selectionOptions = JSON.parse(localStorage.getItem('lgqa_selection_options')) || {};
+    } catch (e) {
+        selectionOptions = {};
+    }
+    Object.keys(DEFAULT_SELECTION_OPTIONS).forEach(k => {
+        if (!Array.isArray(selectionOptions[k]) || !selectionOptions[k].length) selectionOptions[k] = [...DEFAULT_SELECTION_OPTIONS[k]];
+    });
+}
+
+function saveSelectionOptions() {
+    localStorage.setItem('lgqa_selection_options', JSON.stringify(selectionOptions));
+}
+
+async function syncSelectionOptionsToSupabase() {
+    if (!supabaseEnabled) {
+        updateSyncStatus("Supabase offline — changes saved locally");
+        return false;
+    }
+    updateSyncStatus("Syncing to Supabase...");
+    try {
+        const { error } = await supabaseClient
+            .from('selection_options')
+            .upsert([
+                { option_type: 'up_OfferType', values: selectionOptions.up_OfferType, updated_at: new Date().toISOString() },
+                { option_type: 'up_OfferQuality', values: selectionOptions.up_OfferQuality, updated_at: new Date().toISOString() },
+                { option_type: 'up_NoReason', values: selectionOptions.up_NoReason, updated_at: new Date().toISOString() },
+                { option_type: 'up_DeclineReason', values: selectionOptions.up_DeclineReason, updated_at: new Date().toISOString() },
+                { option_type: 'up_FollowThrough', values: selectionOptions.up_FollowThrough, updated_at: new Date().toISOString() }
+            ], { onConflict: 'option_type' });
+        if (error) throw error;
+        updateSyncStatus("Synced to Supabase ✓");
+        showToast("✓ Options synced to Supabase");
+        return true;
+    } catch (e) {
+        console.error("Supabase sync failed:", e);
+        updateSyncStatus("Sync failed — changes saved locally");
+        showToast("Saved locally — Supabase sync failed", "#FFB612");
+        return false;
+    }
+}
+
+async function loadSelectionOptionsFromSupabase() {
+    if (!supabaseEnabled) {
+        updateSyncStatus("Supabase offline — using local options");
+        return false;
+    }
+    updateSyncStatus("Loading from Supabase...");
+    try {
+        const { data, error } = await supabaseClient
+            .from('selection_options')
+            .select('*');
+        if (error) throw error;
+        if (data && data.length > 0) {
+            data.forEach(row => {
+                if (Array.isArray(row.values) && row.values.length > 0) {
+                    selectionOptions[row.option_type] = row.values;
+                }
+            });
+            saveSelectionOptions(); // Cache locally
+            updateSyncStatus("Loaded from Supabase ✓");
+            return true;
+        }
+        updateSyncStatus("No options in Supabase — using defaults");
+        return false;
+    } catch (e) {
+        console.warn("Could not load options from Supabase:", e.message);
+        updateSyncStatus("Load failed — using local options");
+        return false;
+    }
+}
+
+function applySelectionOptions() {
+    Object.keys(selectionOptions).forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const current = sel.value;
+        sel.innerHTML = '';
+        selectionOptions[id].forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = id === 'up_OfferQuality' && v === 'Adding Value' ? `${v} (0%)`
+                : id === 'up_OfferQuality' && v === 'Indifferent' ? `${v} (-3%)`
+                : id === 'up_OfferQuality' && v === 'Pushy / Sales-y' ? `${v} (-5%)`
+                : id === 'up_FollowThrough' && v === 'Properly Followed Up' ? `${v} (0%)`
+                : id === 'up_FollowThrough' && v === 'Partially Addressed' ? `${v} (-2.5%)`
+                : id === 'up_FollowThrough' && v === 'Left Hanging' ? `${v} (-5%)`
+                : v;
+            sel.appendChild(o);
+        });
+        if ([...sel.options].some(o => o.value === current)) sel.value = current;
+    });
+}
+
+function renderOptionManager() {
+    const grid = document.getElementById('optionManagerGrid');
+    if (!grid) return;
+    grid.innerHTML = Object.keys(selectionOptions).map(id => `
+        <div class="card">
+            <div class="section-title"><span class="section-num">↕</span>${OPTION_LABELS[id]}</div>
+            <div class="option-list">${selectionOptions[id].map((v, idx) => `
+                <div class="option-row"><span>${v}</span><button class="btn btn-ghost btn-small" onclick="removeSelectionOption('${id}', ${idx})">Remove</button></div>
+            `).join('')}</div>
+            <div class="option-add-row">
+                <input id="add_${id}" type="text" placeholder="New option...">
+                <button class="btn btn-small" onclick="addSelectionOption('${id}')">Add</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addSelectionOption(id) {
+    const input = document.getElementById(`add_${id}`);
+    const val = input.value.trim();
+    if (!val) return;
+    if (selectionOptions[id].some(v => v.toLowerCase() === val.toLowerCase())) { showToast("Option already exists", "#FFB612"); return; }
+    selectionOptions[id].push(val);
+    input.value = '';
+    saveSelectionOptions();
+    applySelectionOptions();
+    renderOptionManager();
+    await syncSelectionOptionsToSupabase();
+    showToast("Option added");
+}
+
+async function removeSelectionOption(id, idx) {
+    if (selectionOptions[id].length <= 1) { showToast("At least one option is required", "#C8102E"); return; }
+    selectionOptions[id].splice(idx, 1);
+    saveSelectionOptions();
+    applySelectionOptions();
+    renderOptionManager();
+    await syncSelectionOptionsToSupabase();
+    showToast("Option removed", "#FFB612");
+}
+
+async function resetSelectionOptions() {
+    if (!confirm("Reset all selection options to defaults?")) return;
+    selectionOptions = JSON.parse(JSON.stringify(DEFAULT_SELECTION_OPTIONS));
+    saveSelectionOptions();
+    applySelectionOptions();
+    renderOptionManager();
+    await syncSelectionOptionsToSupabase();
+    showToast("Selection options reset", "#0056b3");
+}
+
+async function loadFromSupabaseAndRefresh() {
+    const ok = await loadSelectionOptionsFromSupabase();
+    if (ok) {
+        applySelectionOptions();
+        renderOptionManager();
+        showToast("✓ Loaded from Supabase");
+    } else {
+        showToast("Could not load from Supabase — check connection", "#FFB612");
+    }
+}
+
+function updateSyncStatus(msg) {
+    const el = document.getElementById('syncStatus');
+    if (el) el.textContent = msg ? `• ${msg}` : '';
+}
 
 function colorSelect(sel, goodValue) {
     sel.className = "select-yes-no " + (sel.value === goodValue ? "yes" : "no");
@@ -1298,17 +1621,20 @@ function toggleUpsellFields() {
     const rFoll = document.getElementById('row_FollowThrough');
     const rOpp  = document.getElementById('row_OppExisted');
     const rReas = document.getElementById('row_NoReason');
+    const rDecl = document.getElementById('row_DeclineReason');
     if (offerMade === "Yes") {
         [rType, rQual, rCust].forEach(r => r.classList.remove('hidden'));
         [rOpp, rReas].forEach(r => r.classList.add('hidden'));
         if (interested === "Yes") {
             rFoll.classList.remove('hidden');
+            rDecl.classList.add('hidden');
         } else {
             rFoll.classList.add('hidden');
+            rDecl.classList.remove('hidden');
             document.getElementById('up_FollowThrough').value = "Properly Followed Up";
         }
     } else {
-        [rType, rQual, rCust, rFoll].forEach(r => r.classList.add('hidden'));
+        [rType, rQual, rCust, rFoll, rDecl].forEach(r => r.classList.add('hidden'));
         [rOpp, rReas].forEach(r => r.classList.remove('hidden'));
     }
 }
@@ -1363,6 +1689,7 @@ function calcScore() {
         `<strong>Failed Items:</strong> ${failedItems}/22<br>` +
         `<strong>Auto-Fails:</strong> ${autoFails}<br>` +
         `<strong>Personalization:</strong> ${upStr}`;
+    updateLivePredictor();
 }
 
 function getPassThreshold() {
@@ -1667,6 +1994,7 @@ function switchView(viewId, el) {
     if (viewId === 'dashboard-view') updateDashboard();
     if (viewId === 'database-view')  { initColumnToggles(); renderDBTable(); }
     if (viewId === 'roster-view')    populateRosterTable();
+    if (viewId === 'refreshes-view') renderOptionManager();
 }
 
 function switchDashTab(tabId, el) {
@@ -1884,6 +2212,7 @@ function resetForm() {
     document.getElementById('up_OfferMade').value = 'Yes';
     document.getElementById('up_OfferQuality').value = 'Adding Value';
     document.getElementById('up_CustInterested').value = 'Yes';
+    document.getElementById('up_DeclineReason').value = selectionOptions.up_DeclineReason?.[0] || '';
     document.getElementById('up_FollowThrough').value = 'Properly Followed Up';
     document.getElementById('up_OppExisted').value = 'No';
     document.getElementById('up_Notes').value = '';
@@ -1967,6 +2296,9 @@ async function saveEvaluation() {
         supabasePayload["Upsell_Type"]       = document.getElementById('up_OfferType').value    || null;
         supabasePayload["Upsell_Quality"]    = document.getElementById('up_OfferQuality').value || null;
         supabasePayload["Upsell_Interested"] = interested;
+        if (interested === "No") {
+            qaData.Upsell_DeclineReason = document.getElementById('up_DeclineReason').value || null;
+        }
         // Follow-through only matters if the customer was actually interested
         if (interested === "Yes") {
             supabasePayload["Upsell_Followup"] = document.getElementById('up_FollowThrough').value || null;
@@ -2139,6 +2471,7 @@ function onPeriodChange() {
         }
     }
     updateDashboard();
+    encodeFilterState();
 }
 
 // Display-mode helpers — render count, %, or both based on the user's choice
@@ -2289,6 +2622,196 @@ const CHART_COLORS = {
 const PALETTE = ['#002b5e','#00aeef','#00843D','#C8102E','#FFB612','#8b5cf6','#14b8a6','#ff8a00','#a50034','#003d82'];
 
 // ============================================================
+// CHART EXPORT
+// ============================================================
+function exportChartAsPNG(chartId, filename) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = filename || `chart_${chartId}_${new Date().toISOString().slice(0,10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast("Chart exported as PNG");
+}
+
+async function exportChartAsPDF(chartId, filename) {
+    if (typeof jspdf === 'undefined') { showToast("PDF library not loaded", "#FFB612"); return; }
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    const { jsPDF } = jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape' });
+    const imgData = canvas.toDataURL('image/png');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW - 20;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 10, 10, imgW, Math.min(imgH, pageH - 20));
+    pdf.save(filename || `chart_${chartId}_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast("Chart exported as PDF");
+}
+
+function createExportButtons(chartId) {
+    return `
+        <div class="export-btn">
+            <button class="btn btn-ghost btn-small" onclick="exportChartAsPNG('${chartId}')" title="Export PNG">📷 PNG</button>
+            <button class="btn btn-ghost btn-small" onclick="exportChartAsPDF('${chartId}')" title="Export PDF">📄 PDF</button>
+        </div>`;
+}
+
+// ============================================================
+// SPARKLINE MINI-CHARTS
+// ============================================================
+function renderSparkline(scores, containerId, width = 80, height = 24) {
+    const container = document.getElementById(containerId);
+    if (!container || scores.length < 2) return;
+    const min = Math.min(...scores), max = Math.max(...scores);
+    const range = max - min || 1;
+    const points = scores.map((s, i) => {
+        const x = (i / (scores.length - 1)) * width;
+        const y = height - ((s - min) / range) * height;
+        return `${x},${y}`;
+    }).join(' ');
+    const trend = scores[scores.length - 1] - scores[0];
+    const strokeClass = trend > 0 ? 'sparkline-positive' : trend < 0 ? 'sparkline-negative' : 'sparkline-neutral';
+    container.innerHTML = `
+        <svg class="sparkline" viewBox="0 0 ${width} ${height}">
+            <polyline points="${points}" class="${strokeClass}" />
+        </svg>`;
+}
+
+function getAgentScoreHistory(agentName, limit = 10) {
+    return evaluationsDB
+        .filter(r => r.agent_name === agentName)
+        .sort((a, b) => new Date(b.eval_date) - new Date(a.eval_date))
+        .slice(0, limit)
+        .map(r => r.final_score)
+        .reverse();
+}
+
+// ============================================================
+// URL STATE MANAGEMENT — Shareable Dashboard Filters
+// ============================================================
+function encodeFilterState() {
+    const state = {
+        period: document.getElementById('slicerPeriod')?.value,
+        agent: document.getElementById('slicerAgent')?.value,
+        coach: document.getElementById('slicerCoach')?.value,
+        lob: document.getElementById('slicerLOB')?.value,
+        product: document.getElementById('slicerProduct')?.value,
+        site: document.getElementById('slicerSite')?.value,
+        status: document.getElementById('slicerStatus')?.value,
+        tab: document.querySelector('.dash-subview.active')?.id
+    };
+    const hash = btoa(JSON.stringify(state)).replace(/=/g, '');
+    window.location.hash = hash;
+}
+
+function decodeFilterState() {
+    try {
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return null;
+        const json = atob(hash + '='.repeat((4 - hash.length % 4) % 4));
+        return JSON.parse(json);
+    } catch (e) { return null; }
+}
+
+function applyFilterStateFromURL() {
+    const state = decodeFilterState();
+    if (!state) return;
+    if (state.period) document.getElementById('slicerPeriod').value = state.period;
+    if (state.agent) document.getElementById('slicerAgent').value = state.agent;
+    if (state.coach) document.getElementById('slicerCoach').value = state.coach;
+    if (state.lob) document.getElementById('slicerLOB').value = state.lob;
+    if (state.product) document.getElementById('slicerProduct').value = state.product;
+    if (state.site) document.getElementById('slicerSite').value = state.site;
+    if (state.status) document.getElementById('slicerStatus').value = state.status;
+    if (state.tab) {
+        const tabBtn = document.querySelector(`.dash-tab[data-tab="${state.tab}"]`);
+        if (tabBtn) switchDashTab(state.tab, tabBtn);
+    }
+    updateDashboard();
+    showToast("Filters restored from URL");
+}
+
+function copyDashboardLink() {
+    encodeFilterState();
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        showToast("🔗 Dashboard link copied to clipboard");
+    });
+}
+
+// ============================================================
+// LIVE QA SCORE PREDICTOR
+// ============================================================
+function updateLivePredictor() {
+    const score = currentNumericalScore || 100;
+    const threshold = getPassThreshold();
+    const el = document.getElementById('predictorScore');
+    const status = document.getElementById('predictorStatus');
+    const fill = document.getElementById('predictorFill');
+    if (!el || !status || !fill) return;
+    el.textContent = score.toFixed(1) + '%';
+    const isPass = score >= threshold;
+    const isAutoFail = document.querySelectorAll('.select-yes-no.yes[id^="af_"]').length > 0;
+    if (isAutoFail) {
+        status.textContent = '🔴 AUTO-FAIL — Score = 0%';
+        status.style.color = 'var(--fail-red)';
+        fill.style.background = 'var(--fail-red)';
+    } else if (isPass) {
+        status.textContent = `✅ PASS — ${(score - threshold).toFixed(1)}pp above threshold`;
+        status.style.color = 'var(--pass-green)';
+        fill.style.background = 'var(--pass-green)';
+    } else {
+        status.textContent = `❌ FAIL — ${(threshold - score).toFixed(1)}pp below threshold`;
+        status.style.color = 'var(--fail-red)';
+        fill.style.background = 'var(--fail-red)';
+    }
+    fill.style.width = score + '%';
+}
+
+// ============================================================
+// WEBSOCKET REAL-TIME SYNC (Supabase Realtime)
+// ============================================================
+let realtimeSubscription = null;
+
+function initRealtimeSync() {
+    if (!supabaseEnabled || !window.supabase) return;
+    try {
+        // Subscribe to evaluations changes
+        realtimeSubscription = supabaseClient
+            .channel('evaluations-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, payload => {
+                handleRealtimeUpdate(payload);
+            })
+            .subscribe();
+        console.log('Realtime sync enabled');
+    } catch (e) {
+        console.warn('Realtime sync not available:', e);
+    }
+}
+
+function handleRealtimeUpdate(payload) {
+    if (payload.eventType === 'INSERT') {
+        const normalized = normalizeEval(payload.new);
+        evaluationsDB.unshift(normalized);
+        showToast(`🔄 New evaluation from ${normalized.agent_name}`);
+    } else if (payload.eventType === 'UPDATE') {
+        const idx = evaluationsDB.findIndex(e => e.id === payload.new.id);
+        if (idx >= 0) evaluationsDB[idx] = normalizeEval(payload.new);
+    } else if (payload.eventType === 'DELETE') {
+        evaluationsDB = evaluationsDB.filter(e => e.id !== payload.old.id);
+    }
+    // Refresh dashboard if active
+    if (document.getElementById('dashboard-view').classList.contains('active')) {
+        updateDashboard();
+    }
+    // Refresh database view if active
+    if (document.getElementById('database-view').classList.contains('active')) {
+        renderDBTable();
+    }
+}
+
+// ============================================================
 // DASHBOARD — MAIN UPDATER
 // ============================================================
 function updateDashboard() {
@@ -2306,9 +2829,12 @@ function updateDashboard() {
     if (activeTab === 'dash-overview') renderOverview(data, threshold, holdThr);
     if (activeTab === 'dash-trends')   renderTrends(data, threshold);
     if (activeTab === 'dash-qa')       renderQADeepDive(data);
+    if (activeTab === 'dash-questions') renderQuestionTrending(data, threshold);
     if (activeTab === 'dash-upsell')   renderUpsell(data);
     if (activeTab === 'dash-agents')   renderAgents(data, threshold);
+    if (activeTab === 'dash-tenure')   renderTenure(data, threshold);
     if (activeTab === 'dash-segment')  renderSegments(data, holdThr);
+    if (activeTab === 'dash-coaching') renderCoaching(data, threshold);
     if (activeTab === 'dash-insights') renderInsights(data, threshold, holdThr);
 }
 
@@ -3416,6 +3942,72 @@ function renderAgents(data, threshold) {
     }).join('');
 }
 
+function getTenureBand(agentName) {
+    const agent = getRosterAgentByName(agentName);
+    if (!agent || !agent.hire) return 'Unknown';
+    const hire = new Date(agent.hire);
+    if (isNaN(hire)) return 'Unknown';
+    const months = (new Date() - hire) / (1000 * 60 * 60 * 24 * 30.4375);
+    if (months < 6) return 'New Hire';
+    if (months < 24) return 'Tenured';
+    return 'Veteran';
+}
+
+function renderTenure(data, threshold) {
+    const bands = ['New Hire', 'Tenured', 'Veteran', 'Unknown'];
+    const stats = {};
+    bands.forEach(b => stats[b] = { records: [], pass: 0, fail: 0, auto: 0 });
+    data.forEach(r => {
+        const b = getTenureBand(r.agent_name);
+        stats[b].records.push(r);
+        if (r.auto_failed === 'Yes') stats[b].auto++;
+        else if (r.final_score >= threshold) stats[b].pass++;
+        else stats[b].fail++;
+    });
+    const avgFor = b => stats[b].records.length ? stats[b].records.reduce((s,r)=>s+r.final_score,0) / stats[b].records.length : 0;
+    const setBandKpi = (band, avgId, countId) => {
+        document.getElementById(avgId).textContent = avgFor(band).toFixed(1) + '%';
+        document.getElementById(countId).textContent = `${stats[band].records.length} audit${stats[band].records.length===1?'':'s'}`;
+    };
+    setBandKpi('New Hire', 'tenureNewAvg', 'tenureNewCount');
+    setBandKpi('Tenured', 'tenureTenuredAvg', 'tenureTenuredCount');
+    setBandKpi('Veteran', 'tenureVeteranAvg', 'tenureVeteranCount');
+    const ranked = bands.filter(b => stats[b].records.length).map(b => ({ band: b, avg: avgFor(b), count: stats[b].records.length })).sort((a,b) => b.avg - a.avg);
+    document.getElementById('tenureBestBand').textContent = ranked[0]?.band || '—';
+    document.getElementById('tenureBestScore').textContent = ranked[0] ? `${ranked[0].avg.toFixed(1)}% across ${ranked[0].count}` : 'No data';
+
+    makeChart('tenureScoreChart', {
+        type: 'bar',
+        data: {
+            labels: bands,
+            datasets: [
+                { type: 'bar', label: 'Avg Score', data: bands.map(avgFor), backgroundColor: [CHART_COLORS.cyan, CHART_COLORS.blue, CHART_COLORS.green, CHART_COLORS.yellow], yAxisID: 'y' },
+                { type: 'line', label: 'Audit Volume', data: bands.map(b => stats[b].records.length), borderColor: CHART_COLORS.purple, backgroundColor: CHART_COLORS.purple, yAxisID: 'y1', tension: 0.25 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 100, position: 'left' }, y1: { min: 0, position: 'right', grid: { drawOnChartArea: false } } },
+            plugins: { legend: { display: true } }
+        }
+    });
+    makeChart('tenureRiskChart', {
+        type: 'bar',
+        data: {
+            labels: bands,
+            datasets: [
+                { label: 'Pass', data: bands.map(b => stats[b].pass), backgroundColor: CHART_COLORS.green },
+                { label: 'Fail', data: bands.map(b => stats[b].fail), backgroundColor: CHART_COLORS.yellow },
+                { label: 'Auto-Fail', data: bands.map(b => stats[b].auto), backgroundColor: CHART_COLORS.red }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+        }
+    });
+}
+
 // ---- SEGMENTS ----
 function renderSegments(data, holdThr) {
     const groupBy = (key) => {
@@ -3523,6 +4115,209 @@ function renderInsights(data, threshold, holdThr) {
     document.getElementById('insightsContainer').innerHTML = render(insights);
     document.getElementById('risksContainer').innerHTML = render(risks);
     document.getElementById('highlightsContainer').innerHTML = render(highlights);
+}
+
+// ============================================================
+// QUESTION-LEVEL TRENDING
+// ============================================================
+const QUESTION_WEIGHTS = [2,2,2,2,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,2.5,2.5,2,2,2,2];
+const QUESTION_LABELS = [
+    "Proper Greeting","Correct Probing","Setting Expectations","Documenting Information",
+    "Empathy/Effort","Active Listening","Confidence","Politeness/Professionalism","Hold Etiquette","Correct Hold Procedure",
+    "Control of the Call","Effective Questioning","Education","Correct Resolution","First Contact Resolution",
+    "Correct Call Closing","Escalation Process","Case Ownership","Properly Cited Information","Effective probing using resources",
+    "Correct Verification Process","Verified prior to making changes"
+];
+
+function renderQuestionTrending(data, threshold) {
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentData = data.filter(r => new Date(r.eval_date) >= thirtyDaysAgo);
+    const questionStats = QUESTION_LABELS.map((label, idx) => {
+        const qNum = idx + 1;
+        const answers = recentData.map(r => r.qa_details?.[`Q${qNum}_ans`] || 'Yes');
+        const passCount = answers.filter(a => a === 'Yes').length;
+        const total = answers.length;
+        const passRate = total ? (passCount / total * 100) : 0;
+        const fails = recentData.filter(r => r.qa_details?.[`Q${qNum}_ans`] === 'No');
+        return { label, qNum, passRate, total, fails, weight: QUESTION_WEIGHTS[idx] };
+    });
+    const weakest = [...questionStats].sort((a,b) => a.passRate - b.passRate)[0];
+    const strongest = [...questionStats].sort((a,b) => b.passRate - a.passRate)[0];
+    const trendingDown = questionStats.filter(q => q.passRate < 70 && q.total >= 5);
+    document.getElementById('weakestQ').textContent = weakest?.label.slice(0, 20) + '...' || '—';
+    document.getElementById('weakestQRate').textContent = weakest ? `${weakest.passRate.toFixed(1)}% pass rate` : 'No data';
+    document.getElementById('strongestQ').textContent = strongest?.label.slice(0, 20) + '...' || '—';
+    document.getElementById('strongestQRate').textContent = strongest ? `${strongest.passRate.toFixed(1)}% pass rate` : 'No data';
+    document.getElementById('trendingDown').textContent = trendingDown.length || '—';
+    document.getElementById('trendingDownCount').textContent = trendingDown.length ? `${trendingDown.length} questions below 70%` : 'No questions declining';
+    makeChart('questionTrendChart', {
+        type: 'bar',
+        data: {
+            labels: QUESTION_LABELS.map(l => l.slice(0, 15) + '...'),
+            datasets: [{ label: 'Pass Rate %', data: questionStats.map(q => q.passRate), backgroundColor: questionStats.map(q => q.passRate >= 90 ? CHART_COLORS.green : q.passRate >= 70 ? CHART_COLORS.yellow : CHART_COLORS.red) }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { min: 0, max: 100 } } }
+    });
+    makeChart('questionMatrixChart', {
+        type: 'bubble',
+        data: {
+            datasets: [{
+                label: 'Questions',
+                data: questionStats.map(q => ({ x: q.weight, y: q.passRate, r: Math.sqrt(q.total) * 2 })),
+                backgroundColor: questionStats.map(q => q.passRate >= 90 ? CHART_COLORS.green : q.passRate >= 70 ? CHART_COLORS.yellow : CHART_COLORS.red)
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { x: { title: { display: true, text: 'Question Weight' } }, y: { min: 0, max: 100, title: { display: true, text: 'Pass Rate %' } } }
+        }
+    });
+    const detailsList = document.getElementById('questionDetailsList');
+    if (detailsList) {
+        detailsList.innerHTML = questionStats.map(q => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid var(--border-light); cursor:pointer;" onclick="openDrillModal('Question ${q.qNum}: ${q.label}', '${q.fails.length} failures', ${JSON.stringify(q.fails)})">
+                <div><div style="font-weight:600; font-size:13px;">Q${q.qNum}: ${q.label}</div><div style="font-size:11px; color:var(--text-muted);">${q.total} evaluations</div></div>
+                <div style="text-align:right;"><div style="font-weight:700; color:${q.passRate >= 90 ? 'var(--pass-green)' : q.passRate >= 70 ? '#b45309' : 'var(--fail-red)'}">${q.passRate.toFixed(1)}%</div><div style="font-size:11px; color:var(--text-muted);">weight ${q.weight}%</div></div>
+            </div>
+        `).join('');
+    }
+}
+
+// ============================================================
+// COACHING & PATTERN DETECTION
+// ============================================================
+function detectPatterns(agentData) {
+    const patterns = [];
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recent = agentData.filter(r => new Date(r.eval_date) >= sevenDaysAgo);
+    const fails = recent.filter(r => r.final_score < 88);
+    const autoFails = recent.filter(r => r.auto_failed === 'Yes');
+    if (fails.length >= 2) patterns.push({ type: 'risk', text: `${fails.length} QA failures in 7 days` });
+    if (autoFails.length >= 2) patterns.push({ type: 'critical', text: `${autoFails.length} Auto-fails in 7 days — immediate review required` });
+    const declining = checkDecliningTrend(agentData);
+    if (declining) patterns.push({ type: 'warning', text: 'Declining score trend over last 5 audits' });
+    const questionPatterns = analyzeQuestionFailures(agentData);
+    questionPatterns.forEach(p => patterns.push(p));
+    return patterns;
+}
+
+function checkDecliningTrend(agentData) {
+    const sorted = agentData.sort((a,b) => new Date(b.eval_date) - new Date(a.eval_date)).slice(0, 5);
+    if (sorted.length < 4) return false;
+    const firstHalf = sorted.slice(0, 2).reduce((s,r) => s + r.final_score, 0) / 2;
+    const secondHalf = sorted.slice(2, 4).reduce((s,r) => s + r.final_score, 0) / 2;
+    return firstHalf < secondHalf - 5;
+}
+
+function analyzeQuestionFailures(agentData) {
+    const patterns = [];
+    const byQuestion = {};
+    agentData.forEach(r => {
+        if (!r.qa_details) return;
+        for (let i = 1; i <= 22; i++) {
+            if (r.qa_details[`Q${i}_ans`] === 'No') {
+                if (!byQuestion[i]) byQuestion[i] = 0;
+                byQuestion[i]++;
+            }
+        }
+    });
+    Object.entries(byQuestion).forEach(([qNum, count]) => {
+        if (count >= 2) {
+            const qLabel = QUESTION_LABELS[parseInt(qNum) - 1];
+            patterns.push({ type: 'pattern', text: `Repeatedly failing Q${qNum} (${count}x): ${qLabel}` });
+        }
+    });
+    return patterns;
+}
+
+function calculateCoachingPriority(agentData, threshold) {
+    const patterns = detectPatterns(agentData);
+    const recentAvg = agentData.slice(0, 5).reduce((s,r) => s + r.final_score, 0) / Math.min(5, agentData.length || 1);
+    const autoFailCount = agentData.filter(r => r.auto_failed === 'Yes').length;
+    const weight = (100 - recentAvg) * 2 + autoFailCount * 20 + patterns.length * 15;
+    return { priority: weight, patterns, recentAvg, autoFailCount };
+}
+
+function renderCoaching(data, threshold) {
+    const byAgent = {};
+    data.forEach(r => {
+        if (!byAgent[r.agent_name]) byAgent[r.agent_name] = [];
+        byAgent[r.agent_name].push(r);
+    });
+    const coachingQueue = [];
+    const patternAlerts = [];
+    Object.entries(byAgent).forEach(([agent, records]) => {
+        const analysis = calculateCoachingPriority(records, threshold);
+        const hasCoachingNeed = analysis.patterns.length > 0 || analysis.recentAvg < threshold;
+        if (hasCoachingNeed) {
+            coachingQueue.push({ agent, priority: analysis.priority, ...analysis, records });
+        }
+        analysis.patterns.forEach(p => {
+            patternAlerts.push({ agent, ...p, timestamp: records[0]?.eval_date });
+        });
+    });
+    coachingQueue.sort((a,b) => b.priority - a.priority);
+    document.getElementById('needCoaching').textContent = coachingQueue.filter(a => a.patterns.some(p => p.type === 'risk')).length;
+    document.getElementById('autoFailRisk').textContent = coachingQueue.filter(a => a.patterns.some(p => p.type === 'critical')).length;
+    document.getElementById('patternCount').textContent = patternAlerts.length;
+    const queueContainer = document.getElementById('coachingQueue');
+    if (queueContainer) {
+        if (!coachingQueue.length) {
+            queueContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">✅ No agents currently need coaching</div>';
+        } else {
+            queueContainer.innerHTML = coachingQueue.slice(0, 15).map((a, i) => `
+                <div style="display:flex; gap:12px; align-items:flex-start; padding:14px; background:${i%2===0?'white':'var(--bg-main)'}; border-left:4px solid ${a.patterns.some(p=>p.type==='critical')?'var(--fail-red)':a.patterns.some(p=>p.type==='risk')?'var(--warn-orange)':'var(--warn-yellow)'}; margin-bottom:8px; border-radius:var(--radius-sm);">
+                    <div style="font-weight:800; font-size:18px; color:var(--header-blue); min-width:28px;">${i+1}</div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700; font-size:14px;">${a.agent}</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Priority Score: <strong>${Math.round(a.priority)}</strong> · Recent Avg: ${a.recentAvg.toFixed(1)}%</div>
+                        <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px;">
+                            ${a.patterns.map(p => `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${p.type==='critical'?'#fee':p.type==='risk'?'#fff3cd':'#e7f3ff'}; color:${p.type==='critical'?'var(--fail-red)':p.type==='risk'?'#856404':'var(--header-blue)'}">${p.text}</span>`).join('')}
+                        </div>
+                    </div>
+                    <button class="btn btn-small" style="padding:4px 10px; font-size:11px;" onclick="openDrillModal('${a.agent} — Records', '${a.records.length} audits', ${JSON.stringify(a.records)})">View</button>
+                </div>
+            `).join('');
+        }
+    }
+    const alertsContainer = document.getElementById('patternAlerts');
+    if (alertsContainer) {
+        if (!patternAlerts.length) {
+            alertsContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">🎉 No patterns detected — all clear!</div>';
+        } else {
+            alertsContainer.innerHTML = patternAlerts.slice(0, 10).map(a => `
+                <div class="pattern-alert">
+                    <div style="font-weight:600; font-size:13px;">${a.agent}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${a.text}</div>
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Detected ${new Date(a.timestamp).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+    }
+    const impactContainer = document.getElementById('coachingImpact');
+    if (impactContainer) {
+        const coachedAgents = coachingQueue.filter(a => a.records.some(r => r.coached === true || r.notes?.toLowerCase().includes('coaching')));
+        if (!coachedAgents.length) {
+            impactContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">📊 No coaching records tagged yet</div>';
+        } else {
+            impactContainer.innerHTML = coachedAgents.slice(0, 5).map(a => {
+                const coached = a.records.filter(r => r.coached || r.notes?.toLowerCase().includes('coaching'));
+                const before = coached.slice(0, Math.floor(coached.length/2)).reduce((s,r) => s + r.final_score, 0) / (Math.floor(coached.length/2) || 1);
+                const after = coached.slice(Math.floor(coached.length/2)).reduce((s,r) => s + r.final_score, 0) / (coached.length - Math.floor(coached.length/2) || 1);
+                const change = after - before;
+                return `
+                    <div style="padding:12px; border-bottom:1px solid var(--border-light);">
+                        <div style="font-weight:600;">${a.agent}</div>
+                        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px;">
+                            <span>Before: ${before.toFixed(1)}%</span>
+                            <span style="color:${change > 0 ? 'var(--pass-green)' : change < 0 ? 'var(--fail-red)' : 'var(--text-muted)'};">${change > 0 ? '▲' : change < 0 ? '▼' : '—'} ${Math.abs(change).toFixed(1)}pp</span>
+                            <span>After: ${after.toFixed(1)}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
 }
 
 // ============================================================
@@ -5153,10 +5948,24 @@ async function initApp() {
     populateAgentSelect();
     populateRosterTable();
     populateDashboardSlicers();
+    // Load selection options: try Supabase first, fall back to localStorage
+    loadSelectionOptions(); // Load defaults/localStorage first
+    const loadedFromSupabase = await loadSelectionOptionsFromSupabase();
+    if (loadedFromSupabase) {
+        applySelectionOptions();
+        renderOptionManager();
+        showToast("✓ Options loaded from Supabase");
+    }
     initColumnToggles();
     document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
     toggleUpsellFields();
     calcScore();
+
+    // Apply filters from URL if present
+    applyFilterStateFromURL();
+
+    // Initialize real-time sync
+    initRealtimeSync();
 
     // Periodic refresh from Supabase
     if (supabaseEnabled) {
@@ -5169,6 +5978,14 @@ async function initApp() {
                 }
             } catch (e) { /* silent */ }
         }, 15000);
+        // Periodic sync of selection options (pull from Supabase every 30s)
+        setInterval(async () => {
+            try {
+                await loadSelectionOptionsFromSupabase();
+                applySelectionOptions();
+                if (document.getElementById('refreshes-view').classList.contains('active')) renderOptionManager();
+            } catch (e) { /* silent */ }
+        }, 30000);
     }
 }
 
@@ -5179,3 +5996,4 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
