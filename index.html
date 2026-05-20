@@ -1197,6 +1197,32 @@
                 </div>
             </div>
         </div>
+
+        <!-- Decline Reason → Coach Action Map -->
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>🗺️ Decline Reason → Coach Action Map<div class="dash-card-subtitle">Which coaches have agents declining most by reason — pinpoint coaching targets</div></div></div>
+                    <div id="declineCoachMap" style="padding:8px 0;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offer Quality Impact + QA Score vs Upsell side by side -->
+        <div class="dash-container" style="margin-top:18px;">
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>📊 Offer Quality Impact on QA Score<div class="dash-card-subtitle">Does how the offer was made affect overall QA score?</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="offerQualityImpactChart"></canvas></div>
+                </div>
+            </div>
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>🔵 QA Score vs Upsell Conversion<div class="dash-card-subtitle">Per-agent scatter — are high QA scorers also better at converting?</div></div></div>
+                    <div class="chart-wrapper tall"><canvas id="qaUpsellScatterChart"></canvas></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- AGENTS -->
@@ -5025,6 +5051,230 @@ function renderUpsell(data) {
 
     // Auto-Generated Insights
     renderUpsellInsights({ data, total, opps, offers, accepts, convs, missed, howCounts, execCounts, reasonBuckets, byAgent, agentEntries });
+
+    // New advanced charts
+    renderDeclineCoachMap(data);
+    renderOfferQualityImpact(data, offerRecords);
+    renderQaUpsellScatter(data);
+}
+
+// ============================================================
+// DECLINE REASON → COACH ACTION MAP
+// ============================================================
+function renderDeclineCoachMap(data) {
+    const el = document.getElementById('declineCoachMap');
+    if (!el) return;
+
+    // Only declined offers (offer was made but customer said No)
+    const declined = data.filter(r => r.upsell_offer_made === 'Yes' && r.upsell_interested !== 'Yes');
+    if (!declined.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:10px;">No declined offers in the current filter window.</div>';
+        return;
+    }
+
+    // Gather all decline reasons
+    const reasons = [...new Set(declined.map(r => r.upsell_decline_reason || 'Unknown'))].sort();
+
+    // Build: coach → { reason → count, total }
+    const coachMap = {};
+    declined.forEach(r => {
+        const coach  = r.coach || 'Unknown';
+        const reason = r.upsell_decline_reason || 'Unknown';
+        if (!coachMap[coach]) coachMap[coach] = { total: 0 };
+        coachMap[coach].total++;
+        coachMap[coach][reason] = (coachMap[coach][reason] || 0) + 1;
+    });
+
+    const coaches = Object.keys(coachMap).sort((a,b) => coachMap[b].total - coachMap[a].total);
+
+    // Color scale: 0 = white, max = red-ish
+    const maxVal = Math.max(...coaches.flatMap(c => reasons.map(r => coachMap[c][r] || 0)));
+    const heatColor = v => {
+        if (!v) return '#f8fafc';
+        const pct = v / maxVal;
+        const r = Math.round(255);
+        const g = Math.round(255 - pct * 160);
+        const b = Math.round(255 - pct * 160);
+        return `rgb(${r},${g},${b})`;
+    };
+
+    let html = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+            <th style="text-align:left;padding:8px 10px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;">Coach</th>
+            <th style="text-align:center;padding:8px 10px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;">Total Declines</th>
+            ${reasons.map(r => `<th style="text-align:center;padding:8px 6px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;max-width:100px;white-space:normal;">${r}</th>`).join('')}
+        </tr></thead><tbody>`;
+
+    coaches.forEach(coach => {
+        const row = coachMap[coach];
+        html += `<tr>
+            <td style="padding:7px 10px;border:1px solid #e4e8ed;font-weight:600;white-space:nowrap;">${coach}</td>
+            <td style="text-align:center;padding:7px 10px;border:1px solid #e4e8ed;font-weight:700;color:var(--fail-red);">${row.total}</td>
+            ${reasons.map(r => {
+                const cnt = row[r] || 0;
+                const pct = row.total ? (cnt/row.total*100).toFixed(0) : 0;
+                return `<td style="text-align:center;padding:7px 8px;border:1px solid #e4e8ed;background:${heatColor(cnt)};" title="${cnt} declines (${pct}% of this coach's declines)">
+                    ${cnt ? `<strong>${cnt}</strong><div style="font-size:10px;color:#666;">${pct}%</div>` : '<span style="color:#ccc;">—</span>'}
+                </td>`;
+            }).join('')}
+        </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    html += `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding:0 4px;">🔴 Darker red = more declines for that reason. Use to prioritize coaching topics per coach.</div>`;
+    el.innerHTML = html;
+}
+
+// ============================================================
+// OFFER QUALITY IMPACT ON QA SCORE
+// ============================================================
+function renderOfferQualityImpact(data, offerRecords) {
+    const qualities = ['Adding Value', 'Indifferent', 'Pushy / Sales-y'];
+    const noOfferRecords = data.filter(r => r.upsell_offer_made !== 'Yes');
+
+    // Build score arrays per group
+    const groups = {
+        'Adding Value':    offerRecords.filter(r => (r.upsell_quality || 'Adding Value') === 'Adding Value').map(r => r.final_score),
+        'Indifferent':     offerRecords.filter(r => r.upsell_quality === 'Indifferent').map(r => r.final_score),
+        'Pushy / Sales-y': offerRecords.filter(r => r.upsell_quality === 'Pushy / Sales-y').map(r => r.final_score),
+        'No Offer Made':   noOfferRecords.map(r => r.final_score)
+    };
+
+    const labels  = Object.keys(groups);
+    const avgs    = labels.map(l => groups[l].length ? (groups[l].reduce((s,v)=>s+v,0) / groups[l].length) : null);
+    const counts  = labels.map(l => groups[l].length);
+    const colors  = [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red, CHART_COLORS.blue];
+
+    makeChart('offerQualityImpactChart', {
+        type: 'bar',
+        data: {
+            labels: labels.map((l,i) => `${l} (n=${counts[i]})`),
+            datasets: [{
+                label: 'Avg QA Score',
+                data: avgs,
+                backgroundColor: colors,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: {
+                    label: (ctx) => ctx.raw !== null ? ` Avg Score: ${ctx.raw.toFixed(1)}%` : ' No data'
+                }}
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: Math.max(0, Math.min(...avgs.filter(v=>v!==null)) - 10),
+                    max: 100,
+                    title: { display: true, text: 'Avg QA Score (%)' },
+                    ticks: { callback: v => v + '%' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ============================================================
+// QA SCORE vs UPSELL CONVERSION SCATTER
+// ============================================================
+function renderQaUpsellScatter(data) {
+    // Per agent: avg QA score vs conversion rate (need ≥3 records to be meaningful)
+    const byAgent = {};
+    data.forEach(r => {
+        if (!r.agent_name) return;
+        if (!byAgent[r.agent_name]) byAgent[r.agent_name] = { scores: [], offers: 0, accepted: 0 };
+        byAgent[r.agent_name].scores.push(r.final_score);
+        if (r.upsell_offer_made === 'Yes') {
+            byAgent[r.agent_name].offers++;
+            if (r.upsell_interested === 'Yes') byAgent[r.agent_name].accepted++;
+        }
+    });
+
+    const points = Object.entries(byAgent)
+        .filter(([_, v]) => v.scores.length >= 3 && v.offers >= 2)
+        .map(([name, v]) => ({
+            x: v.scores.reduce((s,n)=>s+n,0) / v.scores.length,
+            y: (v.accepted / v.offers) * 100,
+            label: name,
+            n: v.scores.length
+        }));
+
+    if (!points.length) {
+        const inst = chartInstances['qaUpsellScatterChart'];
+        if (inst) { inst.destroy(); delete chartInstances['qaUpsellScatterChart']; }
+        const cv = document.getElementById('qaUpsellScatterChart');
+        if (cv) { const ctx = cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height); }
+        return;
+    }
+
+    // Simple linear regression for trend line
+    const n = points.length;
+    const sumX  = points.reduce((s,p)=>s+p.x,0);
+    const sumY  = points.reduce((s,p)=>s+p.y,0);
+    const sumXY = points.reduce((s,p)=>s+p.x*p.y,0);
+    const sumX2 = points.reduce((s,p)=>s+p.x*p.x,0);
+    const slope = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX) || 0;
+    const intercept = (sumY - slope*sumX) / n;
+    const xMin = Math.min(...points.map(p=>p.x));
+    const xMax = Math.max(...points.map(p=>p.x));
+    const trendLine = [
+        { x: xMin, y: slope*xMin + intercept },
+        { x: xMax, y: slope*xMax + intercept }
+    ];
+
+    const correlation = (() => {
+        const meanX = sumX/n, meanY = sumY/n;
+        const num = points.reduce((s,p)=>s+(p.x-meanX)*(p.y-meanY),0);
+        const den = Math.sqrt(points.reduce((s,p)=>s+(p.x-meanX)**2,0) * points.reduce((s,p)=>s+(p.y-meanY)**2,0));
+        return den ? (num/den).toFixed(2) : '0';
+    })();
+
+    makeChart('qaUpsellScatterChart', {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Agents',
+                    data: points,
+                    backgroundColor: CHART_COLORS.indigo + 'cc',
+                    pointRadius: points.map(p => Math.max(5, Math.min(12, p.n * 1.5))),
+                    pointHoverRadius: 10
+                },
+                {
+                    label: `Trend (r=${correlation})`,
+                    data: trendLine,
+                    type: 'line',
+                    borderColor: CHART_COLORS.red,
+                    borderWidth: 2,
+                    borderDash: [6,4],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                tooltip: { callbacks: {
+                    label: (ctx) => {
+                        if (ctx.datasetIndex === 1) return null;
+                        const p = ctx.raw;
+                        return [`${p.label}`, `Avg QA: ${p.x.toFixed(1)}%`, `Conv Rate: ${p.y.toFixed(1)}%`, `n=${p.n} evals`];
+                    }
+                }},
+                legend: { labels: { font: { size: 11 } } }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Avg QA Score (%)' }, min: 50, max: 100, ticks: { callback: v => v+'%' } },
+                y: { title: { display: true, text: 'Acceptance Rate (%)' }, min: 0, max: 100, ticks: { callback: v => v+'%' } }
+            }
+        }
+    });
 }
 
 // ============================================================
@@ -5635,7 +5885,8 @@ const ALL_COLUMNS = [
     { key: 'upsell_type',      label: 'Offer Type' },
     { key: 'upsell_quality',   label: 'Offer Qual' },
     { key: 'upsell_interested',label: 'Interested' },
-    { key: 'qa_name',          label: 'QA' }
+    { key: 'qa_name',          label: 'QA' },
+    { key: 'evaluator',        label: 'Evaluator' }
 ];
 let visibleColumns = ['eval_date','cnn','agent_name','coach','final_score','auto_failed','upsell_offer_made'];
 
