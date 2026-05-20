@@ -1367,14 +1367,102 @@
             <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input type="text" id="dbSearch" class="search-input" placeholder="🔍 Fuzzy search — typos and partial matches OK..." oninput="debouncedRenderDBTable()">
-            <select id="dbFilterStatus" onchange="debouncedRenderDBTable()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
-                <option value="All">All Status</option><option value="Pass">Pass Only</option><option value="Fail">Fail Only</option><option value="AutoFail">Auto-Fail Only</option>
-            </select>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
             <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
             <button class="btn btn-small" onclick="document.getElementById('importEvalFile').click()">⬆ Import CSV</button>
             <input type="file" id="importEvalFile" accept=".csv,.json" style="display:none" onchange="importEvaluations(this.files[0])">
+        </div>
+    </div>
+    <!-- Filter Bar -->
+    <div style="background:#f4f7fb; border:1px solid var(--border-medium); border-radius:8px; padding:14px 16px; margin-bottom:14px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            <!-- Search -->
+            <div style="flex:2; min-width:180px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Search</div>
+                <input type="text" id="dbSearch" class="search-input" style="width:100%;box-sizing:border-box;" placeholder="🔍 Fuzzy search…" oninput="debouncedRenderDBTable()">
+            </div>
+            <!-- Date From -->
+            <div style="min-width:120px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Date From</div>
+                <input type="date" id="dbFilterDateFrom" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+            </div>
+            <!-- Date To -->
+            <div style="min-width:120px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Date To</div>
+                <input type="date" id="dbFilterDateTo" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+            </div>
+            <!-- CNN -->
+            <div style="min-width:110px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">CNN</div>
+                <input type="text" id="dbFilterCNN" placeholder="e.g. 123456" oninput="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+            </div>
+            <!-- Agent -->
+            <div style="min-width:130px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Agent</div>
+                <select id="dbFilterAgent" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All Agents</option>
+                </select>
+            </div>
+            <!-- Coach -->
+            <div style="min-width:130px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Coach</div>
+                <select id="dbFilterCoach" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All Coaches</option>
+                </select>
+            </div>
+            <!-- Evaluator -->
+            <div style="min-width:130px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Evaluator</div>
+                <select id="dbFilterEvaluator" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All Evaluators</option>
+                </select>
+            </div>
+            <!-- Product -->
+            <div style="min-width:120px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Product</div>
+                <select id="dbFilterProduct" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All Products</option>
+                </select>
+            </div>
+            <!-- Call Type -->
+            <div style="min-width:120px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Call Type</div>
+                <select id="dbFilterCallType" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All Call Types</option>
+                </select>
+            </div>
+            <!-- Offer Made -->
+            <div style="min-width:110px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Offer Made</div>
+                <select id="dbFilterOffer" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="">All</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <!-- Score Range -->
+            <div style="min-width:80px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Score ≥</div>
+                <input type="number" id="dbFilterScoreMin" min="0" max="100" placeholder="0" oninput="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+            </div>
+            <div style="min-width:80px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Score ≤</div>
+                <input type="number" id="dbFilterScoreMax" min="0" max="100" placeholder="100" oninput="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+            </div>
+            <!-- Status -->
+            <div style="min-width:120px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Status</div>
+                <select id="dbFilterStatus" onchange="debouncedRenderDBTable()" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;width:100%;box-sizing:border-box;">
+                    <option value="All">All Status</option>
+                    <option value="Pass">Pass Only</option>
+                    <option value="Fail">Fail Only</option>
+                    <option value="AutoFail">Auto-Fail Only</option>
+                </select>
+            </div>
+            <!-- Clear -->
+            <div style="display:flex;align-items:flex-end;">
+                <button class="btn btn-ghost btn-small" onclick="clearDBFilters()" style="white-space:nowrap;">✕ Clear</button>
+            </div>
         </div>
     </div>
     <div class="col-toggle-panel" id="colTogglePanel">
@@ -1401,20 +1489,59 @@
 <div id="refreshes-view" class="view-section">
     <div class="page-header">
         <div>
-            <div class="page-title">🔄 Refreshes / Selection Options</div>
-            <div class="page-subtitle">Add or remove dropdown selections used in the evaluation form. <span id="syncStatus" style="color:var(--text-muted); font-size:12px;"></span></div>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-small" onclick="syncSelectionOptionsToSupabase()">☁️ Save to Supabase</button>
-            <button class="btn btn-small" onclick="loadFromSupabaseAndRefresh()">↻ Load from Supabase</button>
-            <button class="btn btn-secondary btn-small" onclick="showSelectionOptionsTableSQL(); alert('SQL to create table has been printed to browser console. Open DevTools (F12) to see it.')">📋 Show Create Table SQL</button>
-            <button class="btn btn-secondary btn-small" onclick="showEvaluatorSessionsTableSQL(); alert('evaluator_sessions SQL printed to console (F12).')">📋 Evaluator Sessions SQL</button>
-            <button class="btn btn-secondary btn-small" onclick="showAppUsersTableSQL(); alert('app_users SQL printed to console (F12).')">📋 App Users SQL</button>
-            <button class="btn btn-secondary btn-small" onclick="showAddEvaluatorColumnSQL(); alert('Add evaluator column SQL printed to console (F12).')">📋 Add Evaluator Column SQL</button>
-            <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
+            <div class="page-title">🔄 Refreshes / Options</div>
+            <div class="page-subtitle">Manage dropdown options, score targets, and system settings. <span id="syncStatus" style="color:var(--text-muted); font-size:12px;"></span></div>
         </div>
     </div>
-    <div class="option-manager-grid" id="optionManagerGrid"></div>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:4px; margin-bottom:18px; border-bottom:2px solid var(--border-medium); padding-bottom:0;">
+        <button id="rtab-options" onclick="switchRefreshTab('options')" style="padding:8px 18px;border:none;background:#002b5e;color:#fff;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;cursor:pointer;">⚙️ Selection Options</button>
+        <button id="rtab-target"  onclick="switchRefreshTab('target')"  style="padding:8px 18px;border:none;background:#e8edf5;color:#4a5568;border-radius:6px 6px 0 0;font-weight:600;font-size:13px;cursor:pointer;">🎯 Score Target</button>
+    </div>
+
+    <!-- Tab: Selection Options -->
+    <div id="rtab-options-pane">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+            <button class="btn btn-small" onclick="syncSelectionOptionsToSupabase()">☁️ Save to Supabase</button>
+            <button class="btn btn-small" onclick="loadFromSupabaseAndRefresh()">↻ Load from Supabase</button>
+            <button class="btn btn-secondary btn-small" onclick="showSelectionOptionsTableSQL(); alert('SQL printed to console (F12).')">📋 Create Table SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showEvaluatorSessionsTableSQL(); alert('SQL printed to console (F12).')">📋 Evaluator Sessions SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showAppUsersTableSQL(); alert('SQL printed to console (F12).')">📋 App Users SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showAddEvaluatorColumnSQL(); alert('SQL printed to console (F12).')">📋 Add Evaluator Column SQL</button>
+            <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
+        </div>
+        <div class="option-manager-grid" id="optionManagerGrid"></div>
+    </div>
+
+    <!-- Tab: Score Target -->
+    <div id="rtab-target-pane" style="display:none;">
+        <div class="card" style="max-width:520px; padding:28px 32px;">
+            <div style="font-size:16px; font-weight:700; color:var(--header-blue); margin-bottom:6px;">🎯 Score Target</div>
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:22px;">The target score is used across all dashboard charts, KPI tiles, and trend annotations. Currently showing on the dashboard filter bar too.</div>
+
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:22px;">
+                <label style="font-weight:700; font-size:14px; white-space:nowrap;">Target Score:</label>
+                <input type="number" id="scoreTargetRefreshes" min="0" max="100" step="0.5"
+                    style="width:100px; padding:8px 12px; border:2px solid var(--header-blue); border-radius:6px; font-size:20px; font-weight:800; color:var(--header-blue); text-align:center;"
+                    oninput="syncScoreTarget(this.value)">
+                <span style="font-size:20px; font-weight:700; color:var(--header-blue);">%</span>
+            </div>
+
+            <div style="background:#f0f7ff; border-left:4px solid var(--header-blue); border-radius:4px; padding:12px 16px; margin-bottom:18px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">Current Target</div>
+                <div style="font-size:32px; font-weight:900; color:var(--header-blue);" id="targetDisplayBig">92%</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Scores at or above this value are considered passing on charts and KPIs.</div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-small" onclick="syncScoreTarget(92)">Reset to 92%</button>
+                <button class="btn btn-secondary btn-small" onclick="syncScoreTarget(90)">Set 90%</button>
+                <button class="btn btn-secondary btn-small" onclick="syncScoreTarget(95)">Set 95%</button>
+                <button class="btn btn-secondary btn-small" onclick="syncScoreTarget(85)">Set 85%</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ========== ROSTER VIEW ========== -->
@@ -2277,6 +2404,32 @@ function applySelectionOptions() {
         });
         if ([...sel.options].some(o => o.value === current)) sel.value = current;
     });
+}
+
+function switchRefreshTab(tab) {
+    document.getElementById('rtab-options-pane').style.display = tab === 'options' ? '' : 'none';
+    document.getElementById('rtab-target-pane').style.display  = tab === 'target'  ? '' : 'none';
+    document.getElementById('rtab-options').style.background = tab === 'options' ? '#002b5e' : '#e8edf5';
+    document.getElementById('rtab-options').style.color      = tab === 'options' ? '#fff'    : '#4a5568';
+    document.getElementById('rtab-target').style.background  = tab === 'target'  ? '#002b5e' : '#e8edf5';
+    document.getElementById('rtab-target').style.color       = tab === 'target'  ? '#fff'    : '#4a5568';
+    if (tab === 'target') {
+        const v = getScoreTarget();
+        document.getElementById('scoreTargetRefreshes').value = v;
+        document.getElementById('targetDisplayBig').textContent = v + '%';
+    }
+}
+
+function syncScoreTarget(val) {
+    const v = parseFloat(val);
+    if (isNaN(v)) return;
+    const main = document.getElementById('scoreTarget');
+    const ref  = document.getElementById('scoreTargetRefreshes');
+    const big  = document.getElementById('targetDisplayBig');
+    if (main) main.value = v;
+    if (ref)  ref.value  = v;
+    if (big)  big.textContent = v + '%';
+    debouncedUpdateDashboard();
 }
 
 function renderOptionManager() {
@@ -6230,31 +6383,87 @@ function toggleColPanel() {
     document.getElementById('colTogglePanel').classList.toggle('active');
 }
 
+function populateDBFilterDropdowns() {
+    const agents    = [...new Set(evaluationsDB.map(r => r.agent_name).filter(Boolean))].sort();
+    const coaches   = [...new Set(evaluationsDB.map(r => r.coach).filter(Boolean))].sort();
+    const evaluators = [...new Set(evaluationsDB.map(r => r.evaluator || r.qa_name).filter(Boolean))].sort();
+    const products  = [...new Set(evaluationsDB.map(r => r.f_Product || r.product).filter(Boolean))].sort();
+    const callTypes = [...new Set(evaluationsDB.map(r => r.f_CallType || r.call_type).filter(Boolean))].sort();
+
+    const fill = (id, all, vals) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const cur = el.value;
+        el.innerHTML = `<option value="">${all}</option>` + vals.map(v => `<option value="${v}">${v}</option>`).join('');
+        if (cur) el.value = cur;
+    };
+    fill('dbFilterAgent',     'All Agents',     agents);
+    fill('dbFilterCoach',     'All Coaches',     coaches);
+    fill('dbFilterEvaluator', 'All Evaluators',  evaluators);
+    fill('dbFilterProduct',   'All Products',    products);
+    fill('dbFilterCallType',  'All Call Types',  callTypes);
+}
+
+function clearDBFilters() {
+    ['dbSearch','dbFilterCNN','dbFilterScoreMin','dbFilterScoreMax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['dbFilterDateFrom','dbFilterDateTo','dbFilterAgent','dbFilterCoach','dbFilterEvaluator','dbFilterProduct','dbFilterCallType','dbFilterOffer'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('dbFilterStatus').value = 'All';
+    renderDBTable();
+}
+
 function renderDBTable() {
     const table = document.getElementById('dbTable');
     if (!table) return;
-    const search = document.getElementById('dbSearch').value.trim();
-    const status = document.getElementById('dbFilterStatus').value;
-    const threshold = getPassThreshold();
+
+    // Populate dropdowns on first call / after data load
+    populateDBFilterDropdowns();
+
+    const search      = document.getElementById('dbSearch').value.trim();
+    const status      = document.getElementById('dbFilterStatus').value;
+    const dateFrom    = document.getElementById('dbFilterDateFrom')?.value || '';
+    const dateTo      = document.getElementById('dbFilterDateTo')?.value   || '';
+    const cnnQ        = (document.getElementById('dbFilterCNN')?.value     || '').trim().toLowerCase();
+    const agentF      = document.getElementById('dbFilterAgent')?.value    || '';
+    const coachF      = document.getElementById('dbFilterCoach')?.value    || '';
+    const evaluatorF  = document.getElementById('dbFilterEvaluator')?.value || '';
+    const productF    = document.getElementById('dbFilterProduct')?.value   || '';
+    const callTypeF   = document.getElementById('dbFilterCallType')?.value  || '';
+    const offerF      = document.getElementById('dbFilterOffer')?.value     || '';
+    const scoreMin    = parseFloat(document.getElementById('dbFilterScoreMin')?.value);
+    const scoreMax    = parseFloat(document.getElementById('dbFilterScoreMax')?.value);
+    const threshold   = getPassThreshold();
 
     let rows = evaluationsDB;
+
     // Fuzzy search first (if there's a query)
     if (search) {
         if (typeof Fuse !== 'undefined') {
-            // Rebuild each search so the index reflects any recent saves/edits/deletes (it's fast)
             rebuildFuseIndex();
             rows = fuzzyFilterEvaluations(search);
         } else {
-            // Fall back to plain substring if Fuse didn't load
             const lc = search.toLowerCase();
             rows = rows.filter(r => Object.values(r).some(v =>
                 v && typeof v !== 'object' && String(v).toLowerCase().includes(lc)
             ));
         }
     }
+
+    // Apply all column filters
+    if (dateFrom)    rows = rows.filter(r => r.eval_date >= dateFrom);
+    if (dateTo)      rows = rows.filter(r => r.eval_date <= dateTo);
+    if (cnnQ)        rows = rows.filter(r => String(r.cnn || '').toLowerCase().includes(cnnQ));
+    if (agentF)      rows = rows.filter(r => r.agent_name === agentF);
+    if (coachF)      rows = rows.filter(r => r.coach === coachF);
+    if (evaluatorF)  rows = rows.filter(r => (r.evaluator || r.qa_name) === evaluatorF);
+    if (productF)    rows = rows.filter(r => (r.f_Product || r.product) === productF);
+    if (callTypeF)   rows = rows.filter(r => (r.f_CallType || r.call_type) === callTypeF);
+    if (offerF)      rows = rows.filter(r => r.upsell_offer_made === offerF);
+    if (!isNaN(scoreMin)) rows = rows.filter(r => r.final_score >= scoreMin);
+    if (!isNaN(scoreMax)) rows = rows.filter(r => r.final_score <= scoreMax);
     if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
     if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
     if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
+
     document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
     const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
