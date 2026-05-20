@@ -630,6 +630,59 @@
 
     .hidden { display: none !important; }
 
+    /* ADMIN VIEW */
+    .admin-kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .admin-kpi { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 20px 22px; box-shadow: var(--shadow-sm); }
+    .admin-kpi .akpi-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .admin-kpi .akpi-val { font-size: 30px; font-weight: 800; color: var(--header-blue); line-height: 1; }
+    .admin-kpi .akpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .admin-eval-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); }
+    .admin-eval-table th { background: #f0f4fa; font-size: 11px; font-weight: 700; color: var(--header-blue); text-transform: uppercase; letter-spacing: 0.5px; padding: 11px 14px; border-bottom: 2px solid var(--border-light); text-align: left; }
+    .admin-eval-table td { padding: 11px 14px; border-bottom: 1px solid var(--border-light); font-size: 13px; vertical-align: middle; }
+    .admin-eval-table tr:last-child td { border-bottom: 0; }
+    .admin-eval-table tr:hover td { background: #f8fafc; }
+    .admin-period-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .admin-period-tab { padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border-medium); background: white; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+    .admin-period-tab.active { background: var(--header-blue); color: white; border-color: var(--header-blue); }
+    .admin-period-tab:hover:not(.active) { background: var(--bg-main); }
+    .admin-timer-badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; background: #eef3fa; color: var(--header-blue); }
+    .admin-timer-badge.fast { background: #d4f4dd; color: var(--pass-green); }
+    .admin-timer-badge.slow { background: #ffe0e0; color: var(--fail-red); }
+    .admin-score-pill { display: inline-block; padding: 3px 9px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+    .admin-score-pill.high { background: #d4f4dd; color: var(--pass-green); }
+    .admin-score-pill.mid { background: #fff3cd; color: #856404; }
+    .admin-score-pill.low { background: #ffe0e0; color: var(--fail-red); }
+    .admin-refresh-btn { padding: 7px 14px; border-radius: var(--radius-sm); background: var(--header-blue); color: white; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .admin-refresh-btn:hover { background: var(--header-blue-light); }
+
+    /* ROLE BADGES */
+    .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .role-badge.admin { background: rgba(165,0,52,0.12); color: var(--lg-red); }
+    .role-badge.qa    { background: rgba(0,43,94,0.12);  color: var(--header-blue); }
+    .role-badge.user  { background: rgba(107,119,133,0.12); color: var(--text-muted); }
+
+    /* SIDEBAR USER BADGE */
+    .sidebar-user { padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+    .sidebar-user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--lg-red); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: white; flex-shrink: 0; }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-role { font-size: 10px; opacity: 0.6; color: white; text-transform: uppercase; letter-spacing: 0.5px; }
+    .sidebar-logout { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 13px; padding: 4px; border-radius: 4px; transition: color 0.2s; }
+    .sidebar-logout:hover { color: white; }
+
+    /* LOGIN BOX ENHANCED */
+    .login-box .login-tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid var(--border-light); }
+    .login-box input[type=text] { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; }
+
+    /* USER MANAGEMENT VIEW */
+    .um-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); }
+    .um-table th { background: #f0f4fa; font-size: 11px; font-weight: 700; color: var(--header-blue); text-transform: uppercase; letter-spacing: 0.5px; padding: 11px 14px; border-bottom: 2px solid var(--border-light); text-align: left; }
+    .um-table td { padding: 11px 14px; border-bottom: 1px solid var(--border-light); font-size: 13px; vertical-align: middle; }
+    .um-table tr:last-child td { border-bottom: 0; }
+    .um-table tr:hover td { background: #f8fafc; }
+    .um-status-active { color: var(--pass-green); font-weight: 700; font-size: 11px; }
+    .um-status-inactive { color: var(--text-muted); font-weight: 700; font-size: 11px; }
+
     @media (max-width: 1100px) {
         .dash-col { min-width: 100%; }
         .perf-item { grid-template-columns: 140px 1fr 60px; }
@@ -642,22 +695,38 @@
 <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
         <h1>🔒 LG QA Hub</h1>
-        <p>Enter your access password to continue</p>
-        <input type="password" id="loginPwd" placeholder="Password" onkeyup="if(event.key==='Enter') checkLogin()">
-        <button class="btn" onclick="checkLogin()">Sign In</button>
+        <p style="margin-bottom:20px;">Sign in to continue</p>
+        <input type="text" id="loginUser" placeholder="Username" autocomplete="username"
+               onkeyup="if(event.key==='Enter') document.getElementById('loginPwd').focus()">
+        <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"
+               onkeyup="if(event.key==='Enter') checkLogin()">
+        <button class="btn" onclick="checkLogin()" id="loginBtn">Sign In</button>
         <div class="login-error" id="loginError"></div>
     </div>
 </div>
 
 <div class="sidebar">
     <div class="sidebar-header">LG QA HUB<small>Quality Assurance Platform</small></div>
+    <div class="sidebar-user" id="sidebarUser" style="display:none;">
+        <div class="sidebar-user-avatar" id="sidebarAvatar">?</div>
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="sidebarUserName">—</div>
+            <div class="sidebar-user-role" id="sidebarUserRole">—</div>
+        </div>
+        <button class="sidebar-logout" onclick="logoutUser()" title="Sign out">⏻</button>
+    </div>
     <div class="nav-section">
         <div class="nav-section-label">Main</div>
-        <div class="nav-link active" data-view="form-view" onclick="switchView('form-view', this)"><span>📝</span>Quality Evaluation</div>
-        <div class="nav-link" data-view="dashboard-view" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
-        <div class="nav-link" data-view="database-view" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
-        <div class="nav-link" data-view="roster-view" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
-        <div class="nav-link" data-view="refreshes-view" onclick="switchView('refreshes-view', this)"><span>🔄</span>Refreshes / Options</div>
+        <div class="nav-link active" data-view="form-view" data-roles="qa,admin" onclick="switchView('form-view', this)"><span>📝</span>Quality Evaluation</div>
+        <div class="nav-link" data-view="dashboard-view" data-roles="user,qa,admin" onclick="switchView('dashboard-view', this)"><span>📊</span>Analytics Dashboard</div>
+        <div class="nav-link" data-view="database-view" data-roles="qa,admin" onclick="switchView('database-view', this)"><span>🗃️</span>Database Export</div>
+        <div class="nav-link" data-view="roster-view" data-roles="qa,admin" onclick="switchView('roster-view', this)"><span>👥</span>Agent Roster</div>
+        <div class="nav-link" data-view="refreshes-view" data-roles="admin" onclick="switchView('refreshes-view', this)"><span>🔄</span>Refreshes / Options</div>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-label">Admin</div>
+        <div class="nav-link" data-view="admin-view" data-roles="admin" onclick="switchView('admin-view', this)"><span>🛡️</span>Evaluator Stats</div>
+        <div class="nav-link" data-view="users-view" data-roles="admin" onclick="switchView('users-view', this)"><span>👤</span>User Management</div>
     </div>
     <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
 </div>
@@ -723,7 +792,7 @@
             </div>
             <div class="form-group">
                 <label>Evaluator Name</label>
-                <input type="text" id="f_Eval" placeholder="QA Name">
+                <input type="text" id="f_Eval" placeholder="QA Name" readonly>
             </div>
         </div>
         <div id="agentInfoStrip" class="hidden" style="margin-top: 16px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
@@ -1338,6 +1407,9 @@
             <button class="btn btn-small" onclick="syncSelectionOptionsToSupabase()">☁️ Save to Supabase</button>
             <button class="btn btn-small" onclick="loadFromSupabaseAndRefresh()">↻ Load from Supabase</button>
             <button class="btn btn-secondary btn-small" onclick="showSelectionOptionsTableSQL(); alert('SQL to create table has been printed to browser console. Open DevTools (F12) to see it.')">📋 Show Create Table SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showEvaluatorSessionsTableSQL(); alert('evaluator_sessions SQL printed to console (F12).')">📋 Evaluator Sessions SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showAppUsersTableSQL(); alert('app_users SQL printed to console (F12).')">📋 App Users SQL</button>
+            <button class="btn btn-secondary btn-small" onclick="showAddEvaluatorColumnSQL(); alert('Add evaluator column SQL printed to console (F12).')">📋 Add Evaluator Column SQL</button>
             <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
         </div>
     </div>
@@ -1443,6 +1515,146 @@
                 <thead><tr><th>Name</th><th>Avaya ID</th><th>AWS ID</th><th>eConnect</th><th>GSFS</th><th>Hire Date</th><th>Coach</th><th>LOB</th><th>Site</th><th>Team</th><th>Shift</th><th>Email</th><th>Phone</th><th>Status</th><th>Audits</th><th>Actions</th></tr></thead>
                 <tbody></tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========== USER MANAGEMENT VIEW ========== -->
+<div id="users-view" class="view-section">
+    <div class="page-header">
+        <div>
+            <div class="page-title">👤 User Management</div>
+            <div class="page-subtitle">Create logins, assign roles, and manage access. Only admins can access this page.</div>
+        </div>
+        <button class="admin-refresh-btn" onclick="loadUsersTable()">↻ Refresh</button>
+    </div>
+
+    <!-- Create new user -->
+    <div class="card">
+        <div class="section-title"><span class="section-num">➕</span>Create New Login</div>
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));">
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="um_DisplayName" placeholder="e.g. Jane Smith">
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="um_Username" placeholder="e.g. jsmith (no spaces)">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="um_Password" placeholder="Set a password">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="um_Role">
+                    <option value="user">User — View only</option>
+                    <option value="qa" selected>QA — Submit & edit forms</option>
+                    <option value="admin">Admin — Full access</option>
+                </select>
+            </div>
+            <div class="form-group" style="align-self:end;">
+                <button class="btn" onclick="createAppUser()">+ Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing users table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:16px 22px 12px; border-bottom:1px solid var(--border-light); font-size:14px; font-weight:700; color:var(--header-blue);">
+            Existing Logins <span id="umUserCount" style="font-size:11px; color:var(--text-muted); font-weight:400; margin-left:8px;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="um-table">
+                <thead>
+                    <tr>
+                        <th>Display Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="umTableBody">
+                    <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:30px;">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SQL hint -->
+    <div class="card" style="background:#f8fafc; border-style:dashed;">
+        <div style="font-size:12px; color:var(--text-muted); line-height:1.7;">
+            <strong style="color:var(--header-blue);">Supabase setup required</strong> — Run the SQL from
+            <strong>Refreshes → 📋 App Users SQL</strong> to create the <code>app_users</code> table before using this page.
+            Also run <strong>📋 Add Evaluator Column SQL</strong> to add the <code>evaluator</code> column to your
+            <code>evaluations</code> table.
+        </div>
+    </div>
+</div>
+
+<!-- ========== ADMIN VIEW ========== -->
+<div id="admin-view" class="view-section">
+    <div class="page-header">
+        <div>
+            <div class="page-title">🛡️ Evaluator Stats</div>
+            <div class="page-subtitle">QA output, scoring patterns and form-time analytics per evaluator</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <button class="admin-refresh-btn" onclick="updateAdminView()">↻ Refresh</button>
+        </div>
+    </div>
+
+    <!-- Period picker -->
+    <div class="admin-period-tabs" id="adminPeriodTabs">
+        <button class="admin-period-tab active" data-period="today" onclick="setAdminPeriod('today',this)">Today</button>
+        <button class="admin-period-tab" data-period="week" onclick="setAdminPeriod('week',this)">This Week</button>
+        <button class="admin-period-tab" data-period="month" onclick="setAdminPeriod('month',this)">This Month</button>
+        <button class="admin-period-tab" data-period="all" onclick="setAdminPeriod('all',this)">All Time</button>
+    </div>
+
+    <!-- Top-level KPIs -->
+    <div class="admin-kpi-row" id="adminKpiRow">
+        <div class="admin-kpi"><div class="akpi-label">Total QAs in Period</div><div class="akpi-val" id="akpi-total">—</div><div class="akpi-sub" id="akpi-total-sub"></div></div>
+        <div class="admin-kpi"><div class="akpi-label">Active Evaluators</div><div class="akpi-val" id="akpi-evals">—</div><div class="akpi-sub">unique QA names</div></div>
+        <div class="admin-kpi"><div class="akpi-label">Avg Score Given</div><div class="akpi-val" id="akpi-avgscore">—</div><div class="akpi-sub">across all evaluators</div></div>
+        <div class="admin-kpi"><div class="akpi-label">Avg Form Time</div><div class="akpi-val" id="akpi-avgtime">—</div><div class="akpi-sub">agent select → submit</div></div>
+    </div>
+
+    <!-- Per-evaluator breakdown table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:18px 22px 14px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:14px; font-weight:700; color:var(--header-blue);">Per-Evaluator Breakdown</div>
+            <div style="font-size:11px; color:var(--text-muted);" id="adminPeriodLabel"></div>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="admin-eval-table">
+                <thead>
+                    <tr>
+                        <th>Evaluator</th>
+                        <th style="text-align:center;">QAs Done</th>
+                        <th style="text-align:center;">Daily Avg</th>
+                        <th style="text-align:center;">Avg Score Given</th>
+                        <th style="text-align:center;">Pass Rate</th>
+                        <th style="text-align:center;">Auto-Fails</th>
+                        <th style="text-align:center;">Avg Form Time</th>
+                        <th style="text-align:center;">Fastest</th>
+                        <th style="text-align:center;">Slowest</th>
+                    </tr>
+                </thead>
+                <tbody id="adminEvalTableBody">
+                    <tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Daily activity chart placeholder -->
+    <div class="card" style="margin-top:20px;">
+        <div style="font-size:14px; font-weight:700; color:var(--header-blue); margin-bottom:16px;">Daily QA Activity (Last 30 Days)</div>
+        <div id="adminDailyChartWrap" style="overflow-x:auto;">
+            <canvas id="adminDailyChart" height="90"></canvas>
         </div>
     </div>
 </div>
@@ -1555,22 +1767,132 @@ const APP_PASSWORD = "lgqa2026";
 const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_r02NeNyDQ4xLiC_cHyTC2w_GmEPBDnn";
 
-// Will be created in initApp if the Supabase library loaded
+// Supabase client — initialized immediately at page load so login can query app_users
 let supabaseClient = null;
 let supabaseEnabled = false;
+(function initSupabaseEarly() {
+    try {
+        if (window.supabase && SUPABASE_URL && SUPABASE_URL.startsWith('http')) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            supabaseEnabled = true;
+        }
+    } catch (e) { console.warn("Supabase early init failed:", e); }
+})()
+
+// ============================================================
+// AUTH — current user session
+// ============================================================
+let currentUser = null; // { id, username, display_name, role }
+
+// Fallback built-in admin used only when app_users table doesn't exist yet
+const BUILTIN_ADMIN = { username: 'admin', password: APP_PASSWORD, display_name: 'Admin', role: 'admin' };
 
 // ============================================================
 // LOGIN
 // ============================================================
-function checkLogin() {
-    const pwd = document.getElementById('loginPwd').value;
-    const errEl = document.getElementById('loginError');
-    if (pwd === APP_PASSWORD) {
+async function checkLogin() {
+    const username = document.getElementById('loginUser').value.trim().toLowerCase();
+    const pwd      = document.getElementById('loginPwd').value;
+    const errEl    = document.getElementById('loginError');
+    const btn      = document.getElementById('loginBtn');
+
+    if (!username || !pwd) { errEl.textContent = "Enter username and password."; return; }
+
+    btn.disabled = true; btn.textContent = "Signing in…";
+    errEl.textContent = '';
+
+    // 1) Try app_users table in Supabase
+    if (supabaseEnabled) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('app_users')
+                .select('id, username, display_name, role, password_hash, is_active')
+                .eq('username', username)
+                .single();
+
+            if (!error && data) {
+                if (!data.is_active) {
+                    errEl.textContent = "Account is disabled. Contact your admin.";
+                    btn.disabled = false; btn.textContent = "Sign In";
+                    return;
+                }
+                // Simple plaintext match (same as before); swap for bcrypt if you add a server function
+                if (data.password_hash !== pwd) {
+                    errEl.textContent = "Incorrect password.";
+                    document.getElementById('loginPwd').value = '';
+                    btn.disabled = false; btn.textContent = "Sign In";
+                    return;
+                }
+                currentUser = { id: data.id, username: data.username, display_name: data.display_name, role: data.role };
+                btn.disabled = false; btn.textContent = "Sign In";
+                document.getElementById('loginOverlay').style.display = 'none';
+                await initApp();
+                return;
+            }
+            // If table doesn't exist (42P01) fall through to built-in
+            if (error && !error.message?.includes('does not exist') && !error.code?.includes('PGRST116')) {
+                console.warn("app_users lookup error:", error.message);
+            }
+        } catch (e) {
+            console.warn("app_users query failed:", e.message);
+        }
+    }
+
+    // 2) Fallback: built-in admin (used before the table is set up)
+    if (username === BUILTIN_ADMIN.username && pwd === BUILTIN_ADMIN.password) {
+        currentUser = { id: null, username: 'admin', display_name: 'Admin', role: 'admin' };
+        btn.disabled = false; btn.textContent = "Sign In";
         document.getElementById('loginOverlay').style.display = 'none';
-        initApp();
-    } else {
-        errEl.textContent = "Incorrect password. Try again.";
-        document.getElementById('loginPwd').value = '';
+        await initApp();
+        return;
+    }
+
+    errEl.textContent = "Incorrect username or password.";
+    document.getElementById('loginPwd').value = '';
+    btn.disabled = false; btn.textContent = "Sign In";
+}
+
+function logoutUser() {
+    if (!confirm("Sign out?")) return;
+    currentUser = null;
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPwd').value = '';
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+// Apply role: hide/show nav links, lock evaluator field, restrict buttons
+function applyRoleUI() {
+    if (!currentUser) return;
+    const role = currentUser.role;
+
+    // Sidebar user badge
+    const sidebarUser = document.getElementById('sidebarUser');
+    sidebarUser.style.display = 'flex';
+    document.getElementById('sidebarAvatar').textContent = (currentUser.display_name || currentUser.username).charAt(0).toUpperCase();
+    document.getElementById('sidebarUserName').textContent = currentUser.display_name || currentUser.username;
+    document.getElementById('sidebarUserRole').textContent = role;
+
+    // Nav links
+    document.querySelectorAll('.nav-link[data-roles]').forEach(link => {
+        const allowed = link.getAttribute('data-roles').split(',');
+        link.style.display = allowed.includes(role) ? '' : 'none';
+    });
+
+    // Auto-fill evaluator field for QA users; admins can still edit it
+    const evalField = document.getElementById('f_Eval');
+    if (evalField) {
+        evalField.value = currentUser.display_name || currentUser.username;
+        evalField.readOnly = (role !== 'admin');
+    }
+
+    // 'user' role: hide save button and disable form inputs
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) saveBtn.style.display = (role === 'user') ? 'none' : '';
+
+    // Route to first allowed view
+    if (role === 'user') {
+        switchView('dashboard-view', document.querySelector('[data-view="dashboard-view"]'));
     }
 }
 
@@ -1712,8 +2034,10 @@ function normalizeEval(r) {
         upsell_decline_reason: r["Upsell_DeclineReason"] || r.upsell_decline_reason || qa.Upsell_DeclineReason || "",
         upsell_followup:     r["Upsell_Followup"]   || r.upsell_followup    || "",
         upsell_notes:        r.upsell_notes        || "",
+        evaluator:           r.evaluator           || null,
         created_at:          r.created_at || new Date().toISOString(),
-        qa_details: qa
+        qa_details: qa,
+        metadata:            r.metadata            || null
     };
 }
 
@@ -1736,6 +2060,9 @@ function detectAutoFail(r, qa) {
 // ============================================================
 let currentNumericalScore = 100;
 let currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+
+// Form timing — starts when evaluator picks an agent, stops on saveEvaluation()
+let _formTimerStart = null;
 
 // Track when editing an existing evaluation
 let currentEditingEvalId = null;
@@ -1859,6 +2186,31 @@ INSERT INTO selection_options (option_type, values, updated_at) VALUES
 ON CONFLICT (option_type) DO NOTHING;
 `;
     console.log("SQL to create selection_options table:\n" + sql);
+    return sql;
+}
+
+function showEvaluatorSessionsTableSQL() {
+    const sql = `
+-- Run this in your Supabase SQL Editor to enable evaluator form-time tracking
+CREATE TABLE IF NOT EXISTS evaluator_sessions (
+    id              BIGSERIAL PRIMARY KEY,
+    qa_name         TEXT NOT NULL,
+    eval_date       DATE NOT NULL,
+    final_score     NUMERIC(5,2),
+    form_time_seconds INTEGER,
+    agent_name      TEXT,
+    evaluation_id   UUID REFERENCES evaluations(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_evaluator_sessions_qa_name  ON evaluator_sessions(qa_name);
+CREATE INDEX IF NOT EXISTS idx_evaluator_sessions_eval_date ON evaluator_sessions(eval_date);
+
+ALTER TABLE evaluator_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON evaluator_sessions
+    FOR ALL USING (true) WITH CHECK (true);
+`;
+    console.log("SQL to create evaluator_sessions table:\n" + sql);
     return sql;
 }
 
@@ -2557,6 +2909,8 @@ function switchView(viewId, el) {
     if (viewId === 'database-view')  { initColumnToggles(); renderDBTable(); }
     if (viewId === 'roster-view')    populateRosterTable();
     if (viewId === 'refreshes-view') renderOptionManager();
+    if (viewId === 'admin-view')     updateAdminView();
+    if (viewId === 'users-view')     loadUsersTable();
 }
 
 function switchDashTab(tabId, el) {
@@ -2591,6 +2945,7 @@ function onAgentSelected() {
     const sel = document.getElementById('agentSelect');
     const agent = getRosterAgentById(sel.value);
     const strip = document.getElementById('agentInfoStrip');
+    if (sel.value) _formTimerStart = Date.now();
     if (agent) {
         document.getElementById('ai_aws').textContent   = agent.awsId || '—';
         document.getElementById('ai_hire').textContent  = agent.hire  || '—';
@@ -2781,6 +3136,7 @@ function resetForm() {
     document.getElementById('sentimentText').value = '';
     document.getElementById('sentimentResult').innerHTML = '';
     currentSentiment = { compound: 0, label: "Neutral", pos: 0, neg: 0, neu: 100 };
+    _formTimerStart = null;
     toggleUpsellFields();
     throttledCalcScore();
     showToast("Form cleared", "#0056b3");
@@ -2815,6 +3171,10 @@ async function saveEvaluation() {
     // Final Score must satisfy CHECK (>=0 AND <=100)
     const clampedScore = Math.max(0, Math.min(100, Number(currentNumericalScore) || 0));
 
+    // Capture form time (seconds from agent selection to save)
+    const formTimeSec = _formTimerStart ? Math.round((Date.now() - _formTimerStart) / 1000) : null;
+    _formTimerStart = null;
+
     const supabasePayload = {
         "Eval Date":       dateVal,
         "Month":           dateVal.substring(0, 7),
@@ -2844,12 +3204,14 @@ async function saveEvaluation() {
         "Upsell_Followup":   null,
 
         upsell_notes:        document.getElementById('up_Notes').value || null,
+        evaluator:           currentUser ? (currentUser.display_name || currentUser.username) : (document.getElementById('f_Eval').value || null),
         qa_details:          qaData,
         metadata: {
             saved_from: "LG QA Hub",
             saved_at:   new Date().toISOString(),
             agent_id:   sel.value,
-            sentiment_engine: currentSentiment.engine || 'local'
+            sentiment_engine: currentSentiment.engine || 'local',
+            form_time_seconds: formTimeSec
         }
     };
 
@@ -2923,6 +3285,18 @@ async function saveEvaluation() {
                 if (error) throw error;
                 if (data && data.id) local.id = data.id;  // keep DB id for future edits
                 showToast("✓ Saved to Supabase!");
+                // Write evaluator session record (fire-and-forget)
+                if (formTimeSec !== null) {
+                    const qaName = document.getElementById('f_Eval').value || 'Unknown';
+                    supabaseClient.from('evaluator_sessions').insert({
+                        qa_name:           qaName,
+                        eval_date:         dateVal,
+                        final_score:       clampedScore,
+                        form_time_seconds: formTimeSec,
+                        agent_name:        agent,
+                        evaluation_id:     data.id || null
+                    }).then(({ error: se }) => { if (se) console.warn('evaluator_sessions insert skipped:', se.message); });
+                }
             }
         } catch (e) {
             // Pull every field Supabase gives us so we can actually see the failure
@@ -2966,6 +3340,340 @@ async function saveEvaluation() {
             showToast("✓ Saved locally (Supabase offline)", "#FFB612");
         }
     }
+}
+
+// ============================================================
+// ADMIN — EVALUATOR STATS
+// ============================================================
+let _adminPeriod = 'today';
+let _adminDailyChartInst = null;
+
+function setAdminPeriod(period, el) {
+    _adminPeriod = period;
+    document.querySelectorAll('.admin-period-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    updateAdminView();
+}
+
+function _adminDateBounds() {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    if (_adminPeriod === 'today') {
+        return { from: today, to: today, label: 'Today (' + today + ')' };
+    }
+    if (_adminPeriod === 'week') {
+        const d = new Date(now);
+        d.setDate(d.getDate() - d.getDay()); // Sunday
+        const from = d.toISOString().split('T')[0];
+        return { from, to: today, label: 'This Week (' + from + ' → ' + today + ')' };
+    }
+    if (_adminPeriod === 'month') {
+        const from = today.substring(0, 7) + '-01';
+        return { from, to: today, label: 'This Month (' + today.substring(0, 7) + ')' };
+    }
+    return { from: null, to: null, label: 'All Time' };
+}
+
+function _formatAdminTime(secs) {
+    if (secs === null || secs === undefined) return '—';
+    if (secs < 60) return secs + 's';
+    const m = Math.floor(secs / 60), s = secs % 60;
+    return m + 'm ' + (s > 0 ? s + 's' : '');
+}
+
+function _adminTimerBadge(secs) {
+    if (secs === null || secs === undefined) return '<span style="color:var(--text-muted)">—</span>';
+    const cls = secs < 120 ? 'fast' : secs > 480 ? 'slow' : '';
+    return `<span class="admin-timer-badge ${cls}">${_formatAdminTime(secs)}</span>`;
+}
+
+function updateAdminView() {
+    const bounds = _adminDateBounds();
+    document.getElementById('adminPeriodLabel').textContent = bounds.label;
+
+    // Filter evaluationsDB by the period
+    let rows = evaluationsDB;
+    if (bounds.from) {
+        rows = rows.filter(e => e.eval_date >= bounds.from && e.eval_date <= bounds.to);
+    }
+
+    // Top KPIs
+    const total = rows.length;
+    const uniqueEvals = [...new Set(rows.map(e => e.qa_name).filter(n => n && n !== '—'))];
+    const avgScore = total ? (rows.reduce((s, e) => s + (e.final_score || 0), 0) / total).toFixed(1) : '—';
+
+    // Form time comes from metadata.form_time_seconds stored in the DB row
+    const timeSamples = rows
+        .map(e => {
+            const mt = e.metadata;
+            if (!mt) return null;
+            const t = typeof mt === 'string' ? JSON.parse(mt) : mt;
+            return (t && t.form_time_seconds != null) ? Number(t.form_time_seconds) : null;
+        })
+        .filter(t => t !== null && t > 0);
+    const avgTime = timeSamples.length
+        ? Math.round(timeSamples.reduce((s, t) => s + t, 0) / timeSamples.length)
+        : null;
+
+    document.getElementById('akpi-total').textContent = total;
+    document.getElementById('akpi-total-sub').textContent =
+        bounds.from ? (bounds.from === bounds.to ? '1 day' : bounds.from + ' → ' + bounds.to) : 'all dates';
+    document.getElementById('akpi-evals').textContent = uniqueEvals.length || '—';
+    document.getElementById('akpi-avgscore').textContent = total ? avgScore + '%' : '—';
+    document.getElementById('akpi-avgtime').textContent = _formatAdminTime(avgTime);
+
+    // Per-evaluator stats
+    const byEval = {};
+    rows.forEach(e => {
+        const name = (e.qa_name && e.qa_name !== '—') ? e.qa_name : 'Unknown';
+        if (!byEval[name]) byEval[name] = { count: 0, scores: [], times: [], passes: 0, autoFails: 0, dates: new Set() };
+        const rec = byEval[name];
+        rec.count++;
+        rec.scores.push(e.final_score || 0);
+        const threshold = parseFloat(document.getElementById('passThreshold')?.value || 88);
+        if ((e.final_score || 0) >= threshold) rec.passes++;
+        if (e.auto_failed === 'Yes') rec.autoFails++;
+        if (e.eval_date) rec.dates.add(e.eval_date);
+
+        const mt = e.metadata;
+        if (mt) {
+            const t = typeof mt === 'string' ? JSON.parse(mt) : mt;
+            if (t && t.form_time_seconds != null && Number(t.form_time_seconds) > 0) {
+                rec.times.push(Number(t.form_time_seconds));
+            }
+        }
+    });
+
+    const tbody = document.getElementById('adminEvalTableBody');
+    if (!Object.keys(byEval).length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted); padding:30px;">No evaluations found for this period.</td></tr>';
+    } else {
+        // Days in period for daily avg
+        let daysInPeriod = 1;
+        if (_adminPeriod === 'week') daysInPeriod = 7;
+        else if (_adminPeriod === 'month') daysInPeriod = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+        else if (_adminPeriod === 'all') {
+            const allDates = evaluationsDB.map(e => e.eval_date).filter(Boolean).sort();
+            if (allDates.length >= 2) {
+                daysInPeriod = Math.max(1, Math.round((new Date(allDates[allDates.length - 1]) - new Date(allDates[0])) / 86400000) + 1);
+            }
+        }
+
+        const sorted = Object.entries(byEval).sort((a, b) => b[1].count - a[1].count);
+        tbody.innerHTML = sorted.map(([name, d]) => {
+            const avgSc = d.scores.length ? (d.scores.reduce((s, v) => s + v, 0) / d.scores.length).toFixed(1) : '—';
+            const scClass = avgSc === '—' ? '' : avgSc >= 88 ? 'high' : avgSc >= 70 ? 'mid' : 'low';
+            const passRate = d.count ? Math.round(d.passes / d.count * 100) + '%' : '—';
+            const avgT = d.times.length ? Math.round(d.times.reduce((s, v) => s + v, 0) / d.times.length) : null;
+            const minT = d.times.length ? Math.min(...d.times) : null;
+            const maxT = d.times.length ? Math.max(...d.times) : null;
+            const dailyAvg = (d.count / daysInPeriod).toFixed(1);
+            return `<tr>
+                <td style="font-weight:600;">${name}</td>
+                <td style="text-align:center; font-weight:700; font-size:16px;">${d.count}</td>
+                <td style="text-align:center; color:var(--text-muted);">${dailyAvg}</td>
+                <td style="text-align:center;"><span class="admin-score-pill ${scClass}">${avgSc === '—' ? '—' : avgSc + '%'}</span></td>
+                <td style="text-align:center;">${passRate}</td>
+                <td style="text-align:center;">${d.autoFails > 0 ? '<span style="color:var(--fail-red);font-weight:700;">' + d.autoFails + '</span>' : '<span style="color:var(--text-muted);">0</span>'}</td>
+                <td style="text-align:center;">${_adminTimerBadge(avgT)}</td>
+                <td style="text-align:center;">${_adminTimerBadge(minT)}</td>
+                <td style="text-align:center;">${_adminTimerBadge(maxT)}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Daily activity chart — last 30 days
+    _renderAdminDailyChart();
+}
+
+function _renderAdminDailyChart() {
+    const canvas = document.getElementById('adminDailyChart');
+    if (!canvas) return;
+
+    // Build last-30-days date range
+    const days = 30;
+    const labels = [];
+    const dateTotals = {};
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        labels.push(key.substring(5)); // MM-DD
+        dateTotals[key] = 0;
+    }
+    evaluationsDB.forEach(e => {
+        if (e.eval_date && dateTotals.hasOwnProperty(e.eval_date)) dateTotals[e.eval_date]++;
+    });
+    const values = Object.values(dateTotals);
+
+    if (_adminDailyChartInst) { _adminDailyChartInst.destroy(); _adminDailyChartInst = null; }
+
+    _adminDailyChartInst = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'QAs Submitted',
+                data: values,
+                backgroundColor: 'rgba(0, 43, 94, 0.75)',
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { title: t => t[0].label, label: t => ' ' + t.raw + ' QAs' } }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f0f4f9' } }
+            }
+        }
+    });
+}
+
+// ============================================================
+// USER MANAGEMENT
+// ============================================================
+let _appUsers = [];
+
+async function loadUsersTable() {
+    const tbody = document.getElementById('umTableBody');
+    if (!tbody) return;
+    if (!supabaseEnabled) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">Supabase offline — cannot load users.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">Loading…</td></tr>';
+    try {
+        const { data, error } = await supabaseClient
+            .from('app_users')
+            .select('id, username, display_name, role, is_active, created_at')
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        _appUsers = data || [];
+        const countEl = document.getElementById('umUserCount');
+        if (countEl) countEl.textContent = `(${_appUsers.length} total)`;
+        if (!_appUsers.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">No users yet. Create one above.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = _appUsers.map(u => {
+            const roleCls = u.role === 'admin' ? 'admin' : u.role === 'qa' ? 'qa' : 'user';
+            const created = u.created_at ? u.created_at.substring(0, 10) : '—';
+            const isSelf  = currentUser && u.username === currentUser.username;
+            return `<tr>
+                <td style="font-weight:600;">${u.display_name || '—'}</td>
+                <td style="font-family:monospace;font-size:12px;">${u.username}</td>
+                <td><span class="role-badge ${roleCls}">${u.role}</span></td>
+                <td>${u.is_active
+                    ? '<span class="um-status-active">● Active</span>'
+                    : '<span class="um-status-inactive">○ Disabled</span>'}</td>
+                <td style="color:var(--text-muted);font-size:12px;">${created}</td>
+                <td style="display:flex;gap:6px;">
+                    ${isSelf ? '<span style="font-size:11px;color:var(--text-muted);">(you)</span>' : `
+                    <button class="btn btn-small btn-secondary" onclick="toggleUserActive('${u.id}',${u.is_active})">
+                        ${u.is_active ? 'Disable' : 'Enable'}</button>
+                    <button class="btn btn-small" style="background:var(--fail-red);" onclick="deleteAppUser('${u.id}','${u.username}')">Delete</button>`}
+                </td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--fail-red);padding:30px;">Error: ${e.message}<br><small>Run the App Users SQL first (Refreshes page).</small></td></tr>`;
+    }
+}
+
+async function createAppUser() {
+    const displayName = document.getElementById('um_DisplayName').value.trim();
+    const username    = document.getElementById('um_Username').value.trim().toLowerCase().replace(/\s+/g,'');
+    const password    = document.getElementById('um_Password').value;
+    const role        = document.getElementById('um_Role').value;
+
+    if (!displayName || !username || !password) { showToast("All fields required", "#C8102E"); return; }
+    if (!supabaseEnabled) { showToast("Supabase offline", "#C8102E"); return; }
+
+    try {
+        const { error } = await supabaseClient.from('app_users').insert({
+            username,
+            display_name:  displayName,
+            password_hash: password,
+            role,
+            is_active:     true
+        });
+        if (error) throw error;
+        document.getElementById('um_DisplayName').value = '';
+        document.getElementById('um_Username').value    = '';
+        document.getElementById('um_Password').value    = '';
+        showToast(`✓ User "${username}" created`);
+        loadUsersTable();
+    } catch (e) {
+        const msg = e.code === '23505' ? 'Username already exists' : e.message;
+        showToast("Failed: " + msg, "#C8102E");
+    }
+}
+
+async function toggleUserActive(id, currentlyActive) {
+    if (!supabaseEnabled) return;
+    try {
+        const { error } = await supabaseClient
+            .from('app_users').update({ is_active: !currentlyActive }).eq('id', id);
+        if (error) throw error;
+        showToast(currentlyActive ? "User disabled" : "User enabled", currentlyActive ? "#FFB612" : "#00843D");
+        loadUsersTable();
+    } catch (e) { showToast("Error: " + e.message, "#C8102E"); }
+}
+
+async function deleteAppUser(id, username) {
+    if (!confirm(`Permanently delete user "${username}"?`)) return;
+    if (!supabaseEnabled) return;
+    try {
+        const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
+        if (error) throw error;
+        showToast(`User "${username}" deleted`, "#FFB612");
+        loadUsersTable();
+    } catch (e) { showToast("Error: " + e.message, "#C8102E"); }
+}
+
+// ============================================================
+// SQL — APP USERS TABLE + EVALUATOR COLUMN
+// ============================================================
+function showAppUsersTableSQL() {
+    const sql = `
+-- Run in Supabase SQL Editor to enable username/password login
+CREATE TABLE IF NOT EXISTS app_users (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username      TEXT NOT NULL UNIQUE,
+    display_name  TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL CHECK (role IN ('admin','qa','user')) DEFAULT 'qa',
+    is_active     BOOLEAN NOT NULL DEFAULT true,
+    created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for anon" ON app_users FOR ALL USING (true) WITH CHECK (true);
+
+-- Seed the default admin (password: lgqa2026) — change after first login!
+INSERT INTO app_users (username, display_name, password_hash, role)
+VALUES ('admin', 'Admin', 'lgqa2026', 'admin')
+ON CONFLICT (username) DO NOTHING;
+`;
+    console.log("SQL to create app_users table:\n" + sql);
+    return sql;
+}
+
+function showAddEvaluatorColumnSQL() {
+    const sql = `
+-- Run in Supabase SQL Editor to add the evaluator column to evaluations
+ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS evaluator TEXT;
+
+-- Optional: back-fill from "QA Name" for existing rows
+UPDATE evaluations SET evaluator = "QA Name" WHERE evaluator IS NULL;
+`;
+    console.log("SQL to add evaluator column:\n" + sql);
+    return sql;
 }
 
 // ============================================================
@@ -6840,16 +7548,7 @@ function initAdvancedDashboard() {
 // INITIALIZATION
 // ============================================================
 async function initApp() {
-    // Try to initialize Supabase
-    try {
-        if (window.supabase && SUPABASE_URL && SUPABASE_URL.startsWith('http')) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            supabaseEnabled = true;
-        }
-    } catch (e) {
-        console.warn("Supabase init failed:", e);
-        supabaseEnabled = false;
-    }
+    // Supabase already initialized at page load; no re-init needed here
 
     // Load data
     if (supabaseEnabled) {
@@ -6885,6 +7584,7 @@ async function initApp() {
     populateAgentSelect();
     populateRosterTable();
     populateDashboardSlicers();
+    applyRoleUI();  // Apply role-based nav + evaluator field
     // Load selection options: try Supabase first, fall back to localStorage
     loadSelectionOptions(); // Load defaults/localStorage first
     
@@ -6946,9 +7646,9 @@ async function initApp() {
     }
 }
 
-// On load — show login, focus password field
+// On load — focus username field
 window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('loginPwd').focus();
+    document.getElementById('loginUser').focus();
 });
 </script>
 </body>
