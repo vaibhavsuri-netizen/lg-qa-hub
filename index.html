@@ -19,6 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <!-- Transformers.js for optional AI sentiment (loaded lazily on demand) -->
 
 <style>
@@ -620,13 +621,38 @@
     .toast.show { transform: translateY(0); opacity: 1; }
 
     /* LOGIN OVERLAY */
-    .login-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #001f47 0%, #002b5e 50%, #800028 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-    .login-box { background: white; padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); max-width: 380px; width: 90%; }
-    .login-box h1 { color: var(--header-blue); font-size: 22px; margin-bottom: 8px; text-align: center; }
-    .login-box p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; text-align: center; }
-    .login-box input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; }
-    .login-box button { width: 100%; }
+    .login-overlay { position: fixed; inset: 0; background: #f4f7fb; display: flex; align-items: stretch; justify-content: center; z-index: 9999; }
+    .login-split { display: flex; width: 100%; min-height: 100vh; }
+    /* Left panel */
+    .login-left { flex: 1.1; background: linear-gradient(160deg, #001f47 0%, #002b5e 60%, #003580 100%); color: white; display: flex; flex-direction: column; justify-content: center; padding: 60px 56px; position: relative; overflow: hidden; }
+    .login-left::after { content:''; position:absolute; bottom:-80px; right:-80px; width:340px; height:340px; border-radius:50%; background:rgba(255,255,255,0.04); pointer-events:none; }
+    .login-left::before { content:''; position:absolute; top:-60px; left:-60px; width:240px; height:240px; border-radius:50%; background:rgba(255,255,255,0.03); pointer-events:none; }
+    .login-left-eyebrow { font-size:10px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:#c8102e; margin-bottom:20px; display:flex; align-items:center; gap:8px; }
+    .login-left-eyebrow::before { content:''; display:block; width:28px; height:2px; background:#c8102e; }
+    .login-left h2 { font-size:36px; font-weight:900; line-height:1.15; margin-bottom:14px; color:white; }
+    .login-left-sub { font-size:14px; color:rgba(255,255,255,0.65); line-height:1.6; margin-bottom:44px; max-width:380px; }
+    .login-features { display:grid; grid-template-columns:1fr 1fr; gap:18px; max-width:460px; }
+    .login-feature-card { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:18px 16px; }
+    .login-feature-icon { font-size:20px; margin-bottom:10px; }
+    .login-feature-title { font-size:13px; font-weight:700; color:white; margin-bottom:6px; }
+    .login-feature-desc { font-size:12px; color:rgba(255,255,255,0.55); line-height:1.55; }
+    /* Right panel */
+    .login-right { width: 440px; min-width:380px; background: white; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60px 48px; box-shadow: -4px 0 32px rgba(0,0,0,0.08); }
+    .login-right-logo { font-size:13px; font-weight:900; letter-spacing:3px; color:#c8102e; text-transform:uppercase; margin-bottom:36px; }
+    .login-box { width:100%; }
+    .login-box h1 { color: var(--header-blue); font-size: 24px; font-weight:800; margin-bottom: 6px; text-align: left; }
+    .login-box p { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; text-align: left; }
+    .login-box input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; box-sizing:border-box; transition: border-color .2s; outline:none; }
+    .login-box input:focus { border-color: #002b5e; box-shadow: 0 0 0 3px rgba(0,43,94,.08); }
+    .login-box button { width: 100%; padding:13px; font-size:15px; font-weight:700; background:#c8102e; border:none; border-radius:6px; color:white; cursor:pointer; transition:background .2s; }
+    .login-box button:hover { background:#a50d26; }
     .login-error { color: var(--fail-red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
+    .login-divider { width:100%; border:none; border-top:1px solid var(--border-light); margin:24px 0; }
+    .login-footer-note { font-size:11px; color:var(--text-muted); text-align:center; }
+    @media (max-width: 860px) {
+        .login-left { display:none; }
+        .login-right { width:100%; min-width:0; padding:40px 28px; box-shadow:none; }
+    }
 
     .hidden { display: none !important; }
 
@@ -672,7 +698,7 @@
 
     /* LOGIN BOX ENHANCED */
     .login-box .login-tabs { display: flex; margin-bottom: 22px; border-bottom: 2px solid var(--border-light); }
-    .login-box input[type=text] { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; }
+    .login-box input[type=text] { width: 100%; padding: 12px 14px; border: 1px solid var(--border-medium); border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; box-sizing:border-box; }
 
     /* USER MANAGEMENT VIEW */
     .um-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); }
@@ -693,15 +719,54 @@
 
 <!-- LOGIN OVERLAY -->
 <div class="login-overlay" id="loginOverlay">
-    <div class="login-box">
-        <h1>🔒 LG QA Hub</h1>
-        <p style="margin-bottom:20px;">Sign in to continue</p>
-        <input type="text" id="loginUser" placeholder="Username" autocomplete="username"
-               onkeyup="if(event.key==='Enter') document.getElementById('loginPwd').focus()">
-        <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"
-               onkeyup="if(event.key==='Enter') checkLogin()">
-        <button class="btn" onclick="checkLogin()" id="loginBtn">Sign In</button>
-        <div class="login-error" id="loginError"></div>
+    <div class="login-split">
+
+        <!-- Left: Feature highlights -->
+        <div class="login-left">
+            <div class="login-left-eyebrow">LG Electronics Canada</div>
+            <h2>Built for QA.<br>Designed for results.</h2>
+            <p class="login-left-sub">The LG QA Hub centralises your quality evaluations, coaching records, and performance analytics — all in one place.</p>
+            <div class="login-features">
+                <div class="login-feature-card">
+                    <div class="login-feature-icon">📋</div>
+                    <div class="login-feature-title">Smart Evaluations</div>
+                    <div class="login-feature-desc">22-question scorecards with auto-fail detection and real-time scoring.</div>
+                </div>
+                <div class="login-feature-card">
+                    <div class="login-feature-icon">📊</div>
+                    <div class="login-feature-title">Live Analytics</div>
+                    <div class="login-feature-desc">Trend charts, leaderboards, and monthly summaries update instantly.</div>
+                </div>
+                <div class="login-feature-card">
+                    <div class="login-feature-icon">🛡️</div>
+                    <div class="login-feature-title">Fail-Safe Saves</div>
+                    <div class="login-feature-desc">Offline queue, auto-draft recovery, and sync status — no data ever lost.</div>
+                </div>
+                <div class="login-feature-card">
+                    <div class="login-feature-icon">👥</div>
+                    <div class="login-feature-title">Team Management</div>
+                    <div class="login-feature-desc">Role-based access for admins, QAs, coaches, and agents.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Sign-in form -->
+        <div class="login-right">
+            <div class="login-right-logo">LG QA Hub</div>
+            <div class="login-box">
+                <h1>Welcome back</h1>
+                <p>Sign in to your account to continue</p>
+                <input type="text" id="loginUser" placeholder="Username" autocomplete="username"
+                       onkeyup="if(event.key==='Enter') document.getElementById('loginPwd').focus()">
+                <input type="password" id="loginPwd" placeholder="Password" autocomplete="current-password"
+                       onkeyup="if(event.key==='Enter') checkLogin()">
+                <button onclick="checkLogin()" id="loginBtn">Sign In →</button>
+                <div class="login-error" id="loginError"></div>
+                <hr class="login-divider">
+                <div class="login-footer-note">LG QA Hub v4.1 &nbsp;·&nbsp; © 2026 LG Electronics Canada</div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -1960,6 +2025,7 @@ async function checkLogin() {
                     return;
                 }
                 currentUser = { id: data.id, username: data.username, display_name: data.display_name, role: data.role };
+                trackLogin(data.username);
                 btn.disabled = false; btn.textContent = "Sign In";
                 document.getElementById('loginOverlay').style.display = 'none';
                 await initApp();
@@ -1977,6 +2043,7 @@ async function checkLogin() {
     // 2) Fallback: built-in admin (used before the table is set up)
     if (username === BUILTIN_ADMIN.username && pwd === BUILTIN_ADMIN.password) {
         currentUser = { id: null, username: 'admin', display_name: 'Admin', role: 'admin' };
+        trackLogin('admin');
         btn.disabled = false; btn.textContent = "Sign In";
         document.getElementById('loginOverlay').style.display = 'none';
         await initApp();
@@ -3923,7 +3990,10 @@ async function retryPendingQueue() {
     window.__lastSavedAt = Date.now();
     updateSaveStatusBadge();
     if (ok)   showToast(`✓ ${ok} record${ok>1?'s':''} synced to Supabase`, '#00843D', 4000);
-    if (fail) showToast(`⚠️ ${fail} still failed — check connection`, '#C8102E', 5000);
+    if (fail) {
+        showToast(`⚠️ ${fail} still failed — check connection`, '#C8102E', 5000);
+        sendPendingQueueAlert(fail);
+    }
 }
 
 // ── Save Status Badge ──────────────────────────────────────
@@ -4063,11 +4133,152 @@ function checkDailyCountAlert() {
     const todayCount = evaluationsDB.filter(r => r.eval_date === today).length;
     if (todayCount === 0) {
         showToast(`⚠️ No evaluations saved today (${today}) — is the QA team working?`, '#C8102E', 8000);
+        sendZeroEvalsAlert(today);
     }
 }
 // Check once on load and once per hour
 setTimeout(checkDailyCountAlert, 5000);
 setInterval(checkDailyCountAlert, 3600000);
+
+// ============================================================
+// EMAILJS ENGINE — Alerts & Daily Summary
+// ============================================================
+const EJS_PUBLIC_KEY  = 'ueF_d9ki3Arz7JbPi';
+const EJS_SERVICE_ID  = 'service_nlrgyai';
+const EJS_TEMPLATE_ID = 'template_0lk9r7o';
+const EJS_RECIPIENT   = 'vaibhav.suri@lge.com';
+const EJS_LOGIN_KEY   = 'lgqa_daily_logins';
+const EJS_SUMMARY_KEY = 'lgqa_last_summary_sent';
+
+let _ejsReady = false;
+
+function initEmailJS() {
+    if (typeof emailjs === 'undefined') { console.warn('[EmailJS] library not loaded'); return; }
+    emailjs.init(EJS_PUBLIC_KEY);
+    _ejsReady = true;
+    console.log('[EmailJS] Initialized');
+}
+
+// ── Login counter (increments on every successful login) ────
+function trackLogin(username) {
+    const today = new Date().toISOString().substring(0, 10);
+    let store;
+    try { store = JSON.parse(localStorage.getItem(EJS_LOGIN_KEY)) || {}; } catch(e) { store = {}; }
+    if (!store[today]) store[today] = [];
+    if (!store[today].includes(username)) store[today].push(username);
+    // Keep only last 7 days
+    Object.keys(store).forEach(d => { if (d < new Date(Date.now() - 7*86400000).toISOString().substring(0,10)) delete store[d]; });
+    localStorage.setItem(EJS_LOGIN_KEY, JSON.stringify(store));
+}
+
+function getYesterdayLoginCount() {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().substring(0, 10);
+    try {
+        const store = JSON.parse(localStorage.getItem(EJS_LOGIN_KEY)) || {};
+        return (store[yesterday] || []).length;
+    } catch(e) { return 0; }
+}
+
+function getTodayLoginCount() {
+    const today = new Date().toISOString().substring(0, 10);
+    try {
+        const store = JSON.parse(localStorage.getItem(EJS_LOGIN_KEY)) || {};
+        return (store[today] || []).length;
+    } catch(e) { return 0; }
+}
+
+// ── Core send function ───────────────────────────────────────
+async function sendQAEmail(alertType, message, extraParams = {}) {
+    if (!_ejsReady) { console.warn('[EmailJS] Not ready — skipping send'); return; }
+    const now = new Date();
+    const params = {
+        to_email:     EJS_RECIPIENT,
+        alert_type:   alertType,
+        message:      message,
+        sent_at:      now.toLocaleString('en-CA', { dateStyle: 'full', timeStyle: 'short' }),
+        ...extraParams
+    };
+    try {
+        await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_ID, params);
+        console.log('[EmailJS] Sent:', alertType);
+    } catch(e) {
+        console.error('[EmailJS] Send failed:', e);
+    }
+}
+
+// ── Alert: Zero evals today (called from checkDailyCountAlert) ─
+async function sendZeroEvalsAlert(today) {
+    const loginCount = getTodayLoginCount();
+    await sendQAEmail(
+        'No Evaluations Today',
+        `No QA evaluations have been saved today (${today}). The QA team may need attention.`,
+        {
+            summary_date:    today,
+            eval_count:      '0',
+            login_count:     String(loginCount),
+            autofail_count:  '—',
+            avg_score:       '—'
+        }
+    );
+}
+
+// ── Alert: Pending queue still failing ──────────────────────
+async function sendPendingQueueAlert(failCount) {
+    const today = new Date().toISOString().substring(0, 10);
+    await sendQAEmail(
+        'Unsaved Evaluations — Sync Failed',
+        `${failCount} evaluation${failCount>1?'s':''} could not be saved to Supabase after retrying. Please check the connection and retry manually from the sidebar.`,
+        {
+            summary_date:   today,
+            eval_count:     '—',
+            login_count:    String(getTodayLoginCount()),
+            autofail_count: '—',
+            avg_score:      '—'
+        }
+    );
+}
+
+// ── Daily Summary (sent once per day, after 5pm) ─────────────
+async function sendDailySummary() {
+    if (!_ejsReady) return;
+    const today = new Date().toISOString().substring(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().substring(0, 10);
+
+    // Guard: only send once per day
+    const lastSent = localStorage.getItem(EJS_SUMMARY_KEY);
+    if (lastSent === today) return;
+
+    // Build stats for yesterday
+    const yesterdayRows = evaluationsDB.filter(r => r.eval_date === yesterday);
+    const evalCount     = yesterdayRows.length;
+    const autoFails     = yesterdayRows.filter(r => r.auto_failed === 'Yes').length;
+    const scores        = yesterdayRows.map(r => r.final_score).filter(v => isFinite(v));
+    const avgScore      = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(1) + '%' : '—';
+    const loginCount    = getYesterdayLoginCount();
+
+    await sendQAEmail(
+        'Daily Summary',
+        `Here is the QA activity summary for ${yesterday}.`,
+        {
+            summary_date:   yesterday,
+            eval_count:     String(evalCount),
+            login_count:    String(loginCount),
+            autofail_count: String(autoFails),
+            avg_score:      avgScore
+        }
+    );
+    localStorage.setItem(EJS_SUMMARY_KEY, today);
+}
+
+// ── Schedule: check every hour if summary should be sent ─────
+function scheduleDailySummary() {
+    const tryNow = () => {
+        const hour = new Date().getHours();
+        if (hour >= 17) sendDailySummary(); // Send at or after 5pm
+    };
+    tryNow();
+    setInterval(tryNow, 3600000);
+}
 
 // ============================================================
 // DASHBOARD — FILTERING
@@ -8621,6 +8832,10 @@ async function initApp() {
     document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
     toggleUpsellFields();
     throttledCalcScore();
+
+    // ── EmailJS init ──
+    initEmailJS();
+    scheduleDailySummary();
 
     // ── Failsafe startup checks ──
     checkDraftOnLoad();          // Show restore banner if a draft exists
