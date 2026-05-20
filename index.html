@@ -776,18 +776,12 @@
                 <label>Product Type</label>
                 <select id="f_Product">
                     <option value="">Select Product...</option>
-                    <option>HA - Home Appliance</option>
-                    <option>HE - Home Entertainment</option>
-                    <option>Other</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Call Type</label>
                 <select id="f_CallType">
                     <option value="">Select Call Type...</option>
-                    <option>Troubleshooting</option>
-                    <option>Product Registration</option>
-                    <option>Troubleshooting Leading to Repair</option>
                 </select>
             </div>
             <div class="form-group">
@@ -2068,16 +2062,20 @@ let _formTimerStart = null;
 let currentEditingEvalId = null;
 let currentEditingEvalIdx = null;
 const DEFAULT_SELECTION_OPTIONS = {
-    up_OfferType: ['LG Extended Warranty', 'Accessory', 'Water Filter', 'ThinQ Explanation'],
+    f_Product:       ['HA - Home Appliance', 'HE - Home Entertainment', 'Other'],
+    f_CallType:      ['Troubleshooting', 'Product Registration', 'Troubleshooting Leading to Repair'],
+    up_OfferType:    ['LG Extended Warranty', 'Accessory', 'Water Filter', 'ThinQ Explanation'],
     up_OfferQuality: ['Adding Value', 'Indifferent', 'Pushy / Sales-y'],
-    up_NoReason: ['Call Transferred', 'Irate Customer', 'Escalation'],
-    up_DeclineReason: ['Not Interested', 'Too Expensive', 'Not Needed', 'Already Has Coverage', 'Needs Time to Think'],
-    up_FollowThrough: ['Properly Followed Up', 'Partially Addressed', 'Left Hanging']
+    up_NoReason:     ['Call Transferred', 'Irate Customer', 'Escalation'],
+    up_DeclineReason:['Not Interested', 'Too Expensive', 'Not Needed', 'Already Has Coverage', 'Needs Time to Think'],
+    up_FollowThrough:['Properly Followed Up', 'Partially Addressed', 'Left Hanging']
 };
 const OPTION_LABELS = {
-    up_OfferType: 'What was Offered?',
+    f_Product:       'Product Type',
+    f_CallType:      'Call Type',
+    up_OfferType:    'What was Offered?',
     up_OfferQuality: 'Offer Quality',
-    up_NoReason: 'Reason for No Offer',
+    up_NoReason:     'Reason for No Offer',
     up_DeclineReason: 'Reason Not Interested',
     up_FollowThrough: 'Follow-Through'
 };
@@ -2178,6 +2176,8 @@ CREATE POLICY "Allow all" ON selection_options
 
 -- Insert default values
 INSERT INTO selection_options (option_type, values, updated_at) VALUES
+    ('f_Product',    '["HA - Home Appliance","HE - Home Entertainment","Other"]', NOW()),
+    ('f_CallType',   '["Troubleshooting","Product Registration","Troubleshooting Leading to Repair"]', NOW()),
     ('up_OfferType', '["LG Extended Warranty","Accessory","Water Filter","ThinQ Explanation"]', NOW()),
     ('up_OfferQuality', '["Adding Value","Indifferent","Pushy / Sales-y"]', NOW()),
     ('up_NoReason', '["Call Transferred","Irate Customer","Escalation"]', NOW()),
@@ -2250,6 +2250,12 @@ function applySelectionOptions() {
         if (!sel) return;
         const current = sel.value;
         sel.innerHTML = '';
+        // Prepend blank placeholder for form dropdowns
+        if (id === 'f_Product' || id === 'f_CallType') {
+            const blank = document.createElement('option');
+            blank.value = ''; blank.textContent = id === 'f_Product' ? 'Select Product...' : 'Select Call Type...';
+            sel.appendChild(blank);
+        }
         selectionOptions[id].forEach(v => {
             const o = document.createElement('option');
             o.value = v;
@@ -3285,18 +3291,16 @@ async function saveEvaluation() {
                 if (error) throw error;
                 if (data && data.id) local.id = data.id;  // keep DB id for future edits
                 showToast("✓ Saved to Supabase!");
-                // Write evaluator session record (fire-and-forget)
-                if (formTimeSec !== null) {
-                    const qaName = document.getElementById('f_Eval').value || 'Unknown';
-                    supabaseClient.from('evaluator_sessions').insert({
-                        qa_name:           qaName,
-                        eval_date:         dateVal,
-                        final_score:       clampedScore,
-                        form_time_seconds: formTimeSec,
-                        agent_name:        agent,
-                        evaluation_id:     data.id || null
-                    }).then(({ error: se }) => { if (se) console.warn('evaluator_sessions insert skipped:', se.message); });
-                }
+                // Write evaluator session record (fire-and-forget — always insert)
+                const qaName = currentUser ? (currentUser.display_name || currentUser.username) : (document.getElementById('f_Eval').value || 'Unknown');
+                supabaseClient.from('evaluator_sessions').insert({
+                    qa_name:           qaName,
+                    eval_date:         dateVal,
+                    final_score:       clampedScore,
+                    form_time_seconds: formTimeSec,   // null is fine — means timer wasn't captured
+                    agent_name:        agent,
+                    evaluation_id:     data.id || null
+                }).then(({ error: se }) => { if (se) console.warn('evaluator_sessions insert failed:', se.message); });
             }
         } catch (e) {
             // Pull every field Supabase gives us so we can actually see the failure
