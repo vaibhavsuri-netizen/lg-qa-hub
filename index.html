@@ -728,6 +728,8 @@
         <div class="nav-link" data-view="admin-view" data-roles="admin" onclick="switchView('admin-view', this)"><span>🛡️</span>Evaluator Stats</div>
         <div class="nav-link" data-view="users-view" data-roles="admin" onclick="switchView('users-view', this)"><span>👤</span>User Management</div>
     </div>
+    <!-- Save Status Badge -->
+    <div id="saveStatusBadge" style="display:none;margin:8px 12px 0;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:700;line-height:1.4;cursor:pointer;" onclick="retryPendingQueue()" title="Click to retry pending saves"></div>
     <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
 </div>
 
@@ -875,6 +877,12 @@
         </div>
     </div>
 
+    <!-- Draft restore banner -->
+    <div id="draftRestoreBanner" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span>⚠️ <strong>Unsaved draft found</strong> from your last session.</span>
+        <button class="btn btn-small" onclick="restoreFormDraft()" style="padding:4px 12px;font-size:11px;">↩ Restore Draft</button>
+        <button class="btn btn-ghost btn-small" onclick="discardFormDraft()" style="padding:4px 10px;font-size:11px;">✕ Discard</button>
+    </div>
     <div style="text-align:right; padding: 10px 0 30px;">
         <button class="btn btn-ghost" onclick="resetForm()" style="margin-right: 10px;">↻ Clear Form</button>
         <button class="btn btn-ghost hidden" id="cancelEditBtn" onclick="cancelEditMode()" style="margin-right: 10px;">✕ Cancel Edit</button>
@@ -3305,6 +3313,7 @@ function resetForm() {
     _formTimerStart = null;
     toggleUpsellFields();
     throttledCalcScore();
+    clearFormDraft();
     showToast("Form cleared", "#0056b3");
 }
 
@@ -3462,6 +3471,10 @@ async function saveEvaluation() {
                     evaluation_id:     data.id || null
                 }).then(({ error: se }) => { if (se) console.warn('evaluator_sessions insert failed:', se.message); });
             }
+            // ✅ Success: clear draft, update last-saved timestamp
+            clearFormDraft();
+            window.__lastSavedAt = Date.now();
+            updateSaveStatusBadge();
         } catch (e) {
             // Pull every field Supabase gives us so we can actually see the failure
             console.error("Supabase save error — full object:", e);
@@ -3475,11 +3488,16 @@ async function saveEvaluation() {
             if (e && e.code === "23502") parts.unshift("NOT NULL violation");
             if (e && e.code === "42703") parts.unshift("Unknown column");
             const msg = parts.length ? parts.join(" — ") : "see console";
-            showToast("⚠️ Supabase save failed: " + msg, "#C8102E");
+            showToast("⚠️ Supabase save failed — queued locally. Click retry in sidebar. " + msg, "#C8102E", 7000);
+            // ❌ Push to pending queue — DO NOT reset the form
+            addToPendingQueue(supabasePayload, local, isEditing, currentEditingEvalId);
+            updateSaveStatusBadge();
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return; // skip finally reset
         } finally {
             btn.disabled = false;
             if (isEditing) {
-                // Clear edit mode after successful save
                 currentEditingEvalIdx = null;
                 currentEditingEvalId = null;
                 btn.textContent = "💾 Save Evaluation";
@@ -3501,7 +3519,10 @@ async function saveEvaluation() {
             resetForm();
             showToast("✓ Updated locally — form reset", "#FFB612");
         } else {
-            showToast("✓ Saved locally (Supabase offline)", "#FFB612");
+            // Supabase disabled — queue it too so it retries when re-enabled
+            addToPendingQueue(supabasePayload, local, false, null);
+            updateSaveStatusBadge();
+            showToast("⚠️ Saved locally only (Supabase offline) — will retry automatically", "#FFB612", 5000);
         }
     }
 }
@@ -3843,14 +3864,210 @@ UPDATE evaluations SET evaluator = "QA Name" WHERE evaluator IS NULL;
 // ============================================================
 // TOAST
 // ============================================================
-function showToast(msg, color = '#00843D') {
+function showToast(msg, color = '#00843D', duration = 2500) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.style.background = color;
     t.classList.add('show');
     clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+    t._timer = setTimeout(() => t.classList.remove('show'), duration);
 }
+
+// ============================================================
+// FAILSAFE ENGINE — Pending Queue, Auto-Draft, Save Status
+// ============================================================
+const PENDING_QUEUE_KEY = 'lgqa_pending_queue';
+const DRAFT_KEY         = 'lgqa_form_draft';
+
+// ── Pending Queue ──────────────────────────────────────────
+function getPendingQueue() {
+    try { return JSON.parse(localStorage.getItem(PENDING_QUEUE_KEY)) || []; } catch(e) { return []; }
+}
+function savePendingQueue(q) {
+    localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(q));
+}
+function addToPendingQueue(supabasePayload, localRecord, isEditing, editId) {
+    const q = getPendingQueue();
+    q.push({ supabasePayload, localRecord, isEditing, editId, queuedAt: new Date().toISOString() });
+    savePendingQueue(q);
+    console.warn(`[Failsafe] Queued 1 record. Total pending: ${q.length}`);
+}
+
+async function retryPendingQueue() {
+    if (!supabaseEnabled) { showToast('Supabase still offline — cannot retry', '#C8102E'); return; }
+    const q = getPendingQueue();
+    if (!q.length) { showToast('No pending records to retry', '#0056b3'); updateSaveStatusBadge(); return; }
+    showToast(`Retrying ${q.length} pending record${q.length>1?'s':''}…`, '#0056b3', 3000);
+    const remaining = [];
+    let ok = 0, fail = 0;
+    for (const item of q) {
+        try {
+            if (item.isEditing && item.editId) {
+                const { error } = await supabaseClient.from('evaluations').update(item.supabasePayload).eq('id', item.editId).select().single();
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabaseClient.from('evaluations').insert(item.supabasePayload).select().single();
+                if (error) throw error;
+                // Update local record id
+                const idx = evaluationsDB.findIndex(r => r.cnn === item.localRecord.cnn && r.eval_date === item.localRecord.eval_date && r.agent_name === item.localRecord.agent_name);
+                if (idx !== -1 && data?.id) evaluationsDB[idx].id = data.id;
+            }
+            ok++;
+        } catch(e) {
+            console.error('[Failsafe] Retry failed:', e);
+            remaining.push(item);
+            fail++;
+        }
+    }
+    savePendingQueue(remaining);
+    window.__lastSavedAt = Date.now();
+    updateSaveStatusBadge();
+    if (ok)   showToast(`✓ ${ok} record${ok>1?'s':''} synced to Supabase`, '#00843D', 4000);
+    if (fail) showToast(`⚠️ ${fail} still failed — check connection`, '#C8102E', 5000);
+}
+
+// ── Save Status Badge ──────────────────────────────────────
+function updateSaveStatusBadge() {
+    const badge = document.getElementById('saveStatusBadge');
+    if (!badge) return;
+    const q = getPendingQueue();
+    if (q.length === 0) {
+        if (window.__lastSavedAt) {
+            const mins = Math.round((Date.now() - window.__lastSavedAt) / 60000);
+            badge.style.display = '';
+            badge.style.background = '#d1fae5';
+            badge.style.color = '#065f46';
+            badge.innerHTML = `✅ Saved<br><span style="font-weight:400;">${mins < 1 ? 'just now' : mins + 'm ago'}</span>`;
+        } else {
+            badge.style.display = 'none';
+        }
+    } else {
+        badge.style.display = '';
+        badge.style.background = '#fee2e2';
+        badge.style.color = '#991b1b';
+        badge.innerHTML = `⚠️ ${q.length} unsaved<br><span style="font-weight:400;">Click to retry ↺</span>`;
+    }
+}
+// Refresh the "X min ago" every 60s
+setInterval(updateSaveStatusBadge, 60000);
+
+// ── Auto-Draft Save ────────────────────────────────────────
+function saveFormDraft() {
+    // Only save if a CNN or agent is filled (i.e. form is in use)
+    const cnn   = document.getElementById('f_CNN')?.value?.trim();
+    const agent = document.getElementById('agentSelect')?.value;
+    if (!cnn && !agent) return;
+    const draft = {
+        agent, cnn,
+        date:     document.getElementById('f_Date')?.value,
+        holdTime: document.getElementById('f_HoldTime')?.value,
+        product:  document.getElementById('f_Product')?.value,
+        callType: document.getElementById('f_CallType')?.value,
+        evaluator:document.getElementById('f_Eval')?.value,
+        questions: {},
+        af: {},
+        upsell: {},
+        savedAt: new Date().toISOString()
+    };
+    for (let i = 1; i <= 22; i++) {
+        draft.questions[i] = {
+            ans:  document.getElementById(`q_${i}_ans`)?.value,
+            note: document.getElementById(`q_${i}_note`)?.value
+        };
+    }
+    for (let i = 1; i <= 5; i++) draft.af[i] = document.getElementById(`af_${i}`)?.value;
+    ['up_OfferMade','up_OfferQuality','up_CustInterested','up_DeclineReason','up_FollowThrough','up_OppExisted','up_Notes'].forEach(id => {
+        draft.upsell[id] = document.getElementById(id)?.value;
+    });
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function restoreFormDraft() {
+    const draft = getFormDraft();
+    if (!draft) return;
+    if (draft.agent) { const s = document.getElementById('agentSelect'); if (s) { s.value = draft.agent; onAgentSelected(); } }
+    if (draft.cnn)      document.getElementById('f_CNN').value      = draft.cnn;
+    if (draft.date)     document.getElementById('f_Date').value     = draft.date;
+    if (draft.holdTime) document.getElementById('f_HoldTime').value = draft.holdTime;
+    if (draft.product)  document.getElementById('f_Product').value  = draft.product;
+    if (draft.callType) document.getElementById('f_CallType').value = draft.callType;
+    if (draft.evaluator)document.getElementById('f_Eval').value     = draft.evaluator;
+    for (let i = 1; i <= 22; i++) {
+        if (draft.questions[i]) {
+            const ans  = document.getElementById(`q_${i}_ans`);
+            const note = document.getElementById(`q_${i}_note`);
+            if (ans  && draft.questions[i].ans  !== undefined) ans.value  = draft.questions[i].ans;
+            if (note && draft.questions[i].note !== undefined) note.value = draft.questions[i].note;
+        }
+    }
+    for (let i = 1; i <= 5; i++) { const el = document.getElementById(`af_${i}`); if (el && draft.af[i]) el.value = draft.af[i]; }
+    Object.entries(draft.upsell || {}).forEach(([id, val]) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; });
+    toggleUpsellFields();
+    throttledCalcScore();
+    hideDraftBanner();
+    showToast('↩ Draft restored', '#0056b3');
+}
+
+function getFormDraft() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch(e) { return null; }
+}
+function clearFormDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    hideDraftBanner();
+}
+function discardFormDraft() {
+    if (!confirm('Discard the saved draft? This cannot be undone.')) return;
+    clearFormDraft();
+    showToast('Draft discarded', '#6b7280');
+}
+function hideDraftBanner() {
+    const b = document.getElementById('draftRestoreBanner');
+    if (b) b.style.display = 'none';
+}
+function checkDraftOnLoad() {
+    const draft = getFormDraft();
+    if (!draft) return;
+    const age = draft.savedAt ? Math.round((Date.now() - new Date(draft.savedAt).getTime()) / 60000) : null;
+    const b = document.getElementById('draftRestoreBanner');
+    if (b) {
+        b.style.display = 'flex';
+        b.querySelector('span').innerHTML = `⚠️ <strong>Unsaved draft found</strong>${age ? ` (${age < 1 ? 'just now' : age + ' min ago'})` : ''} — CNN: <strong>${draft.cnn || '?'}</strong>, Agent: <strong>${draft.agent || '?'}</strong>`;
+    }
+}
+// Auto-save draft every 30 seconds
+setInterval(saveFormDraft, 30000);
+
+// ── beforeunload warning ────────────────────────────────────
+window.addEventListener('beforeunload', (e) => {
+    const pending = getPendingQueue();
+    const cnn = document.getElementById('f_CNN')?.value?.trim();
+    const agent = document.getElementById('agentSelect')?.value;
+    const hasUnsavedForm = !!(cnn || agent);
+    if (pending.length > 0 || hasUnsavedForm) {
+        const msg = pending.length > 0
+            ? `You have ${pending.length} unsaved evaluation${pending.length>1?'s':''} that haven't synced to Supabase yet.`
+            : 'You have an evaluation form in progress that has not been saved.';
+        e.preventDefault();
+        e.returnValue = msg;
+        return msg;
+    }
+});
+
+// ── Daily Count Alert (Admin) ───────────────────────────────
+function checkDailyCountAlert() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    const now  = new Date();
+    const hour = now.getHours();
+    if (hour < 13) return; // Only warn after 1pm
+    const today = now.toISOString().substring(0, 10);
+    const todayCount = evaluationsDB.filter(r => r.eval_date === today).length;
+    if (todayCount === 0) {
+        showToast(`⚠️ No evaluations saved today (${today}) — is the QA team working?`, '#C8102E', 8000);
+    }
+}
+// Check once on load and once per hour
+setTimeout(checkDailyCountAlert, 5000);
+setInterval(checkDailyCountAlert, 3600000);
 
 // ============================================================
 // DASHBOARD — FILTERING
@@ -8404,6 +8621,18 @@ async function initApp() {
     document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
     toggleUpsellFields();
     throttledCalcScore();
+
+    // ── Failsafe startup checks ──
+    checkDraftOnLoad();          // Show restore banner if a draft exists
+    updateSaveStatusBadge();     // Show pending count in sidebar
+    // Auto-retry any pending queue after a short delay (give Supabase time to init)
+    setTimeout(() => {
+        const q = getPendingQueue();
+        if (q.length > 0) {
+            showToast(`↻ Found ${q.length} unsaved record${q.length>1?'s':''} — retrying…`, '#b45309', 5000);
+            retryPendingQueue();
+        }
+    }, 3000);
 
     // Apply filters from URL if present
     applyFilterStateFromURL();
