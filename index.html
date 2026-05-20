@@ -1698,7 +1698,7 @@ function normalizeEval(r) {
         call_type:       r["Call Type"]       || r.call_type       || "—",
         hold_time:       Number(r["Hold Time (s)"] ?? r.hold_time ?? 0),
         final_score:     Number(r["Final Score"]   ?? r.final_score ?? 0),
-        auto_failed:     (r["Auto-Failed"]    ?? r.auto_failed     ?? "No"),
+        auto_failed:     detectAutoFail(r, qa),
         sentiment_compound: Number(r["Sentiment_Compound"] ?? r.sentiment_compound ?? 0),
         sentiment_label: r["Sentiment_Label"] || r.sentiment_label || "Neutral",
         sentiment_pos:   Number(r["Sentiment_Pos"] ?? r.sentiment_pos ?? 0),
@@ -1715,6 +1715,20 @@ function normalizeEval(r) {
         created_at:          r.created_at || new Date().toISOString(),
         qa_details: qa
     };
+}
+
+// Detect auto-fail from AF flags (AF_1 to AF_5) - returns "Yes" if any flag is "Yes"
+function detectAutoFail(r, qa) {
+    // Check stored value first
+    const stored = r["Auto-Failed"] ?? r.auto_failed ?? null;
+    if (stored === "Yes") return "Yes";
+    
+    // Check actual AF flags in qa_details
+    for (let i = 1; i <= 5; i++) {
+        const flag = qa[`AF_${i}`] ?? r[`AF_${i}`] ?? r[`af_${i}`] ?? "No";
+        if (flag === "Yes") return "Yes";
+    }
+    return "No";
 }
 
 // ============================================================
