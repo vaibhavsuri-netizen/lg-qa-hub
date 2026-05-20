@@ -4744,29 +4744,52 @@ function renderOverviewMonthTable(data) {
     const months = Object.keys(byMonth).sort();
     if (!months.length) { document.getElementById('overviewMonthTable').innerHTML = ''; return; }
 
-    const thS = 'padding:6px 10px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;font-size:10px;text-align:center;white-space:nowrap;';
-    const tdS = 'padding:5px 10px;border:1px solid #e4e8ed;text-align:center;font-size:11px;';
-    const tdL = 'padding:5px 10px;border:1px solid #e4e8ed;font-weight:600;font-size:11px;white-space:nowrap;';
+    const thS = `padding:8px 14px;background:linear-gradient(135deg,#f0f4f9,#e8edf5);
+        border-bottom:2px solid #c8d3e0;font-weight:700;font-size:10px;text-align:center;
+        white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;color:#4a5568;`;
+    const tdS = 'padding:8px 14px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:12px;';
+    const tdL = `padding:8px 14px;border-bottom:1px solid #f0f4f9;font-weight:700;font-size:11px;
+        white-space:nowrap;color:#4a5568;text-transform:uppercase;letter-spacing:.3px;`;
+
+    // Determine newest month for highlight
+    const newestMonth = months[months.length - 1];
 
     let html = `<thead><tr>
-        <th style="${thS} text-align:left;">Metric</th>
-        ${months.map(m => `<th style="${thS}">${m}</th>`).join('')}
+        <th style="${thS} text-align:left;border-radius:6px 0 0 0;">Metric</th>
+        ${months.map((m,i) => {
+            const isNewest = m === newestMonth;
+            const bg = isNewest ? 'background:linear-gradient(135deg,#002b5e,#004a99);color:#fff;' : '';
+            return `<th style="${thS}${bg}${i===months.length-1?'border-radius:0 6px 0 0;':''}">${m}${isNewest ? ' <span style="font-size:8px;background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px;">NOW</span>' : ''}</th>`;
+        }).join('')}
     </tr></thead><tbody>`;
 
-    // Count row with mini bar
+    // Count row with gradient bar
     const maxN = Math.max(...months.map(m => byMonth[m].total), 1);
-    html += `<tr><td style="${tdL}">📊 Audits</td>${months.map(m => {
+    html += `<tr>${months.reduce((acc, m, i) => {
         const n = byMonth[m].total;
         const pct = (n / maxN * 100).toFixed(0);
-        return `<td style="${tdS}"><div style="font-weight:700;">${n}</div><div style="height:4px;background:#e4e8ed;border-radius:2px;margin-top:2px;"><div style="width:${pct}%;height:100%;background:${CHART_COLORS.cyan};border-radius:2px;"></div></div></td>`;
-    }).join('')}</tr>`;
+        const isNewest = m === newestMonth;
+        const cellBg = isNewest ? 'background:#f0f7ff;' : '';
+        if (i === 0) acc = `<td style="${tdL}">📊 Audits</td>`;
+        return acc + `<td style="${tdS}${cellBg}">
+            <div style="font-size:15px;font-weight:800;color:#1a2332;line-height:1.1;">${n}</div>
+            <div style="height:5px;background:#e4e8ed;border-radius:3px;margin-top:4px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00aeef,#0063b1);border-radius:3px;transition:width .4s;"></div>
+            </div>
+        </td>`;
+    }, '')}</tr>`;
 
-    // Avg Score row
-    html += `<tr><td style="${tdL}">🎯 Avg Score</td>${months.map(m => {
+    // Avg Score row with pill badges
+    html += `<tr style="background:#fafbfc;">${months.reduce((acc, m, i) => {
         const v = byMonth[m].sum / byMonth[m].total;
-        const color = v >= 92 ? 'var(--pass-green)' : v >= 80 ? '#b45309' : 'var(--fail-red)';
-        return `<td style="${tdS} font-weight:700; color:${color};">${v.toFixed(1)}%</td>`;
-    }).join('')}</tr>`;
+        const isNewest = m === newestMonth;
+        const cellBg = isNewest ? 'background:#f0f7ff;' : 'background:#fafbfc;';
+        const [bg, txt] = v >= 92 ? ['#d1fae5','#065f46'] : v >= 80 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+        const pill = `<span style="display:inline-block;padding:3px 10px;background:${bg};color:${txt};
+            border-radius:20px;font-size:13px;font-weight:800;letter-spacing:.2px;">${v.toFixed(1)}%</span>`;
+        if (i === 0) acc = `<td style="${tdL}">🎯 Avg Score</td>`;
+        return acc + `<td style="${tdS}${cellBg}">${pill}</td>`;
+    }, '')}</tr>`;
 
     html += '</tbody>';
     document.getElementById('overviewMonthTable').innerHTML = html;
@@ -4813,24 +4836,105 @@ function renderOverviewTrendChart(data) {
         }
     }
 
+    // Build counts array (needed for bar dataset)
+    let counts = [];
+    if (mode === 'monthly') {
+        const byMonth2 = {};
+        data.forEach(r => {
+            const m = r.month || r.eval_date?.substring(0,7);
+            if (m) { if (!byMonth2[m]) byMonth2[m] = 0; byMonth2[m]++; }
+        });
+        counts = labels.map(m => byMonth2[m] || 0);
+    } else if (mode === 'weekly') {
+        const startOfWeek2 = new Date(now); startOfWeek2.setDate(now.getDate() - now.getDay()); startOfWeek2.setHours(0,0,0,0);
+        for (let i = 11; i >= 0; i--) {
+            const wStart = new Date(startOfWeek2.getTime() - i * 7 * day);
+            const wEnd   = new Date(wStart.getTime() + 7 * day);
+            counts.push(data.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; }).length);
+        }
+    } else {
+        for (let i = 29; i >= 0; i--) {
+            const key = new Date(now.getTime() - i * day).toISOString().substring(0,10);
+            counts.push(data.filter(r => r.eval_date === key).length);
+        }
+    }
+
     makeChart('trendChart', {
-        type: 'line',
+        type: 'bar',
         data: {
             labels,
             datasets: [
-                { label: 'Avg Score', data: avgScores, borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', yAxisID: 'y',  tension: 0.35, fill: true,  pointBorderColor: CHART_COLORS.blue, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 7, spanGaps: true },
-                { label: 'Auto-Fail %', data: afRates, borderColor: CHART_COLORS.red,  backgroundColor: 'rgba(200,16,46,0.05)',  yAxisID: 'y1', tension: 0.35, fill: false, borderDash: [6,4], pointBorderColor: CHART_COLORS.red, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 3, spanGaps: true }
+                {
+                    type: 'bar',
+                    label: 'Audits',
+                    data: counts,
+                    backgroundColor: 'rgba(0,174,239,0.25)',
+                    borderColor: 'rgba(0,174,239,0.7)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    yAxisID: 'y1',
+                    order: 2
+                },
+                {
+                    type: 'line',
+                    label: 'Avg Score %',
+                    data: avgScores,
+                    borderColor: CHART_COLORS.blue,
+                    backgroundColor: 'rgba(0,43,94,0.06)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: CHART_COLORS.blue,
+                    pointBorderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 8,
+                    borderWidth: 2.5,
+                    spanGaps: true,
+                    order: 1
+                }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
             scales: {
-                y:  { position: 'left',  min: 0, max: 100, title: { display: true, text: 'Avg Score %',  color: CHART_COLORS.blue, font: { weight: '600', size: 11 } }, ticks: { callback: v => v+'%', color: CHART_COLORS.blue } },
-                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %', color: CHART_COLORS.red,  font: { weight: '600', size: 11 } }, ticks: { callback: v => v+'%', color: CHART_COLORS.red  } }
+                y: {
+                    position: 'left',
+                    min: Math.max(0, Math.min(...avgScores.filter(v=>v!==null)) - 10),
+                    max: 100,
+                    title: { display: true, text: 'Avg Score %', color: CHART_COLORS.blue, font: { weight: '600', size: 11 } },
+                    ticks: { callback: v => v+'%', color: CHART_COLORS.blue, font: { size: 10 } },
+                    grid: { color: 'rgba(0,0,0,0.04)' }
+                },
+                y1: {
+                    position: 'right',
+                    min: 0,
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Audits', color: CHART_COLORS.cyan, font: { weight: '600', size: 11 } },
+                    ticks: { precision: 0, color: CHART_COLORS.cyan, font: { size: 10 } }
+                }
             },
             plugins: {
-                tooltip: { callbacks: { label: ctx => `  ${ctx.dataset.label}: ${ctx.formattedValue}%` } },
+                legend: {
+                    position: 'top',
+                    align: 'end',
+                    labels: { boxWidth: 10, padding: 14, font: { size: 11, weight: '500' } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255,255,255,0.96)',
+                    borderColor: '#e4e8ed',
+                    borderWidth: 1,
+                    titleColor: '#1a2332',
+                    bodyColor: '#4a5568',
+                    padding: 10,
+                    callbacks: {
+                        label: ctx => ctx.dataset.label === 'Audits'
+                            ? `  Audits: ${ctx.formattedValue}`
+                            : `  ${ctx.dataset.label}: ${ctx.formattedValue}%`
+                    }
+                },
                 annotation: { annotations: { target: {
                     type: 'line', yMin: targetScore, yMax: targetScore, yScaleID: 'y',
                     borderColor: CHART_COLORS.green, borderWidth: 2, borderDash: [6,4],
