@@ -4556,61 +4556,87 @@ function renderTrendTables(data) {
         return { label: b.label, n, avg, af, recs: b.recs };
     });
 
-    const thStyle = 'padding:8px 10px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;text-align:center;white-space:nowrap;font-size:11px;';
-    const tdStyle = 'padding:6px 10px;border:1px solid #e4e8ed;text-align:center;font-size:12px;';
-    const tdLeft  = 'padding:6px 10px;border:1px solid #e4e8ed;font-weight:600;font-size:11px;white-space:nowrap;';
+    const thS = `padding:8px 14px;background:linear-gradient(135deg,#f0f4f9,#e8edf5);
+        border-bottom:2px solid #c8d3e0;font-weight:700;font-size:10px;text-align:center;
+        white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;color:#4a5568;`;
+    const tdS = 'padding:8px 14px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:12px;';
+    const tdL = `padding:8px 14px;border-bottom:1px solid #f0f4f9;font-weight:700;font-size:11px;
+        white-space:nowrap;color:#4a5568;text-transform:uppercase;letter-spacing:.3px;`;
+
+    // Newest bucket highlight
+    const newestIdx = scoreRows.length - 1;
 
     let st = `<thead><tr>
-        <th style="${thStyle} text-align:left;">Metric</th>
-        ${scoreRows.map(r=>`<th style="${thStyle}">${r.label}</th>`).join('')}
+        <th style="${thS} text-align:left;border-radius:6px 0 0 0;">Metric</th>
+        ${scoreRows.map((r,i) => {
+            const isNew = i === newestIdx;
+            const bg = isNew ? 'background:linear-gradient(135deg,#002b5e,#004a99);color:#fff;' : '';
+            return `<th style="${thS}${bg}${isNew?'border-radius:0 6px 0 0;':''}">${r.label}${isNew?' <span style="font-size:8px;background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px;">NOW</span>':''}</th>`;
+        }).join('')}
     </tr></thead><tbody>`;
 
-    // Row: Audit Count (with bar fill)
+    // Row: Audit Count with gradient bar
     const maxN = Math.max(...scoreRows.map(r=>r.n), 1);
-    st += `<tr><td style="${tdLeft}">📊 Audits</td>${scoreRows.map(r=>{
+    st += `<tr>${scoreRows.reduce((acc,r,i) => {
         const pct = (r.n/maxN*100).toFixed(0);
-        return `<td style="${tdStyle}">
-            <div style="font-weight:700;font-size:13px;">${r.n}</div>
-            <div style="height:5px;background:#e4e8ed;border-radius:3px;margin-top:3px;"><div style="width:${pct}%;height:100%;background:${CHART_COLORS.cyan};border-radius:3px;"></div></div>
-        </td>`;
-    }).join('')}</tr>`;
+        const cellBg = i===newestIdx ? 'background:#f0f7ff;' : '';
+        if (i===0) acc = `<td style="${tdL}">📊 Audits</td>`;
+        return acc + `<td style="${tdS}${cellBg}">
+            <div style="font-size:15px;font-weight:800;color:#1a2332;line-height:1.1;">${r.n}</div>
+            <div style="height:5px;background:#e4e8ed;border-radius:3px;margin-top:4px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00aeef,#0063b1);border-radius:3px;"></div>
+            </div></td>`;
+    }, '')}</tr>`;
 
-    // Row: Avg Score
-    st += `<tr><td style="${tdLeft}">🎯 Avg Score</td>${scoreRows.map(r=>{
-        if (r.avg === null) return `<td style="${tdStyle}">—</td>`;
-        const color = r.avg >= 92 ? 'var(--pass-green)' : r.avg >= 80 ? '#b45309' : 'var(--fail-red)';
-        return `<td style="${tdStyle} font-weight:700; color:${color};">${r.avg.toFixed(1)}%</td>`;
-    }).join('')}</tr>`;
+    // Row: Avg Score with pill badges
+    st += `<tr style="background:#fafbfc;">${scoreRows.reduce((acc,r,i) => {
+        const cellBg = i===newestIdx ? 'background:#f0f7ff;' : 'background:#fafbfc;';
+        if (i===0) acc = `<td style="${tdL}">🎯 Avg Score</td>`;
+        if (r.avg === null) return acc + `<td style="${tdS}${cellBg}">—</td>`;
+        const [bg,txt] = r.avg>=92 ? ['#d1fae5','#065f46'] : r.avg>=80 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+        const pill = `<span style="display:inline-block;padding:3px 10px;background:${bg};color:${txt};border-radius:20px;font-size:13px;font-weight:800;">${r.avg.toFixed(1)}%</span>`;
+        return acc + `<td style="${tdS}${cellBg}">${pill}</td>`;
+    }, '')}</tr>`;
 
-    // Row: Auto-Fail %
-    st += `<tr><td style="${tdLeft}">❌ Auto-Fail %</td>${scoreRows.map(r=>{
-        if (r.af === null) return `<td style="${tdStyle}">—</td>`;
-        const color = r.af === 0 ? 'var(--pass-green)' : r.af <= 10 ? '#b45309' : 'var(--fail-red)';
-        return `<td style="${tdStyle} font-weight:700; color:${color};">${r.af.toFixed(1)}%</td>`;
-    }).join('')}</tr>`;
+    // Row: Auto-Fail % with pill badges
+    st += `<tr>${scoreRows.reduce((acc,r,i) => {
+        const cellBg = i===newestIdx ? 'background:#f0f7ff;' : '';
+        if (i===0) acc = `<td style="${tdL}">❌ Auto-Fail %</td>`;
+        if (r.af === null) return acc + `<td style="${tdS}${cellBg}">—</td>`;
+        const [bg,txt] = r.af===0 ? ['#d1fae5','#065f46'] : r.af<=10 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+        const pill = `<span style="display:inline-block;padding:3px 10px;background:${bg};color:${txt};border-radius:20px;font-size:12px;font-weight:700;">${r.af.toFixed(1)}%</span>`;
+        return acc + `<td style="${tdS}${cellBg}">${pill}</td>`;
+    }, '')}</tr>`;
 
     st += '</tbody>';
     document.getElementById('trendScoreTable').innerHTML = st;
 
-    // Chart 1: dual-axis — count bars + score line + AF line
+    // Chart: bar (audits) + line (avg score) combo — same as Overview
     const labels = scoreRows.map(r => r.label);
+    const targetScore = getScoreTarget();
     makeChart('trendScoreChart', {
         type: 'bar',
         data: {
             labels,
             datasets: [
-                { type: 'bar',  label: 'Audits',      data: scoreRows.map(r=>r.n),   backgroundColor: 'rgba(0,174,239,0.3)', borderColor: CHART_COLORS.cyan, borderWidth: 1, yAxisID: 'y1', order: 3 },
-                { type: 'line', label: 'Avg Score %',  data: scoreRows.map(r=>r.avg), borderColor: CHART_COLORS.blue,  tension: 0.35, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2, fill: false, yAxisID: 'y', order: 1, spanGaps: true },
-                { type: 'line', label: 'Auto-Fail %',  data: scoreRows.map(r=>r.af),  borderColor: CHART_COLORS.red,   tension: 0.35, pointRadius: 4, pointBackgroundColor: '#fff', pointBorderWidth: 2, fill: false, yAxisID: 'y', order: 2, borderDash: [5,3], spanGaps: true }
+                { type: 'bar',  label: 'Audits',     data: scoreRows.map(r=>r.n),   backgroundColor: 'rgba(0,174,239,0.25)', borderColor: 'rgba(0,174,239,0.7)', borderWidth: 1, borderRadius: 4, borderSkipped: false, yAxisID: 'y1', order: 2 },
+                { type: 'line', label: 'Avg Score %', data: scoreRows.map(r=>r.avg), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.06)', tension: 0.4, fill: true,  pointBackgroundColor: '#fff', pointBorderColor: CHART_COLORS.blue, pointBorderWidth: 2.5, pointRadius: 5, pointHoverRadius: 8, borderWidth: 2.5, yAxisID: 'y', order: 1, spanGaps: true },
+                { type: 'line', label: 'Auto-Fail %', data: scoreRows.map(r=>r.af), borderColor: CHART_COLORS.red,  backgroundColor: 'transparent', tension: 0.4, fill: false, pointBackgroundColor: '#fff', pointBorderColor: CHART_COLORS.red, pointBorderWidth: 2, pointRadius: 4, borderWidth: 2, borderDash: [5,3], yAxisID: 'y', order: 3, spanGaps: true }
             ]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
-            plugins: { legend: { labels: { font: { size: 11 } } } },
             scales: {
-                y:  { position: 'left',  min: 0, max: 100, ticks: { callback: v=>v+'%', font: { size: 10 } }, title: { display: true, text: '% Score / AF', font: { size: 10 } } },
-                y1: { position: 'right', min: 0, grid: { drawOnChartArea: false }, ticks: { precision: 0, font: { size: 10 } }, title: { display: true, text: 'Audits', font: { size: 10 } } }
+                y:  { position: 'left',  min: Math.max(0, Math.min(...scoreRows.map(r=>r.avg).filter(v=>v!==null))-10), max: 100, ticks: { callback: v=>v+'%', color: CHART_COLORS.blue, font:{size:10} }, title: { display: true, text: 'Score / AF %', color: CHART_COLORS.blue, font:{weight:'600',size:11} }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                y1: { position: 'right', min: 0, grid: { drawOnChartArea: false }, ticks: { precision: 0, color: CHART_COLORS.cyan, font:{size:10} }, title: { display: true, text: 'Audits', color: CHART_COLORS.cyan, font:{weight:'600',size:11} } }
+            },
+            plugins: {
+                legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 14, font:{size:11,weight:'500'} } },
+                tooltip: { backgroundColor: 'rgba(255,255,255,0.96)', borderColor: '#e4e8ed', borderWidth: 1, titleColor: '#1a2332', bodyColor: '#4a5568', padding: 10,
+                    callbacks: { label: ctx => ctx.dataset.label==='Audits' ? `  Audits: ${ctx.formattedValue}` : `  ${ctx.dataset.label}: ${ctx.formattedValue}%` } },
+                annotation: { annotations: { target: { type:'line', yMin:targetScore, yMax:targetScore, yScaleID:'y', borderColor:CHART_COLORS.green, borderWidth:2, borderDash:[6,4],
+                    label:{display:true,content:`Target ${targetScore}%`,position:'end',backgroundColor:CHART_COLORS.green,color:'#fff',font:{size:10,weight:'700'},padding:4,borderRadius:4} } } }
             },
             onClick: (ev, els) => {
                 if (!els.length) return;
@@ -4636,9 +4662,21 @@ function renderTrendTables(data) {
         return { section: sec, cells };
     });
 
+    const segThS = `padding:8px 14px;background:linear-gradient(135deg,#f0f4f9,#e8edf5);
+        border-bottom:2px solid #c8d3e0;font-weight:700;font-size:10px;text-align:center;
+        white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;color:#4a5568;`;
+    const segTdS = 'padding:8px 12px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:12px;';
+    const segTdL = `padding:8px 14px;border-bottom:1px solid #f0f4f9;font-weight:700;font-size:11px;
+        white-space:nowrap;color:#4a5568;`;
+    const segNewest = buckets.length - 1;
+
     let seg = `<thead><tr>
-        <th style="${thStyle} text-align:left;">Section</th>
-        ${buckets.map(b=>`<th style="${thStyle}">${b.label}</th>`).join('')}
+        <th style="${segThS} text-align:left;border-radius:6px 0 0 0;">Section</th>
+        ${buckets.map((b,i) => {
+            const isNew = i === segNewest;
+            const bg = isNew ? 'background:linear-gradient(135deg,#002b5e,#004a99);color:#fff;' : '';
+            return `<th style="${segThS}${bg}${isNew?'border-radius:0 6px 0 0;':''}">${b.label}${isNew?' <span style="font-size:8px;background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px;">NOW</span>':''}</th>`;
+        }).join('')}
     </tr></thead><tbody>`;
 
     // Store buckets on window so expandTrendSection can access them
@@ -4646,19 +4684,21 @@ function renderTrendTables(data) {
 
     segRows.forEach((row, si) => {
         const secId = `trendsec_${si}`;
-        seg += `<tr style="cursor:pointer;" onclick="toggleTrendSection('${secId}', '${row.section.replace(/'/g,"\\'")}', ${si})" title="Click to expand sub-questions">
-            <td style="${tdLeft} user-select:none;">
-                <span id="${secId}_arrow" style="display:inline-block;width:14px;transition:transform .2s;">▶</span> ${row.section}
+        seg += `<tr style="cursor:pointer;" onclick="toggleTrendSection('${secId}', '${row.section.replace(/'/g,"\\'")}'` + `, ${si})" title="Click to expand sub-questions">
+            <td style="${segTdL} user-select:none;">
+                <span id="${secId}_arrow" style="display:inline-block;width:14px;transition:transform .2s;color:#002b5e;">▶</span>
+                <span style="color:#002b5e;">${row.section}</span>
             </td>
-            ${row.cells.map(v => {
-                if (v === null) return `<td style="${tdStyle}">—</td>`;
-                const color = v >= 90 ? 'var(--pass-green)' : v >= 75 ? '#b45309' : 'var(--fail-red)';
-                return `<td style="${tdStyle} color:${color}; font-weight:600;">${v.toFixed(0)}%</td>`;
+            ${row.cells.map((v,ci) => {
+                const cellBg = ci === segNewest ? 'background:#f0f7ff;' : '';
+                if (v === null) return `<td style="${segTdS}${cellBg}color:#ccc;">—</td>`;
+                const [bg,txt] = v>=90 ? ['#d1fae5','#065f46'] : v>=75 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+                return `<td style="${segTdS}${cellBg}"><span style="display:inline-block;padding:2px 9px;background:${bg};color:${txt};border-radius:20px;font-size:12px;font-weight:700;">${v.toFixed(0)}%</span></td>`;
             }).join('')}
         </tr>
         <tr id="${secId}_expand" style="display:none;">
-            <td colspan="${buckets.length + 1}" style="padding:0; background:#f8fafc; border:1px solid #e4e8ed;">
-                <div id="${secId}_content" style="padding:8px 12px;"></div>
+            <td colspan="${buckets.length + 1}" style="padding:0;background:#f4f7fb;border-bottom:1px solid #e4e8ed;">
+                <div id="${secId}_content" style="padding:10px 16px;"></div>
             </td>
         </tr>`;
     });
@@ -4684,15 +4724,22 @@ function toggleTrendSection(secId, sectionName, secIdx) {
     // Build per-question breakdown for this section across all buckets
     const buckets  = window.__trendBuckets || [];
     const qs       = qaQuestions.filter(q => q.section === sectionName);
-    const thStyle  = 'padding:6px 8px;background:#eef2f7;border:1px solid #dde3ec;font-weight:700;text-align:center;font-size:10px;white-space:nowrap;';
-    const tdStyle  = 'padding:5px 8px;border:1px solid #e4e8ed;text-align:center;font-size:11px;';
-    const tdLeft   = 'padding:5px 8px;border:1px solid #e4e8ed;font-size:11px;white-space:nowrap;';
+    const newestQ  = buckets.length - 1;
+    const qThS = `padding:6px 10px;background:linear-gradient(135deg,#eef2f7,#e4eaf2);
+        border-bottom:1px solid #c8d3e0;font-weight:700;font-size:10px;text-align:center;
+        white-space:nowrap;letter-spacing:.3px;text-transform:uppercase;color:#4a5568;`;
+    const qTdS = 'padding:6px 10px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:11px;';
+    const qTdL = 'padding:6px 10px;border-bottom:1px solid #f0f4f9;font-size:11px;white-space:nowrap;';
 
     let html = `<table style="width:100%;border-collapse:collapse;">
         <thead><tr>
-            <th style="${thStyle} text-align:left;">Question</th>
-            <th style="${thStyle}">Wt</th>
-            ${buckets.map(b => `<th style="${thStyle}">${b.label}</th>`).join('')}
+            <th style="${qThS} text-align:left;">Question</th>
+            <th style="${qThS}">Wt</th>
+            ${buckets.map((b,i) => {
+                const isNew = i === newestQ;
+                const bg = isNew ? 'background:linear-gradient(135deg,#002b5e,#004a99);color:#fff;' : '';
+                return `<th style="${qThS}${bg}">${b.label}</th>`;
+            }).join('')}
         </tr></thead><tbody>`;
 
     qs.forEach(q => {
@@ -4706,12 +4753,13 @@ function toggleTrendSection(secId, sectionName, secIdx) {
         });
 
         html += `<tr>
-            <td style="${tdLeft} color:var(--header-blue);">${q.title}</td>
-            <td style="${tdStyle} color:var(--text-muted);">${q.w}%</td>
-            ${cells.map(v => {
-                if (v === null) return `<td style="${tdStyle}; color:#ccc;">—</td>`;
-                const color = v >= 90 ? 'var(--pass-green)' : v >= 75 ? '#b45309' : 'var(--fail-red)';
-                return `<td style="${tdStyle} color:${color}; font-weight:600;">${v.toFixed(0)}%</td>`;
+            <td style="${qTdL} color:#002b5e;font-weight:600;">${q.title}</td>
+            <td style="${qTdS}"><span style="font-size:10px;background:#e8edf5;color:#4a5568;padding:2px 6px;border-radius:10px;font-weight:700;">${q.w}%</span></td>
+            ${cells.map((v,ci) => {
+                const cellBg = ci===newestQ ? 'background:#f0f7ff;' : '';
+                if (v === null) return `<td style="${qTdS}${cellBg}color:#ccc;">—</td>`;
+                const [bg,txt] = v>=90 ? ['#d1fae5','#065f46'] : v>=75 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+                return `<td style="${qTdS}${cellBg}"><span style="display:inline-block;padding:2px 8px;background:${bg};color:${txt};border-radius:20px;font-size:11px;font-weight:700;">${v.toFixed(0)}%</span></td>`;
             }).join('')}
         </tr>`;
     });
