@@ -976,7 +976,6 @@
         <button class="dash-tab active" data-tab="dash-overview" onclick="switchDashTab('dash-overview', this)">🎯 Overview</button>
         <button class="dash-tab" data-tab="dash-trends" onclick="switchDashTab('dash-trends', this)">📈 Trends</button>
         <button class="dash-tab" data-tab="dash-qa" onclick="switchDashTab('dash-qa', this)">🔍 QA Deep Dive</button>
-        <button class="dash-tab" data-tab="dash-questions" onclick="switchDashTab('dash-questions', this)">❓ Questions</button>
         <button class="dash-tab" data-tab="dash-upsell" onclick="switchDashTab('dash-upsell', this)">💼 Upsell</button>
         <button class="dash-tab" data-tab="dash-agents" onclick="switchDashTab('dash-agents', this)">🏆 Agents</button>
         <button class="dash-tab" data-tab="dash-tenure" onclick="switchDashTab('dash-tenure', this)">⏳ Tenure</button>
@@ -1083,13 +1082,10 @@
         <!-- TABLE 2: Section / Segment pass rates over time -->
         <div class="dash-card">
             <div class="dash-card-header">
-                <div>Section Pass Rate Trend — <span id="trendSegTitle">Monthly</span><div class="dash-card-subtitle">Greeting · Rapport · Communication · Resolution · Closing · Documentation · Time Mgmt</div></div>
+                <div>Section Pass Rate Trend — <span id="trendSegTitle">Monthly</span><div class="dash-card-subtitle">Click any section row to expand sub-questions with per-period pass rates</div></div>
             </div>
             <div style="overflow-x:auto;">
                 <table id="trendSegTable" style="width:100%; border-collapse:collapse; font-size:12px;"></table>
-            </div>
-            <div style="margin-top:12px;">
-                <div class="chart-wrapper" style="height:180px;"><canvas id="trendSegChart"></canvas></div>
             </div>
         </div>
     </div>
@@ -1271,36 +1267,6 @@
     </div>
 
     <!-- QUESTION TRENDING -->
-    <div id="dash-questions" class="dash-subview">
-        <div class="kpi-row">
-            <div class="kpi-box red"><h3>Weakest Question</h3><div class="val" id="weakestQ">—</div><div class="val-sub" id="weakestQRate">No data</div></div>
-            <div class="kpi-box green"><h3>Strongest Question</h3><div class="val" id="strongestQ">—</div><div class="val-sub" id="strongestQRate">No data</div></div>
-            <div class="kpi-box yellow"><h3>Trending Down</h3><div class="val" id="trendingDown">—</div><div class="val-sub" id="trendingDownCount">No questions declining</div></div>
-            <div class="kpi-box purple"><h3>Questions Tracked</h3><div class="val" id="questionsTracked">22</div><div class="val-sub">Across all evaluations</div></div>
-        </div>
-        <div class="dash-container">
-            <div class="dash-col" style="flex:1.5;">
-                <div class="dash-card">
-                    <div class="dash-card-header"><div>Question Pass Rate Trends<div class="dash-card-subtitle">Pass % over time for each question</div></div></div>
-                    <div class="chart-wrapper tall"><canvas id="questionTrendChart"></canvas></div>
-                </div>
-            </div>
-            <div class="dash-col">
-                <div class="dash-card">
-                    <div class="dash-card-header"><div>Question Performance Matrix<div class="dash-card-subtitle">Pass rate vs question weight (bubble = volume)</div></div></div>
-                    <div class="chart-wrapper tall"><canvas id="questionMatrixChart"></canvas></div>
-                </div>
-            </div>
-        </div>
-        <div class="dash-container" style="margin-top:18px;">
-            <div class="dash-col">
-                <div class="dash-card">
-                    <div class="dash-card-header"><div>Question Details — Last 30 Days<div class="dash-card-subtitle">Click any row to see failing records</div></div></div>
-                    <div id="questionDetailsList" style="max-height:400px; overflow-y:auto;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- COACHING -->
     <div id="dash-coaching" class="dash-subview">
@@ -4726,44 +4692,83 @@ function renderTrendTables(data) {
         ${buckets.map(b=>`<th style="${thStyle}">${b.label}</th>`).join('')}
     </tr></thead><tbody>`;
 
-    segRows.forEach(row => {
-        seg += `<tr><td style="${tdLeft}">${row.section}</td>${row.cells.map(v => {
-            if (v === null) return `<td style="${tdStyle}">—</td>`;
-            const color = v >= 90 ? 'var(--pass-green)' : v >= 75 ? '#b45309' : 'var(--fail-red)';
-            return `<td style="${tdStyle} color:${color}; font-weight:600;">${v.toFixed(0)}%</td>`;
-        }).join('')}</tr>`;
+    // Store buckets on window so expandTrendSection can access them
+    window.__trendBuckets = buckets;
+
+    segRows.forEach((row, si) => {
+        const secId = `trendsec_${si}`;
+        seg += `<tr style="cursor:pointer;" onclick="toggleTrendSection('${secId}', '${row.section.replace(/'/g,"\\'")}', ${si})" title="Click to expand sub-questions">
+            <td style="${tdLeft} user-select:none;">
+                <span id="${secId}_arrow" style="display:inline-block;width:14px;transition:transform .2s;">▶</span> ${row.section}
+            </td>
+            ${row.cells.map(v => {
+                if (v === null) return `<td style="${tdStyle}">—</td>`;
+                const color = v >= 90 ? 'var(--pass-green)' : v >= 75 ? '#b45309' : 'var(--fail-red)';
+                return `<td style="${tdStyle} color:${color}; font-weight:600;">${v.toFixed(0)}%</td>`;
+            }).join('')}
+        </tr>
+        <tr id="${secId}_expand" style="display:none;">
+            <td colspan="${buckets.length + 1}" style="padding:0; background:#f8fafc; border:1px solid #e4e8ed;">
+                <div id="${secId}_content" style="padding:8px 12px;"></div>
+            </td>
+        </tr>`;
     });
     seg += '</tbody>';
     document.getElementById('trendSegTable').innerHTML = seg;
+}
 
-    // Chart 2: multi-line — one line per section
-    const segColors = [CHART_COLORS.blue, CHART_COLORS.green, CHART_COLORS.purple, CHART_COLORS.orange, CHART_COLORS.cyan, CHART_COLORS.red, CHART_COLORS.yellow];
-    makeChart('trendSegChart', {
-        type: 'line',
-        data: {
-            labels,
-            datasets: segRows.map((row, i) => ({
-                label: row.section,
-                data: row.cells,
-                borderColor: segColors[i % segColors.length],
-                backgroundColor: 'transparent',
-                tension: 0.3,
-                pointRadius: 3,
-                pointHoverRadius: 6,
-                borderWidth: 2,
-                spanGaps: true
-            }))
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } },
-            scales: {
-                y: { min: 0, max: 100, ticks: { callback: v=>v+'%', font: { size: 10 } } },
-                x: { ticks: { font: { size: 10 } } }
-            }
-        }
+function toggleTrendSection(secId, sectionName, secIdx) {
+    const expandRow = document.getElementById(secId + '_expand');
+    const arrow     = document.getElementById(secId + '_arrow');
+    const content   = document.getElementById(secId + '_content');
+    const isOpen    = expandRow.style.display !== 'none';
+
+    if (isOpen) {
+        expandRow.style.display = 'none';
+        arrow.style.transform = '';
+        return;
+    }
+
+    arrow.style.transform = 'rotate(90deg)';
+    expandRow.style.display = '';
+
+    // Build per-question breakdown for this section across all buckets
+    const buckets  = window.__trendBuckets || [];
+    const qs       = qaQuestions.filter(q => q.section === sectionName);
+    const thStyle  = 'padding:6px 8px;background:#eef2f7;border:1px solid #dde3ec;font-weight:700;text-align:center;font-size:10px;white-space:nowrap;';
+    const tdStyle  = 'padding:5px 8px;border:1px solid #e4e8ed;text-align:center;font-size:11px;';
+    const tdLeft   = 'padding:5px 8px;border:1px solid #e4e8ed;font-size:11px;white-space:nowrap;';
+
+    let html = `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+            <th style="${thStyle} text-align:left;">Question</th>
+            <th style="${thStyle}">Wt</th>
+            ${buckets.map(b => `<th style="${thStyle}">${b.label}</th>`).join('')}
+        </tr></thead><tbody>`;
+
+    qs.forEach(q => {
+        const cells = buckets.map(b => {
+            let pass = 0, total = 0;
+            b.recs.forEach(r => {
+                const ans = r.qa_details?.[`Q${q.id}_Answer`];
+                if (ans !== undefined && ans !== null) { total++; if (ans === 'Yes') pass++; }
+            });
+            return total ? (pass / total * 100) : null;
+        });
+
+        html += `<tr>
+            <td style="${tdLeft} color:var(--header-blue);">${q.title}</td>
+            <td style="${tdStyle} color:var(--text-muted);">${q.w}%</td>
+            ${cells.map(v => {
+                if (v === null) return `<td style="${tdStyle}; color:#ccc;">—</td>`;
+                const color = v >= 90 ? 'var(--pass-green)' : v >= 75 ? '#b45309' : 'var(--fail-red)';
+                return `<td style="${tdStyle} color:${color}; font-weight:600;">${v.toFixed(0)}%</td>`;
+            }).join('')}
+        </tr>`;
     });
+
+    html += '</tbody></table>';
+    content.innerHTML = html;
 }
 
 // ---- QA DEEP DIVE ----
@@ -7883,16 +7888,34 @@ function initAdvancedDashboard() {
 // ============================================================
 // INITIALIZATION
 // ============================================================
+// Paginated loader — fetches all rows in 1000-row batches to bypass Supabase default limit
+async function fetchAllEvaluations() {
+    const PAGE = 1000;
+    let allRows = [];
+    let from = 0;
+    while (true) {
+        const { data, error } = await supabaseClient
+            .from('evaluations')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRows = allRows.concat(data);
+        if (data.length < PAGE) break;  // last page
+        from += PAGE;
+    }
+    return allRows;
+}
+
 async function initApp() {
     // Supabase already initialized at page load; no re-init needed here
 
     // Load data
     if (supabaseEnabled) {
         try {
-            const { data: evalData, error: evalErr } = await supabaseClient
-                .from('evaluations').select('*').order('created_at', { ascending: false });
-            if (evalErr) throw evalErr;
-            evaluationsDB = (evalData || []).map(normalizeEval).filter(Boolean);
+            const evalData = await fetchAllEvaluations();
+            evaluationsDB = evalData.map(normalizeEval).filter(Boolean);
         } catch (e) {
             console.warn("Could not load evaluations from Supabase:", e.message);
             evaluationsDB = [];
@@ -7964,11 +7987,9 @@ async function initApp() {
     if (supabaseEnabled) {
         setInterval(async () => {
             try {
-                const { data } = await supabaseClient.from('evaluations').select('*').order('created_at', { ascending: false });
-                if (data) {
-                    evaluationsDB = data.map(normalizeEval).filter(Boolean);
-                    if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
-                }
+                const data = await fetchAllEvaluations();
+                evaluationsDB = data.map(normalizeEval).filter(Boolean);
+                if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
             } catch (e) { /* silent */ }
         }, 15000);
         // Periodic sync of selection options (pull from Supabase every 30s)
