@@ -1023,7 +1023,17 @@
         <div class="dash-container">
             <div class="dash-col" style="flex:1.5;">
                 <div class="dash-card">
-                    <div class="dash-card-header"><div>Score Trend<div class="dash-card-subtitle">Monthly avg score & auto-fail rate</div></div></div>
+                    <div class="dash-card-header">
+                        <div>Score Trend<div class="dash-card-subtitle" id="overviewTrendSubtitle">Monthly count & avg QA score</div></div>
+                        <div style="display:flex;gap:6px;">
+                            <button id="ovTrendWeekly" class="btn btn-secondary btn-small" onclick="switchOverviewTrend('weekly')" style="min-width:70px;">📆 Weekly</button>
+                            <button id="ovTrendDaily"  class="btn btn-secondary btn-small" onclick="switchOverviewTrend('daily')"  style="min-width:70px;">📅 Daily</button>
+                        </div>
+                    </div>
+                    <!-- Monthly summary table -->
+                    <div style="overflow-x:auto; margin-bottom:10px;">
+                        <table id="overviewMonthTable" style="width:100%;border-collapse:collapse;font-size:11px;"></table>
+                    </div>
                     <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
@@ -4232,72 +4242,11 @@ function renderOverview(data, threshold, holdThr) {
     document.getElementById('kpiHoldOver').textContent =
         mode === 'pct' ? `${total ? ((overHold/total)*100).toFixed(1) : 0}% over threshold` : `${overHold} over threshold`;
 
-    // TREND CHART (monthly)
-    const byMonth = {};
-    data.forEach(r => {
-        const m = r.month || (r.eval_date ? r.eval_date.substring(0,7) : '');
-        if (!m) return;
-        if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, autoFails: 0 };
-        byMonth[m].total++;
-        byMonth[m].sum += r.final_score;
-        if (r.auto_failed === "Yes") byMonth[m].autoFails++;
-    });
-    const months = Object.keys(byMonth).sort();
-    const targetScore = getScoreTarget();
-
-    // Auto narrative for the trend chart
-    if (months.length >= 2) {
-        const first = byMonth[months[0]], last = byMonth[months[months.length-1]];
-        const firstAvg = first.sum/first.total, lastAvg = last.sum/last.total;
-        const delta = lastAvg - firstAvg;
-        const cls = delta >= 1.5 ? 'positive' : delta <= -1.5 ? 'negative' : '';
-        const dir = delta >= 0 ? 'up' : 'down';
-        const card = document.getElementById('trendChart')?.closest('.dash-card');
-        setChartNarrative(card,
-            `<strong>${months[months.length-1]}</strong> averaged <span class="num">${lastAvg.toFixed(1)}%</span> — ${dir} <span class="num">${Math.abs(delta).toFixed(1)}pp</span> since ${months[0]}. ` +
-            (lastAvg >= targetScore ? `Above the ${targetScore}% target.` : `${(targetScore-lastAvg).toFixed(1)}pp below the ${targetScore}% target.`));
-    } else if (months.length === 1) {
-        const m = byMonth[months[0]];
-        const card = document.getElementById('trendChart')?.closest('.dash-card');
-        setChartNarrative(card, `Only one month in window (${months[0]}). Avg <span class="num">${(m.sum/m.total).toFixed(1)}%</span> across <span class="num">${m.total}</span> audit${m.total===1?'':'s'}.`);
-    }
-
-    makeChart('trendChart', {
-        type: 'line',
-        data: {
-            labels: months,
-            datasets: [
-                { label: 'Avg Score', data: months.map(m => +(byMonth[m].sum/byMonth[m].total).toFixed(1)), borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', yAxisID: 'y', tension: 0.35, fill: true, pointBorderColor: CHART_COLORS.blue, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 7 },
-                { label: 'Auto-Fail %', data: months.map(m => +(byMonth[m].autoFails/byMonth[m].total*100).toFixed(1)), borderColor: CHART_COLORS.red, backgroundColor: 'rgba(200,16,46,0.05)', yAxisID: 'y1', tension: 0.35, fill: false, borderDash: [6,4], pointBorderColor: CHART_COLORS.red, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 3 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
-            onClick: (ev, els) => {
-                if (!els.length) return;
-                const monthLabel = months[els[0].index];
-                const monthData = data.filter(r => (r.month || r.eval_date?.substring(0,7)) === monthLabel);
-                openMonthlyDrillModal(monthLabel, monthData);
-            },
-            scales: {
-                y:  { position: 'left',  min: 0, max: 100, title: { display: true, text: 'Avg Score %', color: CHART_COLORS.blue, font: { weight: '600', size: 11 } }, ticks: { callback: v => v + '%', color: CHART_COLORS.blue, font: { weight: '500' } } },
-                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %', color: CHART_COLORS.red, font: { weight: '600', size: 11 } }, ticks: { callback: v => v + '%', color: CHART_COLORS.red, font: { weight: '500' } } }
-            },
-            plugins: {
-                tooltip: { callbacks: { label: (ctx) => `  ${ctx.dataset.label}: ${ctx.formattedValue}%` } },
-                annotation: {
-                    annotations: {
-                        target: {
-                            type: 'line', yMin: targetScore, yMax: targetScore, yScaleID: 'y',
-                            borderColor: CHART_COLORS.green, borderWidth: 2, borderDash: [6, 4],
-                            label: { display: true, content: `Target ${targetScore}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 10, weight: '700' }, padding: 4, borderRadius: 4 }
-                        }
-                    }
-                }
-            }
-        }
-    });
+    // TREND CHART — store data for toggle
+    window.__overviewTrendData = data;
+    window.__overviewTrendMode = window.__overviewTrendMode || 'monthly';
+    renderOverviewTrendChart(data);
+    renderOverviewMonthTable(data);
 
     // LEADERBOARD
     const byAgent = {};
@@ -4769,6 +4718,127 @@ function toggleTrendSection(secId, sectionName, secIdx) {
 
     html += '</tbody></table>';
     content.innerHTML = html;
+}
+
+// ---- OVERVIEW TREND CHART HELPERS ----
+function switchOverviewTrend(mode) {
+    window.__overviewTrendMode = mode;
+    const data = window.__overviewTrendData || [];
+    document.getElementById('ovTrendWeekly').className = mode === 'weekly' ? 'btn btn-small' : 'btn btn-secondary btn-small';
+    document.getElementById('ovTrendDaily').className  = mode === 'daily'  ? 'btn btn-small' : 'btn btn-secondary btn-small';
+    const subtitles = { monthly: 'Monthly count & avg QA score', weekly: 'Weekly count & avg QA score (12 weeks)', daily: 'Daily count & avg QA score (30 days)' };
+    document.getElementById('overviewTrendSubtitle').textContent = subtitles[mode] || subtitles.monthly;
+    renderOverviewTrendChart(data);
+}
+
+function renderOverviewMonthTable(data) {
+    const byMonth = {};
+    data.forEach(r => {
+        const m = r.month || r.eval_date?.substring(0,7);
+        if (!m) return;
+        if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, af: 0 };
+        byMonth[m].total++;
+        byMonth[m].sum += r.final_score;
+        if (r.auto_failed === 'Yes') byMonth[m].af++;
+    });
+    const months = Object.keys(byMonth).sort();
+    if (!months.length) { document.getElementById('overviewMonthTable').innerHTML = ''; return; }
+
+    const thS = 'padding:6px 10px;background:#f0f4f9;border:1px solid #e4e8ed;font-weight:700;font-size:10px;text-align:center;white-space:nowrap;';
+    const tdS = 'padding:5px 10px;border:1px solid #e4e8ed;text-align:center;font-size:11px;';
+    const tdL = 'padding:5px 10px;border:1px solid #e4e8ed;font-weight:600;font-size:11px;white-space:nowrap;';
+
+    let html = `<thead><tr>
+        <th style="${thS} text-align:left;">Metric</th>
+        ${months.map(m => `<th style="${thS}">${m}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+    // Count row with mini bar
+    const maxN = Math.max(...months.map(m => byMonth[m].total), 1);
+    html += `<tr><td style="${tdL}">📊 Audits</td>${months.map(m => {
+        const n = byMonth[m].total;
+        const pct = (n / maxN * 100).toFixed(0);
+        return `<td style="${tdS}"><div style="font-weight:700;">${n}</div><div style="height:4px;background:#e4e8ed;border-radius:2px;margin-top:2px;"><div style="width:${pct}%;height:100%;background:${CHART_COLORS.cyan};border-radius:2px;"></div></div></td>`;
+    }).join('')}</tr>`;
+
+    // Avg Score row
+    html += `<tr><td style="${tdL}">🎯 Avg Score</td>${months.map(m => {
+        const v = byMonth[m].sum / byMonth[m].total;
+        const color = v >= 92 ? 'var(--pass-green)' : v >= 80 ? '#b45309' : 'var(--fail-red)';
+        return `<td style="${tdS} font-weight:700; color:${color};">${v.toFixed(1)}%</td>`;
+    }).join('')}</tr>`;
+
+    html += '</tbody>';
+    document.getElementById('overviewMonthTable').innerHTML = html;
+}
+
+function renderOverviewTrendChart(data) {
+    const mode = window.__overviewTrendMode || 'monthly';
+    const now = new Date();
+    const day = 86400000;
+    const targetScore = getScoreTarget();
+    let labels = [], avgScores = [], afRates = [];
+
+    if (mode === 'monthly') {
+        const byMonth = {};
+        data.forEach(r => {
+            const m = r.month || r.eval_date?.substring(0,7);
+            if (!m) return;
+            if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, af: 0 };
+            byMonth[m].total++; byMonth[m].sum += r.final_score;
+            if (r.auto_failed === 'Yes') byMonth[m].af++;
+        });
+        labels = Object.keys(byMonth).sort();
+        avgScores = labels.map(m => +(byMonth[m].sum / byMonth[m].total).toFixed(1));
+        afRates   = labels.map(m => +(byMonth[m].af / byMonth[m].total * 100).toFixed(1));
+
+    } else if (mode === 'weekly') {
+        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
+        for (let i = 11; i >= 0; i--) {
+            const wStart = new Date(startOfWeek.getTime() - i * 7 * day);
+            const wEnd   = new Date(wStart.getTime() + 7 * day);
+            const recs   = data.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; });
+            labels.push(`W${wStart.getMonth()+1}/${wStart.getDate()}`);
+            avgScores.push(recs.length ? +(recs.reduce((s,r)=>s+r.final_score,0)/recs.length).toFixed(1) : null);
+            afRates.push(recs.length ? +(recs.filter(r=>r.auto_failed==='Yes').length/recs.length*100).toFixed(1) : null);
+        }
+    } else {
+        for (let i = 29; i >= 0; i--) {
+            const d   = new Date(now.getTime() - i * day);
+            const key = d.toISOString().substring(0,10);
+            const recs = data.filter(r => r.eval_date === key);
+            labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+            avgScores.push(recs.length ? +(recs.reduce((s,r)=>s+r.final_score,0)/recs.length).toFixed(1) : null);
+            afRates.push(recs.length ? +(recs.filter(r=>r.auto_failed==='Yes').length/recs.length*100).toFixed(1) : null);
+        }
+    }
+
+    makeChart('trendChart', {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Avg Score', data: avgScores, borderColor: CHART_COLORS.blue, backgroundColor: 'rgba(0,43,94,0.08)', yAxisID: 'y',  tension: 0.35, fill: true,  pointBorderColor: CHART_COLORS.blue, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 7, spanGaps: true },
+                { label: 'Auto-Fail %', data: afRates, borderColor: CHART_COLORS.red,  backgroundColor: 'rgba(200,16,46,0.05)',  yAxisID: 'y1', tension: 0.35, fill: false, borderDash: [6,4], pointBorderColor: CHART_COLORS.red, pointBackgroundColor: '#fff', pointBorderWidth: 2, pointRadius: 3, spanGaps: true }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+                y:  { position: 'left',  min: 0, max: 100, title: { display: true, text: 'Avg Score %',  color: CHART_COLORS.blue, font: { weight: '600', size: 11 } }, ticks: { callback: v => v+'%', color: CHART_COLORS.blue } },
+                y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'Auto-Fail %', color: CHART_COLORS.red,  font: { weight: '600', size: 11 } }, ticks: { callback: v => v+'%', color: CHART_COLORS.red  } }
+            },
+            plugins: {
+                tooltip: { callbacks: { label: ctx => `  ${ctx.dataset.label}: ${ctx.formattedValue}%` } },
+                annotation: { annotations: { target: {
+                    type: 'line', yMin: targetScore, yMax: targetScore, yScaleID: 'y',
+                    borderColor: CHART_COLORS.green, borderWidth: 2, borderDash: [6,4],
+                    label: { display: true, content: `Target ${targetScore}%`, position: 'end', backgroundColor: CHART_COLORS.green, color: '#fff', font: { size: 10, weight: '700' }, padding: 4, borderRadius: 4 }
+                }}}
+            }
+        }
+    });
 }
 
 // ---- QA DEEP DIVE ----
