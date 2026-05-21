@@ -713,6 +713,73 @@
         .dash-col { min-width: 100%; }
         .perf-item { grid-template-columns: 140px 1fr 60px; }
     }
+
+    /* AGENT PROFILE DRAWER */
+    .ap-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; }
+    .ap-backdrop.open { display:block; animation:fadeIn .2s; }
+    .ap-drawer { position:fixed; top:0; right:-480px; width:460px; height:100vh; background:#fff; z-index:501; box-shadow:-8px 0 40px rgba(0,0,0,0.18); transition:right .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; overflow:hidden; }
+    .ap-drawer.open { right:0; }
+    .ap-drawer-header { padding:20px 24px 16px; background:linear-gradient(135deg,#002b5e,#004a99); color:#fff; flex-shrink:0; }
+    .ap-drawer-name { font-size:22px; font-weight:900; letter-spacing:-.3px; margin-bottom:2px; }
+    .ap-drawer-meta { font-size:12px; opacity:.7; }
+    .ap-drawer-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,.15); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .ap-drawer-close:hover { background:rgba(255,255,255,.3); }
+    .ap-drawer-body { flex:1; overflow-y:auto; padding:20px 24px; }
+    .ap-section { margin-bottom:22px; }
+    .ap-section-title { font-size:10px; font-weight:800; color:#002b5e; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #e4e8ed; padding-bottom:6px; margin-bottom:12px; }
+    .ap-kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:4px; }
+    .ap-kpi { background:#f4f7fb; border-radius:8px; padding:12px 14px; }
+    .ap-kpi-label { font-size:10px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; }
+    .ap-kpi-value { font-size:20px; font-weight:900; color:#1a2332; }
+    .ap-kpi-sub { font-size:10px; color:#9ca3af; margin-top:1px; }
+    .ap-eval-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:7px; margin-bottom:5px; background:#f9fafb; border:1px solid #f0f4f9; }
+    .ap-eval-date { font-size:11px; color:#6b7280; min-width:72px; }
+    .ap-eval-score { font-size:13px; font-weight:800; min-width:48px; }
+    .ap-eval-cnn { font-size:11px; color:#9ca3af; flex:1; }
+    .ap-eval-status { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+    .ap-weakness-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #f0f4f9; }
+    .ap-weakness-bar-wrap { flex:1; background:#e4e8ed; border-radius:4px; height:6px; overflow:hidden; }
+    .ap-weakness-bar { height:100%; border-radius:4px; }
+    .ap-trend-spark { display:flex; align-items:flex-end; gap:3px; height:36px; }
+    .ap-trend-spark-bar { width:10px; border-radius:2px 2px 0 0; background:#00aeef; opacity:.7; transition:opacity .2s; }
+    .ap-trend-spark-bar:hover { opacity:1; }
+
+    /* QUOTA TRACKER WIDGET (sidebar) */
+    .quota-widget { margin:8px 12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:10px 12px; }
+    .quota-widget-title { font-size:10px; font-weight:700; color:rgba(255,255,255,.6); text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+    .quota-progress-ring { display:flex; align-items:center; gap:10px; }
+    .quota-ring-wrap { position:relative; width:44px; height:44px; flex-shrink:0; }
+    .quota-ring-wrap svg { transform:rotate(-90deg); }
+    .quota-ring-bg { fill:none; stroke:rgba(255,255,255,.15); stroke-width:5; }
+    .quota-ring-fill { fill:none; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+    .quota-ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; }
+    .quota-text { flex:1; }
+    .quota-text-main { font-size:12px; font-weight:700; color:#fff; }
+    .quota-text-sub { font-size:10px; color:rgba(255,255,255,.5); margin-top:1px; }
+    .quota-set-btn { font-size:9px; color:rgba(255,255,255,.4); background:none; border:none; cursor:pointer; padding:0; }
+    .quota-set-btn:hover { color:rgba(255,255,255,.8); }
+
+    /* SPARKLINE in agent table */
+    .spark-cell { display:inline-flex; align-items:flex-end; gap:2px; height:24px; vertical-align:middle; }
+    .spark-cell svg { overflow:visible; }
+
+    /* COACHING NUDGE PANEL */
+    .nudge-panel { margin-top:14px; background:linear-gradient(135deg,#fffbeb,#fef3c7); border:1px solid #fcd34d; border-left:4px solid #f59e0b; border-radius:8px; padding:12px 16px; }
+    .nudge-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .nudge-title { font-size:12px; font-weight:800; color:#92400e; text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
+    .nudge-dismiss { background:none; border:none; font-size:12px; color:#b45309; cursor:pointer; opacity:.7; padding:0; }
+    .nudge-dismiss:hover { opacity:1; }
+    .nudge-kpis { display:flex; gap:12px; margin-bottom:10px; }
+    .nudge-kpi { background:rgba(255,255,255,.6); border-radius:6px; padding:7px 12px; text-align:center; }
+    .nudge-kpi-val { font-size:16px; font-weight:900; color:#92400e; line-height:1; }
+    .nudge-kpi-lbl { font-size:10px; color:#b45309; margin-top:2px; text-transform:uppercase; letter-spacing:.3px; }
+    .nudge-misses { display:flex; flex-direction:column; gap:5px; }
+    .nudge-miss-row { display:flex; align-items:center; gap:8px; }
+    .nudge-miss-label { font-size:12px; font-weight:600; color:#78350f; flex:1; }
+    .nudge-miss-bar-wrap { width:90px; background:rgba(0,0,0,.08); border-radius:3px; height:5px; overflow:hidden; }
+    .nudge-miss-bar { height:100%; border-radius:3px; background:#f59e0b; }
+    .nudge-miss-pct { font-size:11px; font-weight:700; color:#b45309; min-width:30px; text-align:right; }
+    .nudge-footer { font-size:11px; color:#92400e; margin-top:10px; padding-top:8px; border-top:1px solid rgba(245,158,11,.3); font-style:italic; }
 </style>
 </head>
 <body>
@@ -795,6 +862,27 @@
     </div>
     <!-- Save Status Badge -->
     <div id="saveStatusBadge" style="display:none;margin:8px 12px 0;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:700;line-height:1.4;cursor:pointer;" onclick="retryPendingQueue()" title="Click to retry pending saves"></div>
+    <!-- Quota Tracker Widget -->
+    <div class="quota-widget" id="quotaWidget" style="display:none;">
+        <div class="quota-widget-title">
+            <span>Today's Quota</span>
+            <button class="quota-set-btn" onclick="promptSetQuota()" title="Change quota">&#9998; Edit</button>
+        </div>
+        <div class="quota-progress-ring">
+            <div class="quota-ring-wrap">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                    <circle class="quota-ring-bg" cx="22" cy="22" r="18"/>
+                    <circle class="quota-ring-fill" id="quotaRingFill" cx="22" cy="22" r="18"
+                        stroke-dasharray="113" stroke-dashoffset="113" stroke="#00aeef"/>
+                </svg>
+                <div class="quota-ring-label" id="quotaRingLabel">0</div>
+            </div>
+            <div class="quota-text">
+                <div class="quota-text-main" id="quotaTextMain">0 of 10 done</div>
+                <div class="quota-text-sub" id="quotaTextSub">10 remaining today</div>
+            </div>
+        </div>
+    </div>
     <div class="sidebar-footer">LG QA Hub v4.1<br>© 2026 LG Electronics</div>
 </div>
 
@@ -863,6 +951,8 @@
             <div class="agent-info-badge">📋 LOB: <span id="ai_lob">—</span></div>
             <div class="agent-info-badge">📦 Site: <span id="ai_site">—</span></div>
         </div>
+        <!-- Coaching Nudge Panel -->
+        <div id="agentNudge" style="display:none;"></div>
     </div>
 
     <div class="card">
@@ -1107,6 +1197,8 @@
                     <div style="overflow-x:auto; margin-bottom:10px;">
                         <table id="overviewMonthTable" style="width:100%;border-collapse:collapse;font-size:11px;"></table>
                     </div>
+                    <!-- Drill-down indicator removed -->
+                    <div id="ovDrillBanner" style="display:none;"><span id="ovDrillLabel"></span></div>
                     <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
@@ -1944,6 +2036,17 @@
 
 <div class="toast" id="toast">✓ Done</div>
 
+<!-- AGENT PROFILE DRAWER -->
+<div class="ap-backdrop" id="apBackdrop" onclick="closeAgentProfile()"></div>
+<div class="ap-drawer" id="apDrawer">
+    <div class="ap-drawer-header">
+        <div class="ap-drawer-name" id="apName">—</div>
+        <div class="ap-drawer-meta" id="apMeta">—</div>
+        <button class="ap-drawer-close" onclick="closeAgentProfile()">&#10005;</button>
+    </div>
+    <div class="ap-drawer-body" id="apBody"></div>
+</div>
+
 <script>
 // ==================================================================
 // LG QA HUB — Application Logic
@@ -2212,7 +2315,7 @@ function normalizeEval(r) {
     return {
         id:              r.id,
         eval_date:       r["Eval Date"]       || r.eval_date       || "",
-        month:           r["Month"]           || r.month           || ((r["Eval Date"]||r.eval_date||"").substring(0,7)),
+        month:           normalizeMonthKey(r["Month"] || r.month || (r["Eval Date"]||r.eval_date||"").substring(0,7)),
         cnn:             r["CNN"]             || r.cnn             || "",
         qa_name:         r["QA Name"]         || r.qa_name         || "—",
         agent_name:      r["Agent Name"]      || r.agent_name      || "—",
@@ -2242,6 +2345,25 @@ function normalizeEval(r) {
         qa_details: qa,
         metadata:            r.metadata            || null
     };
+}
+
+// Convert various month formats to YYYY-MM (e.g. APR-26, Apr-26, 2026-04 → 2026-04)
+function normalizeMonthKey(raw) {
+    if (!raw) return '';
+    // Already YYYY-MM
+    if (/^\d{4}-\d{2}$/.test(raw)) return raw;
+    // MMM-YY or MMM YY e.g. APR-26 or Apr 26
+    const match = raw.match(/^([A-Za-z]{3})[\s\-](\d{2})$/);
+    if (match) {
+        const months = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+                         jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+        const mo = months[match[1].toLowerCase()];
+        if (mo) return `20${match[2]}-${mo}`;
+    }
+    // Try Date parse as last resort
+    const d = new Date(raw);
+    if (!isNaN(d)) return d.toISOString().substring(0,7);
+    return raw;
 }
 
 // Detect auto-fail from AF flags (AF_1 to AF_5) - returns "Yes" if any flag is "Yes"
@@ -3195,9 +3317,84 @@ function onAgentSelected() {
         document.getElementById('ai_site').textContent  = agent.site  || '—';
         strip.classList.remove('hidden');
         strip.style.display = 'grid';
+        renderAgentNudge(agent.name);
     } else {
         strip.classList.add('hidden');
+        const nudge = document.getElementById('agentNudge');
+        if (nudge) nudge.style.display = 'none';
     }
+}
+
+function renderAgentNudge(agentName) {
+    const nudge = document.getElementById('agentNudge');
+    if (!nudge) return;
+
+    const LOOKBACK = 6;
+    const recs = evaluationsDB
+        .filter(r => r.agent_name === agentName)
+        .sort((a, b) => new Date(b.eval_date) - new Date(a.eval_date))
+        .slice(0, LOOKBACK);
+
+    if (!recs.length) { nudge.style.display = 'none'; return; }
+
+    const threshold = getScoreTarget();
+    const avg    = recs.reduce((s, r) => s + r.final_score, 0) / recs.length;
+    const passes = recs.filter(r => r.final_score >= threshold).length;
+    const afs    = recs.filter(r => r.auto_failed === 'Yes').length;
+
+    // Count fails per question
+    const qFails = {};
+    recs.forEach(r => {
+        const qa = r.qa_details || {};
+        for (let i = 1; i <= 22; i++) {
+            if (qa[`Q${i}_Answer`] === 'No') qFails[i] = (qFails[i] || 0) + 1;
+        }
+    });
+
+    const topMisses = Object.entries(qFails)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([qId, fails]) => {
+            const q = qaQuestions.find(q => q.id == qId);
+            return { label: q ? q.title : `Q${qId}`, pct: Math.round(fails / recs.length * 100) };
+        });
+
+    if (!topMisses.length) { nudge.style.display = 'none'; return; }
+
+    const missesHtml = topMisses.map(m => `
+        <div class="nudge-miss-row">
+            <div class="nudge-miss-label">${m.label}</div>
+            <div class="nudge-miss-bar-wrap"><div class="nudge-miss-bar" style="width:${m.pct}%;"></div></div>
+            <div class="nudge-miss-pct">${m.pct}%</div>
+        </div>`).join('');
+
+    const watchList = topMisses.map(m => m.label).join(', ');
+    const avgCol = avg >= threshold ? '#065f46' : avg >= 80 ? '#92400e' : '#991b1b';
+
+    nudge.innerHTML = `<div class="nudge-panel">
+        <div class="nudge-header">
+            <div class="nudge-title">⚠️ Coaching Heads-Up &nbsp;·&nbsp; Last ${recs.length} audits</div>
+            <button class="nudge-dismiss" onclick="document.getElementById('agentNudge').style.display='none'" title="Dismiss">✕ Dismiss</button>
+        </div>
+        <div class="nudge-kpis">
+            <div class="nudge-kpi">
+                <div class="nudge-kpi-val" style="color:${avgCol}">${avg.toFixed(1)}%</div>
+                <div class="nudge-kpi-lbl">Avg Score</div>
+            </div>
+            <div class="nudge-kpi">
+                <div class="nudge-kpi-val">${passes}/${recs.length}</div>
+                <div class="nudge-kpi-lbl">Passed</div>
+            </div>
+            <div class="nudge-kpi">
+                <div class="nudge-kpi-val" style="color:${afs > 0 ? '#991b1b' : '#065f46'}">${afs}</div>
+                <div class="nudge-kpi-lbl">Auto-Fails</div>
+            </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Frequently Missed</div>
+        <div class="nudge-misses">${missesHtml}</div>
+        <div class="nudge-footer">👁️ Watch closely: <strong>${watchList}</strong></div>
+    </div>`;
+    nudge.style.display = 'block';
 }
 
 // ============================================================
@@ -3356,6 +3553,7 @@ function resetForm() {
     if (!confirm("Clear all form fields?")) return;
     document.getElementById('agentSelect').value = '';
     document.getElementById('agentInfoStrip').classList.add('hidden');
+    const _nudge = document.getElementById('agentNudge'); if (_nudge) _nudge.style.display = 'none';
     document.getElementById('f_CNN').value = '';
     document.getElementById('f_HoldTime').value = '';
     document.getElementById('f_Product').value = '';
@@ -3542,6 +3740,7 @@ async function saveEvaluation() {
             clearFormDraft();
             window.__lastSavedAt = Date.now();
             updateSaveStatusBadge();
+            updateQuotaWidget();
         } catch (e) {
             // Pull every field Supabase gives us so we can actually see the failure
             console.error("Supabase save error — full object:", e);
@@ -4843,14 +5042,14 @@ function renderOverview(data, threshold, holdThr) {
         .slice(0, 5);
     const lb = document.getElementById('topLeaderboard');
     lb.innerHTML = top.length ? top.map((a,i) => `
-        <div class="leader-row">
+        <div class="leader-row" style="cursor:pointer;" onclick="openAgentProfile('${(a.name||'').replace(/'/g,"&#39;")}')" title="Click to view ${a.name}'s profile">
             <div class="leader-rank">${i+1}</div>
             <div>
                 <div class="leader-name">${a.name}</div>
                 <div class="leader-meta">${a.count} audit${a.count===1?'':'s'}</div>
             </div>
             <div class="leader-score">${a.avg.toFixed(1)}%</div>
-        </div>`).join('') : '<div style="text-align:center; color:var(--text-muted); padding:30px;">No data</div>';
+        </div>`).join('') : '<div style="text-align:center; color:var(--text-muted); padding:30px;">No data</div>'; 
 
     // DISTRIBUTION
     const buckets = [0,0,0,0,0]; // <60, 60-69, 70-79, 80-89, 90-100
@@ -5352,86 +5551,268 @@ function toggleTrendSection(secId, sectionName, secIdx) {
 // ---- OVERVIEW TREND CHART HELPERS ----
 function switchOverviewTrend(mode) {
     window.__overviewTrendMode = mode;
+    const drillMonth = window.__overviewDrillMonth || null;
     const data = window.__overviewTrendData || [];
     document.getElementById('ovTrendWeekly').className = mode === 'weekly' ? 'btn btn-small' : 'btn btn-secondary btn-small';
     document.getElementById('ovTrendDaily').className  = mode === 'daily'  ? 'btn btn-small' : 'btn btn-secondary btn-small';
-    const subtitles = { monthly: 'Monthly count & avg QA score', weekly: 'Weekly count & avg QA score (12 weeks)', daily: 'Daily count & avg QA score (30 days)' };
-    document.getElementById('overviewTrendSubtitle').textContent = subtitles[mode] || subtitles.monthly;
+    if (drillMonth) {
+        const [yr, mo] = drillMonth.split('-');
+        const label = new Date(parseInt(yr), parseInt(mo)-1, 1).toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+        const modeLabel = mode === 'daily' ? 'Daily' : 'Weekly';
+        document.getElementById('overviewTrendSubtitle').textContent = `${modeLabel} breakdown — ${label}`;
+        document.getElementById('ovDrillLabel').textContent = label;
+        renderOverviewMonthTable(data);
+    } else {
+        window.__overviewDrillMonth = null;
+        const subtitles = { monthly: 'Monthly count & avg QA score', weekly: 'Weekly count & avg QA score (12 weeks)', daily: 'Daily count & avg QA score (30 days)' };
+        document.getElementById('overviewTrendSubtitle').textContent = subtitles[mode] || subtitles.monthly;
+        const banner = document.getElementById('ovDrillBanner');
+        if (banner) banner.style.display = 'none';
+    }
+    renderOverviewTrendChart(data);
+}
+
+function drillOverviewMonth(month) {
+    // month = e.g. '2026-05'
+    window.__overviewDrillMonth = month;
+    window.__overviewTrendMode = 'weekly';
+    const data = window.__overviewTrendData || [];
+    // Update toggle buttons to show weekly as active
+    document.getElementById('ovTrendWeekly').className = 'btn btn-small';
+    document.getElementById('ovTrendDaily').className  = 'btn btn-secondary btn-small';
+    // Format label nicely e.g. 2026-05 → May 2026
+    const [yr, mo] = month.split('-');
+    const label = new Date(parseInt(yr), parseInt(mo)-1, 1).toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+    document.getElementById('overviewTrendSubtitle').textContent = `Weekly breakdown — ${label}`;
+    const banner = document.getElementById('ovDrillBanner');
+    if (banner) { banner.style.display = 'flex'; document.getElementById('ovDrillLabel').textContent = label; }
+    renderOverviewMonthTable(data);
+    renderOverviewTrendChart(data);
+}
+
+function clearOverviewDrill() {
+    window.__overviewDrillMonth = null;
+    window.__overviewTrendMode = 'monthly';
+    const data = window.__overviewTrendData || [];
+    document.getElementById('ovTrendWeekly').className = 'btn btn-secondary btn-small';
+    document.getElementById('ovTrendDaily').className  = 'btn btn-secondary btn-small';
+    document.getElementById('overviewTrendSubtitle').textContent = 'Monthly count & avg QA score';
+    const banner = document.getElementById('ovDrillBanner');
+    if (banner) banner.style.display = 'none';
+    renderOverviewMonthTable(data);
     renderOverviewTrendChart(data);
 }
 
 function renderOverviewMonthTable(data) {
+    const drillMonth = window.__overviewDrillMonth || null;
+    const trendMode  = window.__overviewTrendMode  || 'monthly';
+
+    const thS = `padding:10px 16px;background:linear-gradient(135deg,#f0f4f9,#e8edf5);border-bottom:2px solid #c8d3e0;font-weight:700;font-size:12px;text-align:center;white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;color:#4a5568;`;
+    const tdS = 'padding:10px 16px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:14px;';
+    const tdL = `padding:10px 16px;border-bottom:1px solid #f0f4f9;font-weight:700;font-size:13px;white-space:nowrap;color:#4a5568;text-transform:uppercase;letter-spacing:.3px;`;
+
+    // ── DRILLED VIEW: show weeks or days as columns ────────────
+    if (drillMonth) {
+        const [yr, mo] = drillMonth.split('-').map(Number);
+        const monthLabel = new Date(yr, mo-1, 1).toLocaleString('en-CA', { month: 'long', year: 'numeric' });
+        const drillData  = data.filter(r => (r.month || r.eval_date?.substring(0,7)) === drillMonth);
+        const day = 86400000;
+        const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+
+        let cols = []; // { label, sub, recs }
+
+        if (trendMode === 'daily') {
+            const daysInMonth = new Date(yr, mo, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) {
+                const key  = `${drillMonth}-${String(d).padStart(2,'0')}`;
+                const recs = drillData.filter(r => r.eval_date === key);
+                if (recs.length) {
+                    const dt = new Date(yr, mo-1, d);
+                    const dayName = dt.toLocaleString('en-CA',{weekday:'short'}).toUpperCase();
+                    cols.push({ label: `${mo}/${d}`, sub: dayName, recs });
+                }
+            }
+        } else {
+            // Weekly — snap to Monday, span whole month
+            const mStart = new Date(yr, mo-1, 1);
+            const mEnd   = new Date(yr, mo, 0);
+            let cur = new Date(mStart);
+            cur.setDate(cur.getDate() - ((cur.getDay()+6)%7));
+            let wNum = 1;
+            while (cur <= mEnd) {
+                const wEnd     = new Date(cur.getTime() + 7*day);
+                const wEndDisp = new Date(wEnd.getTime() - day); // last day of week
+                const recs     = drillData.filter(r => { const d = new Date(r.eval_date); return d >= cur && d < wEnd; });
+                // Date range label: e.g. Apr 28 – May 4
+                const startFmt = cur.toLocaleString('en-CA',{month:'short',day:'numeric'});
+                const endFmt   = wEndDisp.toLocaleString('en-CA',{month:'short',day:'numeric'});
+                cols.push({ label: `Week ${wNum}`, sub: `${startFmt} – ${endFmt}`, recs });
+                cur = wEnd;
+                wNum++;
+            }
+        }
+
+        if (!cols.filter(c=>c.recs.length).length) {
+            document.getElementById('overviewMonthTable').innerHTML =
+                `<tbody><tr><td colspan="99" style="padding:16px;text-align:center;color:#9ca3af;font-size:12px;">No evaluations recorded in ${monthLabel}</td></tr></tbody>`;
+            return;
+        }
+
+        // Pre-compute per-col stats for trend arrows
+        const colStats = cols.map(c => ({
+            n:    c.recs.length,
+            avg:  c.recs.length ? c.recs.reduce((s,r)=>s+r.final_score,0)/c.recs.length : null,
+            af:   c.recs.filter(r=>r.auto_failed==='Yes').length,
+            pass: c.recs.length ? c.recs.filter(r=>r.final_score >= getScoreTarget()).length : 0
+        }));
+        const maxN = Math.max(...colStats.map(s=>s.n), 1);
+
+        const trendArrow = (cur, prev) => {
+            if (cur === null || prev === null) return '';
+            const diff = cur - prev;
+            if (Math.abs(diff) < 0.5) return `<span style="color:#9ca3af;font-size:12px;"> ●</span>`;
+            return diff > 0
+                ? `<span style="color:#059669;font-size:12px;"> ▲${diff.toFixed(1)}</span>`
+                : `<span style="color:#dc2626;font-size:12px;"> ▼${Math.abs(diff).toFixed(1)}</span>`;
+        };
+
+        // Header: back button cell + week columns
+        let html = `<thead><tr>
+            <th style="${thS}text-align:left;border-radius:6px 0 0 0;padding-left:10px;">
+                <button onclick="clearOverviewDrill()" style="display:inline-flex;align-items:center;gap:5px;background:#002b5e;color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.5px;">
+                    &#8592; ALL MONTHS
+                </button>
+                <div style="font-size:13px;font-weight:800;color:#002b5e;margin-top:6px;text-transform:uppercase;letter-spacing:.5px;">${monthLabel}</div>
+            </th>
+            ${cols.map((c, i) => {
+                const hasData = c.recs.length > 0;
+                const bg = hasData ? '' : 'opacity:.5;';
+                return `<th style="${thS}${i===cols.length-1?'border-radius:0 6px 0 0;':''}${bg}">
+                    <div style="font-size:13px;font-weight:800;letter-spacing:.3px;">${c.label}</div>
+                    <div style="font-size:11px;font-weight:400;color:#6b7280;margin-top:2px;text-transform:none;letter-spacing:0;">${c.sub || ''}</div>
+                </th>`;
+            }).join('')}
+        </tr></thead><tbody>`;
+
+        // ── Audits row
+        html += `<tr><td style="${tdL}"><span style="font-size:13px;">📋</span> Audits</td>${colStats.map((s, i) => {
+            const pct = (s.n / maxN * 100).toFixed(0);
+            const prev = i > 0 ? colStats[i-1].n : null;
+            const diff = prev !== null ? s.n - prev : null;
+            const badge = diff !== null && diff !== 0
+                ? `<span style="font-size:11px;color:${diff>0?'#059669':'#dc2626'};">${diff>0?'+':''}${diff}</span>` : '';
+            return `<td style="${tdS}">
+                <div style="font-size:18px;font-weight:900;color:#1a2332;line-height:1;">${s.n} ${badge}</div>
+                <div style="height:4px;background:#e4e8ed;border-radius:3px;margin-top:5px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00aeef,#0063b1);border-radius:3px;"></div>
+                </div></td>`;
+        }).join('')}</tr>`;
+
+        // ── Avg Score row with trend arrow
+        html += `<tr style="background:#fafbfc;"><td style="${tdL}"><span style="font-size:13px;">🎯</span> Avg Score</td>${colStats.map((s, i) => {
+            if (s.avg === null) return `<td style="${tdS}background:#fafbfc;"><span style="color:#d1d5db;font-size:15px;">—</span></td>`;
+            const [bg, txt] = s.avg >= 92 ? ['#d1fae5','#065f46'] : s.avg >= 80 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+            const prevAvg = i > 0 ? colStats[i-1].avg : null;
+            const arrow = trendArrow(s.avg, prevAvg);
+            return `<td style="${tdS}background:#fafbfc;">
+                <span style="display:inline-block;padding:4px 12px;background:${bg};color:${txt};border-radius:20px;font-size:15px;font-weight:800;">${s.avg.toFixed(1)}%</span>
+                <div style="font-size:12px;margin-top:3px;">${arrow}</div>
+            </td>`;
+        }).join('')}</tr>`;
+
+        // ── Pass Rate row
+        html += `<tr><td style="${tdL}"><span style="font-size:13px;">✅</span> Pass Rate</td>${colStats.map(s => {
+            if (!s.n) return `<td style="${tdS}"><span style="color:#d1d5db;font-size:15px;">—</span></td>`;
+            const pct = (s.pass / s.n * 100);
+            const [bg, txt] = pct >= 92 ? ['#d1fae5','#065f46'] : pct >= 80 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
+            return `<td style="${tdS}"><span style="display:inline-block;padding:4px 12px;background:${bg};color:${txt};border-radius:20px;font-size:14px;font-weight:700;">${pct.toFixed(0)}%</span><div style="font-size:11px;color:#9ca3af;margin-top:2px;">${s.pass}/${s.n}</div></td>`;
+        }).join('')}</tr>`;
+
+        // ── Auto-Fail row
+        html += `<tr style="background:#fafbfc;"><td style="${tdL}"><span style="font-size:13px;">🚨</span> Auto-Fails</td>${colStats.map(s => {
+            if (!s.n) return `<td style="${tdS}background:#fafbfc;"><span style="color:#d1d5db;font-size:15px;">—</span></td>`;
+            const bg = s.af > 0 ? '#fee2e2' : '#f0fdf4', txt = s.af > 0 ? '#991b1b' : '#166534';
+            return `<td style="${tdS}background:#fafbfc;"><span style="display:inline-block;padding:4px 12px;background:${bg};color:${txt};border-radius:20px;font-size:15px;font-weight:800;">${s.af}</span></td>`;
+        }).join('')}</tr>`;
+
+        html += '</tbody>';
+        document.getElementById('overviewMonthTable').innerHTML = html;
+        return;
+    }
+
+    // ── DEFAULT VIEW: one column per month ────────────────────
     const byMonth = {};
     data.forEach(r => {
         const m = r.month || r.eval_date?.substring(0,7);
         if (!m) return;
         if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, af: 0 };
-        byMonth[m].total++;
-        byMonth[m].sum += r.final_score;
+        byMonth[m].total++; byMonth[m].sum += r.final_score;
         if (r.auto_failed === 'Yes') byMonth[m].af++;
     });
     const months = Object.keys(byMonth).sort();
     if (!months.length) { document.getElementById('overviewMonthTable').innerHTML = ''; return; }
-
-    const thS = `padding:8px 14px;background:linear-gradient(135deg,#f0f4f9,#e8edf5);
-        border-bottom:2px solid #c8d3e0;font-weight:700;font-size:10px;text-align:center;
-        white-space:nowrap;letter-spacing:.4px;text-transform:uppercase;color:#4a5568;`;
-    const tdS = 'padding:8px 14px;border-bottom:1px solid #f0f4f9;text-align:center;font-size:12px;';
-    const tdL = `padding:8px 14px;border-bottom:1px solid #f0f4f9;font-weight:700;font-size:11px;
-        white-space:nowrap;color:#4a5568;text-transform:uppercase;letter-spacing:.3px;`;
-
-    // Determine newest month for highlight
     const newestMonth = months[months.length - 1];
 
     let html = `<thead><tr>
-        <th style="${thS} text-align:left;border-radius:6px 0 0 0;">Metric</th>
-        ${months.map((m,i) => {
+        <th style="${thS}text-align:left;border-radius:6px 0 0 0;color:#4a5568;">METRIC</th>
+        ${months.map((m, i) => {
             const isNewest = m === newestMonth;
-            const bg = isNewest ? 'background:linear-gradient(135deg,#002b5e,#004a99);color:#fff;' : '';
-            return `<th style="${thS}${bg}${i===months.length-1?'border-radius:0 6px 0 0;':''}">${m}${isNewest ? ' <span style="font-size:8px;background:rgba(255,255,255,.25);padding:1px 4px;border-radius:3px;">NOW</span>' : ''}</th>`;
+            const [yr, mo] = m.split('-');
+            const parsed = new Date(parseInt(yr), parseInt(mo)-1, 1);
+            const shortMo = isNaN(parsed) ? m : parsed.toLocaleString('en-CA', { month: 'short' }).toUpperCase();
+            const shortYr = isNaN(parsed) ? '' : `'${String(parsed.getFullYear()).slice(2)}`;
+            const displayLabel = isNaN(parsed) ? m : `${shortMo}-${shortYr}`;
+            let cellStyle, labelColor;
+            if (isNewest) {
+                cellStyle = `${thS}background:linear-gradient(135deg,#002b5e,#003d82);color:#fff;border-bottom:2px solid #004a99;cursor:pointer;${i===months.length-1?'border-radius:0 6px 0 0;':''}`;
+                labelColor = 'color:#fff;';
+            } else {
+                cellStyle = `${thS}cursor:pointer;transition:background .15s;${i===months.length-1?'border-radius:0 6px 0 0;':''}color:#374151;`;
+                labelColor = 'color:#374151;';
+            }
+            return `<th onclick="drillOverviewMonth('${m}')" title="Click to drill into ${displayLabel}" style="${cellStyle}" onmouseover="this.style.background='${isNewest?'#003d82':'#e2eaf5'}'" onmouseout="this.style.background='${isNewest?'linear-gradient(135deg,#002b5e,#003d82)':''}'">
+                <div style="font-size:11px;font-weight:800;letter-spacing:.5px;${labelColor}">${displayLabel}</div>
+                ${isNewest ? '<div style="font-size:8px;margin-top:2px;"><span style="background:rgba(255,255,255,.2);padding:1px 5px;border-radius:3px;">NOW</span></div>' : ''}
+            </th>`;
         }).join('')}
     </tr></thead><tbody>`;
 
-    // Count row with gradient bar
     const maxN = Math.max(...months.map(m => byMonth[m].total), 1);
-    html += `<tr>${months.reduce((acc, m, i) => {
-        const n = byMonth[m].total;
-        const pct = (n / maxN * 100).toFixed(0);
-        const isNewest = m === newestMonth;
-        const cellBg = isNewest ? 'background:#f0f7ff;' : '';
-        if (i === 0) acc = `<td style="${tdL}">📊 Audits</td>`;
-        return acc + `<td style="${tdS}${cellBg}">
-            <div style="font-size:15px;font-weight:800;color:#1a2332;line-height:1.1;">${n}</div>
-            <div style="height:5px;background:#e4e8ed;border-radius:3px;margin-top:4px;overflow:hidden;">
-                <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00aeef,#0063b1);border-radius:3px;transition:width .4s;"></div>
-            </div>
-        </td>`;
-    }, '')}</tr>`;
+    html += `<tr><td style="${tdL}">📊 Audits</td>${months.map(m => {
+        const n = byMonth[m].total, isNewest = m === newestMonth;
+        const pct = (n/maxN*100).toFixed(0);
+        return `<td style="${tdS}${isNewest?'background:#f0f7ff;':''}"><div style="font-size:15px;font-weight:800;color:#1a2332;">${n}</div>
+            <div style="height:5px;background:#e4e8ed;border-radius:3px;margin-top:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00aeef,#0063b1);border-radius:3px;"></div></div></td>`;
+    }).join('')}</tr>`;
 
-    // Avg Score row with pill badges
-    html += `<tr style="background:#fafbfc;">${months.reduce((acc, m, i) => {
-        const v = byMonth[m].sum / byMonth[m].total;
-        const isNewest = m === newestMonth;
-        const cellBg = isNewest ? 'background:#f0f7ff;' : 'background:#fafbfc;';
+    html += `<tr style="background:#fafbfc;"><td style="${tdL}">🎯 Avg Score</td>${months.map(m => {
+        const v = byMonth[m].sum / byMonth[m].total, isNewest = m === newestMonth;
         const [bg, txt] = v >= 92 ? ['#d1fae5','#065f46'] : v >= 80 ? ['#fef3c7','#92400e'] : ['#fee2e2','#991b1b'];
-        const pill = `<span style="display:inline-block;padding:3px 10px;background:${bg};color:${txt};
-            border-radius:20px;font-size:13px;font-weight:800;letter-spacing:.2px;">${v.toFixed(1)}%</span>`;
-        if (i === 0) acc = `<td style="${tdL}">🎯 Avg Score</td>`;
-        return acc + `<td style="${tdS}${cellBg}">${pill}</td>`;
-    }, '')}</tr>`;
+        return `<td style="${tdS}${isNewest?'background:#f0f7ff;':'background:#fafbfc;'}"><span style="display:inline-block;padding:3px 10px;background:${bg};color:${txt};border-radius:20px;font-size:13px;font-weight:800;">${v.toFixed(1)}%</span></td>`;
+    }).join('')}</tr>`;
 
     html += '</tbody>';
     document.getElementById('overviewMonthTable').innerHTML = html;
 }
 
 function renderOverviewTrendChart(data) {
-    const mode = window.__overviewTrendMode || 'monthly';
+    const mode        = window.__overviewTrendMode  || 'monthly';
+    const drillMonth  = window.__overviewDrillMonth || null;
     const now = new Date();
     const day = 86400000;
     const targetScore = getScoreTarget();
     let labels = [], avgScores = [], afRates = [];
 
-    if (mode === 'monthly') {
+    // When drilled into a month, filter data to that month and force weekly mode
+    let chartData = data;
+    if (drillMonth) {
+        chartData = data.filter(r => {
+            const m = r.month || r.eval_date?.substring(0,7);
+            return m === drillMonth;
+        });
+    }
+
+    if (mode === 'monthly' && !drillMonth) {
         const byMonth = {};
         data.forEach(r => {
             const m = r.month || r.eval_date?.substring(0,7);
@@ -5445,46 +5826,89 @@ function renderOverviewTrendChart(data) {
         afRates   = labels.map(m => +(byMonth[m].af / byMonth[m].total * 100).toFixed(1));
 
     } else if (mode === 'weekly') {
-        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
-        for (let i = 11; i >= 0; i--) {
-            const wStart = new Date(startOfWeek.getTime() - i * 7 * day);
-            const wEnd   = new Date(wStart.getTime() + 7 * day);
-            const recs   = data.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; });
-            labels.push(`W${wStart.getMonth()+1}/${wStart.getDate()}`);
+        // When drilled, span the actual month dates; otherwise last 12 weeks
+        let weekSlots = [];
+        if (drillMonth) {
+            const [yr, mo] = drillMonth.split('-').map(Number);
+            const mStart = new Date(yr, mo-1, 1);
+            const mEnd   = new Date(yr, mo, 0); // last day of month
+            // generate week slots spanning the month
+            let cur = new Date(mStart);
+            // snap to Monday
+            cur.setDate(cur.getDate() - ((cur.getDay()+6)%7));
+            while (cur <= mEnd) {
+                const wEnd = new Date(cur.getTime() + 7 * day);
+                weekSlots.push({ wStart: new Date(cur), wEnd });
+                cur = wEnd;
+            }
+        } else {
+            const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0,0,0,0);
+            for (let i = 11; i >= 0; i--) {
+                const wStart = new Date(startOfWeek.getTime() - i * 7 * day);
+                weekSlots.push({ wStart, wEnd: new Date(wStart.getTime() + 7 * day) });
+            }
+        }
+        weekSlots.forEach(({ wStart, wEnd }) => {
+            const recs = chartData.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; });
+            const mo = String(wStart.getMonth()+1).padStart(2,'0');
+            labels.push(`${mo}/${String(wStart.getDate()).padStart(2,'0')}`);
             avgScores.push(recs.length ? +(recs.reduce((s,r)=>s+r.final_score,0)/recs.length).toFixed(1) : null);
             afRates.push(recs.length ? +(recs.filter(r=>r.auto_failed==='Yes').length/recs.length*100).toFixed(1) : null);
-        }
+        });
     } else {
-        for (let i = 29; i >= 0; i--) {
-            const d   = new Date(now.getTime() - i * day);
-            const key = d.toISOString().substring(0,10);
-            const recs = data.filter(r => r.eval_date === key);
-            labels.push(`${d.getMonth()+1}/${d.getDate()}`);
+        // daily — if drilled show every day in that month, else last 30 days
+        let days = [];
+        if (drillMonth) {
+            const [yr, mo] = drillMonth.split('-').map(Number);
+            const daysInMonth = new Date(yr, mo, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) days.push(`${drillMonth}-${String(d).padStart(2,'0')}`);
+        } else {
+            for (let i = 29; i >= 0; i--) days.push(new Date(now.getTime() - i * day).toISOString().substring(0,10));
+        }
+        days.forEach(key => {
+            const recs = chartData.filter(r => r.eval_date === key);
+            labels.push(`${parseInt(key.substring(5,7))}/${parseInt(key.substring(8,10))}`);
             avgScores.push(recs.length ? +(recs.reduce((s,r)=>s+r.final_score,0)/recs.length).toFixed(1) : null);
             afRates.push(recs.length ? +(recs.filter(r=>r.auto_failed==='Yes').length/recs.length*100).toFixed(1) : null);
-        }
+        });
     }
 
-    // Build counts array (needed for bar dataset)
-    let counts = [];
-    if (mode === 'monthly') {
+    // Build counts array (needed for bar dataset) — same slots as labels
+    let counts = labels.map((_, idx) => {
+        const score = avgScores[idx];
+        return score !== null ? (afRates[idx] !== null ? 1 : 1) : 0; // placeholder; recalc below
+    });
+    // Proper count recalc
+    counts = [];
+    if (mode === 'monthly' && !drillMonth) {
         const byMonth2 = {};
-        data.forEach(r => {
-            const m = r.month || r.eval_date?.substring(0,7);
-            if (m) { if (!byMonth2[m]) byMonth2[m] = 0; byMonth2[m]++; }
-        });
+        chartData.forEach(r => { const m = r.month || r.eval_date?.substring(0,7); if (m) { byMonth2[m] = (byMonth2[m]||0)+1; } });
         counts = labels.map(m => byMonth2[m] || 0);
     } else if (mode === 'weekly') {
-        const startOfWeek2 = new Date(now); startOfWeek2.setDate(now.getDate() - now.getDay()); startOfWeek2.setHours(0,0,0,0);
-        for (let i = 11; i >= 0; i--) {
-            const wStart = new Date(startOfWeek2.getTime() - i * 7 * day);
-            const wEnd   = new Date(wStart.getTime() + 7 * day);
-            counts.push(data.filter(r => { const d = new Date(r.eval_date); return d >= wStart && d < wEnd; }).length);
+        let weekSlots2 = [];
+        if (drillMonth) {
+            const [yr, mo] = drillMonth.split('-').map(Number);
+            const mStart = new Date(yr, mo-1, 1), mEnd = new Date(yr, mo, 0);
+            let cur = new Date(mStart); cur.setDate(cur.getDate() - ((cur.getDay()+6)%7));
+            while (cur <= mEnd) { const wEnd = new Date(cur.getTime()+7*day); weekSlots2.push({wStart:new Date(cur),wEnd}); cur=wEnd; }
+        } else {
+            const s2 = new Date(now); s2.setDate(now.getDate()-now.getDay()); s2.setHours(0,0,0,0);
+            for (let i=11;i>=0;i--) { const wStart=new Date(s2.getTime()-i*7*day); weekSlots2.push({wStart,wEnd:new Date(wStart.getTime()+7*day)}); }
         }
+        counts = weekSlots2.map(({wStart,wEnd}) => chartData.filter(r=>{const d=new Date(r.eval_date);return d>=wStart&&d<wEnd;}).length);
     } else {
-        for (let i = 29; i >= 0; i--) {
-            const key = new Date(now.getTime() - i * day).toISOString().substring(0,10);
-            counts.push(data.filter(r => r.eval_date === key).length);
+        if (drillMonth) {
+            const [yr, mo] = drillMonth.split('-').map(Number);
+            const daysInMonth = new Date(yr, mo, 0).getDate();
+            for (let d=1;d<=daysInMonth;d++) {
+                const key=`${drillMonth}-${String(d).padStart(2,'0')}`;
+                counts.push(chartData.filter(r=>r.eval_date===key).length);
+            }
+        } else {
+            for (let i=29;i>=0;i--) {
+                const key=new Date(now.getTime()-i*day).toISOString().substring(0,10);
+                counts.push(chartData.filter(r=>r.eval_date===key).length);
+            }
         }
     }
 
@@ -6356,16 +6780,34 @@ function renderAgents(data, threshold) {
         }
     });
 
+    // Add Trend column header if not already there
+    const agentThead = document.querySelector('#agentTable thead tr');
+    if (agentThead && !agentThead.querySelector('.spark-th')) {
+        const th = document.createElement('th');
+        th.className = 'spark-th';
+        th.textContent = 'Trend';
+        th.title = 'Score trend — last 8 evaluations';
+        agentThead.insertBefore(th, agentThead.children[5]); // before Avg Score
+    }
+
     const tbody = document.getElementById('agentTbody');
     tbody.innerHTML = agents.map((a, i) => {
         const sentLabel = a.sentiment > 0.2 ? '😊' : a.sentiment < -0.2 ? '😠' : '😐';
         const safeName = (a.name || '').replace(/'/g, "&#39;");
-        return `<tr style="cursor:pointer;" onclick="openDrillModal('All audits: ${safeName}', '${a.audits} record${a.audits===1?'':'s'} · avg ${a.avg.toFixed(1)}%', evaluationsDB.filter(r => r.agent_name === '${safeName}'))" title="Click to drill into ${a.name}">
+        // Build sparkline from last 8 scores for this agent
+        const agentScores = evaluationsDB
+            .filter(r => r.agent_name === a.name)
+            .sort((x,y) => new Date(x.eval_date) - new Date(y.eval_date))
+            .slice(-8)
+            .map(r => r.final_score);
+        const spark = makeSparkline(agentScores);
+        return `<tr style="cursor:pointer;" onclick="openAgentProfile('${safeName}')" title="Click to open ${a.name}'s profile">
             <td><strong>${i+1}</strong></td>
-            <td>${a.name}</td>
+            <td style="font-weight:600;color:#002b5e;">${a.name}</td>
             <td>${a.coach || '—'}</td>
             <td>${a.site || '—'}</td>
             <td>${a.audits}</td>
+            <td>${spark}</td>
             <td><span class="badge ${a.avg >= threshold ? 'badge-green' : 'badge-red'}">${a.avg.toFixed(1)}%</span></td>
             <td>${a.af}</td>
             <td>${a.offerRate.toFixed(0)}%</td>
@@ -8745,6 +9187,210 @@ function initAdvancedDashboard() {
 }
 
 // ============================================================
+// AGENT PROFILE DRAWER
+// ============================================================
+function openAgentProfile(agentName) {
+    if (!agentName || agentName === '—') return;
+    const recs = evaluationsDB.filter(r => r.agent_name === agentName)
+        .sort((a, b) => new Date(b.eval_date) - new Date(a.eval_date));
+    const rosterAgent = getRosterAgentByName(agentName);
+    const threshold = getScoreTarget();
+
+    // Header
+    document.getElementById('apName').textContent = agentName;
+    const coach = recs[0]?.coach || rosterAgent?.coach || '—';
+    const site  = recs[0]?.site  || rosterAgent?.site  || '—';
+    const lob   = recs[0]?.lob   || rosterAgent?.lob   || '—';
+    document.getElementById('apMeta').textContent = `${coach}  ·  ${site}  ·  ${lob}`;
+
+    const avg   = recs.length ? recs.reduce((s,r)=>s+r.final_score,0)/recs.length : 0;
+    const afs   = recs.filter(r=>r.auto_failed==='Yes').length;
+    const pass  = recs.filter(r=>r.final_score>=threshold).length;
+    const passR = recs.length ? (pass/recs.length*100) : 0;
+
+    // Sparkline bars (last 12 evals)
+    const sparkRecs = [...recs].reverse().slice(-12);
+    const sparkMin  = Math.max(0, Math.min(...sparkRecs.map(r=>r.final_score), threshold) - 5);
+    const sparkMax  = 100;
+    const sparkBars = sparkRecs.map(r => {
+        const h = Math.max(4, ((r.final_score - sparkMin) / (sparkMax - sparkMin)) * 36);
+        const col = r.auto_failed==='Yes' ? '#c8102e' : r.final_score >= threshold ? '#00843d' : '#f59e0b';
+        return `<div class="ap-trend-spark-bar" style="height:${h}px;background:${col};" title="${r.eval_date}: ${r.final_score.toFixed(1)}%"></div>`;
+    }).join('');
+
+    // Last 5 evals
+    const last5 = recs.slice(0, 5).map(r => {
+        const [bg, txt] = r.auto_failed==='Yes' ? ['#fee2e2','#991b1b'] : r.final_score>=threshold ? ['#d1fae5','#065f46'] : ['#fef3c7','#92400e'];
+        const status = r.auto_failed==='Yes' ? 'AUTO-FAIL' : r.final_score>=threshold ? 'PASS' : 'FAIL';
+        return `<div class="ap-eval-row">
+            <div class="ap-eval-date">${r.eval_date || '—'}</div>
+            <div class="ap-eval-score" style="color:${txt}">${r.final_score.toFixed(1)}%</div>
+            <div class="ap-eval-cnn">CNN ${r.cnn || '—'}</div>
+            <span class="ap-eval-status" style="background:${bg};color:${txt}">${status}</span>
+        </div>`;
+    }).join('') || '<div style="color:#9ca3af;font-size:12px;padding:8px 0;">No evaluations found</div>';
+
+    // Weakest questions (questions where this agent fails most)
+    const qFails = {};
+    recs.forEach(r => {
+        const qa = r.qa_details || {};
+        for (let i = 1; i <= 22; i++) {
+            const ans = qa[`Q${i}_Answer`];
+            if (ans === 'No') qFails[i] = (qFails[i] || 0) + 1;
+        }
+    });
+    const weakest = Object.entries(qFails)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([qId, fails]) => {
+            const q = (typeof qaQuestions !== 'undefined' ? qaQuestions : []).find(q => q.id == qId);
+            const label = q ? q.title : `Question ${qId}`;
+            const rate  = recs.length ? (fails/recs.length*100) : 0;
+            const barCol = rate >= 50 ? '#c8102e' : rate >= 25 ? '#f59e0b' : '#00aeef';
+            return `<div class="ap-weakness-row">
+                <div style="font-size:11px;color:#374151;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${label}">${label}</div>
+                <div style="width:80px;margin:0 8px;">
+                    <div class="ap-weakness-bar-wrap"><div class="ap-weakness-bar" style="width:${rate.toFixed(0)}%;background:${barCol};"></div></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:${barCol};min-width:32px;text-align:right;">${rate.toFixed(0)}%</div>
+            </div>`;
+        }).join('') || '<div style="color:#9ca3af;font-size:12px;padding:8px 0;">No failure data available</div>';
+
+    // Roster info strip
+    const rosterHtml = rosterAgent ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;">
+            <div class="ap-kpi"><div class="ap-kpi-label">Hire Date</div><div style="font-size:13px;font-weight:700;color:#1a2332;">${rosterAgent.hire || '—'}</div></div>
+            <div class="ap-kpi"><div class="ap-kpi-label">Tenure</div><div style="font-size:13px;font-weight:700;color:#1a2332;">${getTenureBand(agentName)}</div></div>
+            <div class="ap-kpi"><div class="ap-kpi-label">Shift</div><div style="font-size:13px;font-weight:700;color:#1a2332;">${rosterAgent.shift || '—'}</div></div>
+            <div class="ap-kpi"><div class="ap-kpi-label">Status</div><div style="font-size:13px;font-weight:700;color:#1a2332;">${rosterAgent.status || '—'}</div></div>
+        </div>` : '<div style="color:#9ca3af;font-size:12px;">Not found in roster</div>';
+
+    document.getElementById('apBody').innerHTML = `
+        <!-- KPIs -->
+        <div class="ap-section">
+            <div class="ap-kpi-row">
+                <div class="ap-kpi">
+                    <div class="ap-kpi-label">Avg Score</div>
+                    <div class="ap-kpi-value" style="color:${avg>=threshold?'#00843d':avg>=80?'#d97706':'#c8102e'}">${avg.toFixed(1)}%</div>
+                    <div class="ap-kpi-sub">${recs.length} audit${recs.length===1?'':'s'}</div>
+                </div>
+                <div class="ap-kpi">
+                    <div class="ap-kpi-label">Pass Rate</div>
+                    <div class="ap-kpi-value" style="color:${passR>=threshold?'#00843d':'#c8102e'}">${passR.toFixed(0)}%</div>
+                    <div class="ap-kpi-sub">${pass}/${recs.length} passed</div>
+                </div>
+                <div class="ap-kpi">
+                    <div class="ap-kpi-label">Auto-Fails</div>
+                    <div class="ap-kpi-value" style="color:${afs>0?'#c8102e':'#00843d'}">${afs}</div>
+                    <div class="ap-kpi-sub">${recs.length ? (afs/recs.length*100).toFixed(0) : 0}% rate</div>
+                </div>
+            </div>
+        </div>
+        <!-- Score trend sparkline -->
+        <div class="ap-section">
+            <div class="ap-section-title">Score Trend (last ${sparkRecs.length} evals)</div>
+            <div style="display:flex;align-items:flex-end;gap:3px;height:40px;padding:4px 0;">
+                ${sparkBars || '<span style="color:#9ca3af;font-size:11px;">No data</span>'}
+            </div>
+            <div style="font-size:9px;color:#9ca3af;margin-top:3px;">🟢 Pass &nbsp; 🟡 Near-miss &nbsp; 🔴 Auto-fail</div>
+        </div>
+        <!-- Last 5 evaluations -->
+        <div class="ap-section">
+            <div class="ap-section-title">Last 5 Evaluations</div>
+            ${last5}
+        </div>
+        <!-- Weakest questions -->
+        <div class="ap-section">
+            <div class="ap-section-title">Top Failure Points</div>
+            ${weakest}
+        </div>
+        <!-- Roster info -->
+        <div class="ap-section">
+            <div class="ap-section-title">Roster Details</div>
+            ${rosterHtml}
+        </div>`;
+
+    document.getElementById('apBackdrop').classList.add('open');
+    document.getElementById('apDrawer').classList.add('open');
+}
+
+function closeAgentProfile() {
+    document.getElementById('apBackdrop').classList.remove('open');
+    document.getElementById('apDrawer').classList.remove('open');
+}
+
+// ============================================================
+// QUOTA TRACKER
+// ============================================================
+const QUOTA_KEY = 'lgqa_quota';
+
+function getQuota() {
+    try { return JSON.parse(localStorage.getItem(QUOTA_KEY)) || { target: 10 }; } catch(e) { return { target: 10 }; }
+}
+
+function setQuota(target) {
+    localStorage.setItem(QUOTA_KEY, JSON.stringify({ target: parseInt(target) || 10 }));
+    updateQuotaWidget();
+}
+
+function promptSetQuota() {
+    const cur = getQuota().target;
+    const val = prompt(`Set daily audit quota (current: ${cur}):`, cur);
+    if (val !== null && !isNaN(parseInt(val))) setQuota(parseInt(val));
+}
+
+function updateQuotaWidget() {
+    if (!currentUser) return;
+    const widget = document.getElementById('quotaWidget');
+    if (!widget) return;
+
+    const today  = new Date().toISOString().substring(0, 10);
+    const target = getQuota().target;
+    const done   = evaluationsDB.filter(r => {
+        const isToday = r.eval_date === today || r.created_at?.substring(0,10) === today;
+        const isMe    = !currentUser || currentUser.role === 'admin' || r.qa_name === currentUser.display_name || r.evaluator === currentUser.id;
+        return isToday && isMe;
+    }).length;
+
+    const pct       = Math.min(done / target, 1);
+    const circumf   = 113; // 2π × r=18
+    const offset    = circumf - pct * circumf;
+    const color     = done >= target ? '#00843d' : done >= target * 0.7 ? '#f59e0b' : '#00aeef';
+    const remaining = Math.max(0, target - done);
+
+    const fill = document.getElementById('quotaRingFill');
+    if (fill) { fill.style.strokeDashoffset = offset; fill.setAttribute('stroke', color); }
+    const lbl = document.getElementById('quotaRingLabel');
+    if (lbl) lbl.textContent = done;
+    const main = document.getElementById('quotaTextMain');
+    if (main) main.textContent = `${done} of ${target} done`;
+    const sub = document.getElementById('quotaTextSub');
+    if (sub) sub.textContent = done >= target ? '✓ Quota met!' : `${remaining} remaining today`;
+
+    widget.style.display = 'block';
+}
+
+// ============================================================
+// SPARKLINE HELPER
+// ============================================================
+function makeSparkline(scores) {
+    if (!scores || scores.length < 2) return '<span style="color:#d1d5db;font-size:10px;">—</span>';
+    const W = 56, H = 22, pad = 2;
+    const min = Math.min(...scores) - 2;
+    const max = Math.max(...scores) + 2;
+    const range = max - min || 1;
+    const xs = scores.map((_, i) => pad + (i / (scores.length - 1)) * (W - pad*2));
+    const ys = scores.map(v => H - pad - ((v - min) / range) * (H - pad*2));
+    const pts = xs.map((x, i) => `${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+    const last = scores[scores.length-1], prev = scores[scores.length-2];
+    const dotCol = last > prev ? '#00843d' : last < prev ? '#c8102e' : '#9ca3af';
+    return `<svg width="${W}" height="${H}" style="overflow:visible;vertical-align:middle;">
+        <polyline points="${pts}" fill="none" stroke="#00aeef" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" opacity=".8"/>
+        <circle cx="${xs[xs.length-1].toFixed(1)}" cy="${ys[ys.length-1].toFixed(1)}" r="2.5" fill="${dotCol}"/>
+    </svg>`;
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 // Paginated loader — fetches all rows in 1000-row batches to bypass Supabase default limit
@@ -8854,6 +9500,10 @@ async function initApp() {
 
     // Initialize real-time sync
     initRealtimeSync();
+
+    // Initialize quota tracker
+    updateQuotaWidget();
+    setInterval(updateQuotaWidget, 60000);
 
     // Initialize advanced dashboard features (GridStack, SortableJS, ECharts, FAB menu)
     initAdvancedDashboard();
