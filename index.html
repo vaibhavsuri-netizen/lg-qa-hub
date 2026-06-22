@@ -784,6 +784,107 @@
     .nudge-miss-bar { height:100%; border-radius:3px; background:#f59e0b; }
     .nudge-miss-pct { font-size:11px; font-weight:700; color:#b45309; min-width:30px; text-align:right; }
     .nudge-footer { font-size:11px; color:#92400e; margin-top:10px; padding-top:8px; border-top:1px solid rgba(245,158,11,.3); font-style:italic; }
+
+    /* =========================================
+       FEATURE 1 — CNN DUPLICATE & VALIDATION
+       ========================================= */
+    .cnn-dup-warning { display:none; margin-top:6px; padding:8px 12px; background:#fff5f5; border:1px solid #fcd3d3; border-radius:6px; font-size:12px; color:#C8102E; font-weight:600; line-height:1.5; }
+    .cnn-dup-warning a { color:#a50034; text-decoration:underline; cursor:pointer; }
+    .hold-warn-badge { display:inline-block; margin-left:8px; padding:2px 7px; background:#fff3cd; border:1px solid #ffc107; border-radius:10px; font-size:10px; font-weight:700; color:#856404; }
+    .fast-eval-badge { display:inline-block; padding:2px 7px; background:#ffe0e0; border:1px solid #f5a0a0; border-radius:10px; font-size:10px; font-weight:700; color:#C8102E; }
+    .field-warn-banner { margin-bottom:10px; padding:10px 14px; background:#fff9e6; border:1px solid #fcd34d; border-radius:6px; font-size:12px; color:#78350f; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .field-warn-banner strong { color:#92400e; }
+
+    /* Data Quality Tile */
+    .dq-tile { background:white; border:1px solid var(--border-light); border-radius:var(--radius-md); padding:18px 20px; box-shadow:var(--shadow-sm); margin-bottom:18px; }
+    .dq-tile-header { font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; letter-spacing:.6px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
+    .dq-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+    .dq-item { background:var(--bg-main); border-radius:8px; padding:12px 14px; position:relative; }
+    .dq-item-val { font-size:24px; font-weight:800; line-height:1; margin-bottom:3px; }
+    .dq-item-label { font-size:11px; color:var(--text-muted); font-weight:600; }
+    .dq-item.ok .dq-item-val { color:var(--pass-green); }
+    .dq-item.warn .dq-item-val { color:#b45309; }
+    .dq-item.bad .dq-item-val { color:var(--fail-red); }
+    .dq-item .dq-dot { position:absolute; top:10px; right:10px; width:8px; height:8px; border-radius:50%; }
+    .dq-item.ok .dq-dot { background:var(--pass-green); }
+    .dq-item.warn .dq-dot { background:var(--warn-yellow); }
+    .dq-item.bad .dq-dot { background:var(--fail-red); }
+
+    /* =========================================
+       FEATURE 2 — AUDIT TRAIL
+       ========================================= */
+    .audit-timeline { display:flex; flex-direction:column; gap:0; }
+    .audit-entry { display:grid; grid-template-columns:80px 1fr; gap:0; position:relative; }
+    .audit-entry::before { content:''; position:absolute; left:32px; top:24px; bottom:-8px; width:2px; background:var(--border-light); z-index:0; }
+    .audit-entry:last-child::before { display:none; }
+    .audit-dot-col { display:flex; flex-direction:column; align-items:center; padding-top:4px; z-index:1; }
+    .audit-dot { width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 0 2px var(--border-light); flex-shrink:0; }
+    .audit-dot.create { background:var(--pass-green); box-shadow:0 0 0 2px var(--pass-green); }
+    .audit-dot.update { background:var(--accent-cyan); box-shadow:0 0 0 2px var(--accent-cyan); }
+    .audit-dot.delete { background:var(--fail-red); box-shadow:0 0 0 2px var(--fail-red); }
+    .audit-content { padding:6px 0 18px 4px; }
+    .audit-meta { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+    .audit-meta strong { color:var(--text-dark); }
+    .audit-diff { background:var(--bg-main); border-radius:6px; padding:8px 10px; font-size:11.5px; }
+    .audit-diff-row { display:flex; align-items:baseline; gap:6px; padding:3px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+    .audit-diff-row:last-child { border-bottom:none; }
+    .audit-field { font-weight:700; color:var(--header-blue); min-width:100px; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
+    .audit-old { color:var(--fail-red); text-decoration:line-through; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .audit-new { color:var(--pass-green); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .audit-arrow { color:var(--text-muted); font-size:10px; }
+    .detail-tabs { display:flex; gap:2px; margin-bottom:16px; border-bottom:2px solid var(--border-light); }
+    .detail-tab { padding:8px 16px; border:none; background:transparent; font-weight:600; font-size:12.5px; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .2s; }
+    .detail-tab.active { color:var(--header-blue); border-bottom-color:var(--header-blue); }
+    .detail-tab-pane { display:none; }
+    .detail-tab-pane.active { display:block; }
+    .admin-recent-edits { display:flex; flex-direction:column; gap:8px; }
+    .are-row { display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--bg-main); border-radius:7px; font-size:12px; }
+    .are-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; flex-shrink:0; }
+    .are-badge.update { background:rgba(0,174,239,.12); color:#0056b3; }
+    .are-badge.create { background:rgba(0,132,61,.12); color:var(--pass-green); }
+    .are-badge.delete { background:rgba(200,16,46,.12); color:var(--fail-red); }
+
+    /* =========================================
+       FEATURE 3 — GOAL TRACKING RAG
+       ========================================= */
+    .goals-section { margin-bottom:18px; }
+    .goals-row { display:flex; gap:12px; flex-wrap:wrap; align-items:stretch; margin-top:10px; }
+    .goal-card { background:white; border:1px solid var(--border-light); border-radius:var(--radius-md); padding:14px 18px; min-width:180px; flex:1; max-width:220px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+    .goal-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+    .goal-card.rag-green::before { background:var(--pass-green); }
+    .goal-card.rag-amber::before { background:var(--warn-orange); }
+    .goal-card.rag-red::before { background:var(--fail-red); }
+    .goal-card.rag-gray::before { background:var(--text-muted); }
+    .goal-card-name { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .goal-card-score { font-size:26px; font-weight:900; line-height:1; }
+    .goal-card.rag-green .goal-card-score { color:var(--pass-green); }
+    .goal-card.rag-amber .goal-card-score { color:var(--warn-orange); }
+    .goal-card.rag-red .goal-card-score { color:var(--fail-red); }
+    .goal-card.rag-gray .goal-card-score { color:var(--text-muted); }
+    .goal-card-target { font-size:11px; color:var(--text-muted); margin-top:3px; }
+    .goal-card-kpis { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .goal-chip { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
+    .goal-chip.ok { background:rgba(0,132,61,.1); color:var(--pass-green); }
+    .goal-chip.warn { background:rgba(255,182,18,.2); color:#856404; }
+    .goal-chip.bad { background:rgba(200,16,46,.1); color:var(--fail-red); }
+    .goal-chip.na { background:var(--bg-main); color:var(--text-muted); }
+    .goals-header-bar { display:flex; align-items:center; justify-content:space-between; }
+    .goals-toggle { display:flex; gap:2px; background:var(--bg-main); border-radius:6px; padding:3px; }
+    .goals-toggle-btn { padding:4px 10px; border-radius:4px; border:none; font-size:11px; font-weight:700; cursor:pointer; background:transparent; color:var(--text-muted); transition:all .2s; }
+    .goals-toggle-btn.active { background:var(--header-blue); color:white; }
+    .goal-modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .goal-modal-group { display:flex; flex-direction:column; gap:4px; }
+    .goal-modal-group label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; }
+    .goal-modal-group input { padding:8px 10px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; }
+
+    /* =========================================
+       FEATURE 4 — QUESTION-LEVEL TREND BADGES
+       ========================================= */
+    .trend-arrow, .q-trend-arrow { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; font-size:10px; font-weight:800; margin-left:4px; flex-shrink:0; }
+    .trend-arrow.up, .q-trend-arrow.up { background:rgba(0,132,61,.12); color:var(--pass-green); }
+    .trend-arrow.down, .q-trend-arrow.down { background:rgba(200,16,46,.12); color:var(--fail-red); }
+    .trend-arrow.flat, .q-trend-arrow.flat { background:var(--bg-main); color:var(--text-muted); }
+    .q-trend-chart-wrap { margin-top:12px; position:relative; height:120px; }
 </style>
 </head>
 <body>
@@ -926,11 +1027,15 @@
             </div>
             <div class="form-group">
                 <label>CNN / Case Number</label>
-                <input type="text" id="f_CNN" placeholder="Enter CNN" required>
+                <input type="text" id="f_CNN" placeholder="Enter CNN" required
+                       onblur="checkCNNDuplicate(this.value)" oninput="clearCNNWarning()">
+                <div class="cnn-dup-warning" id="cnnDupWarning"></div>
             </div>
             <div class="form-group">
                 <label>Hold Time (seconds)</label>
-                <input type="number" id="f_HoldTime" placeholder="e.g. 90" min="0">
+                <input type="number" id="f_HoldTime" placeholder="e.g. 90" min="0"
+                       oninput="checkHoldTimeWarning(this.value)">
+                <span class="hold-warn-badge" id="holdWarnBadge" style="display:none;">⚠️ High hold time</span>
             </div>
             <div class="form-group">
                 <label>Product Type</label>
@@ -1042,6 +1147,10 @@
         <span>⚠️ <strong>Unsaved draft found</strong> from your last session.</span>
         <button class="btn btn-small" onclick="restoreFormDraft()" style="padding:4px 12px;font-size:11px;">↩ Restore Draft</button>
         <button class="btn btn-ghost btn-small" onclick="discardFormDraft()" style="padding:4px 10px;font-size:11px;">✕ Discard</button>
+    </div>
+    <div id="fieldWarnBanner" class="field-warn-banner" style="display:none;">
+        ⚠️ <strong>Recommended fields empty:</strong> <span id="fieldWarnText"></span>
+        <button class="btn btn-ghost btn-small" style="padding:3px 10px;font-size:11px;" onclick="document.getElementById('fieldWarnBanner').style.display='none'">Dismiss</button>
     </div>
     <div style="text-align:right; padding: 10px 0 30px;">
         <button class="btn btn-ghost" onclick="resetForm()" style="margin-right: 10px;">↻ Clear Form</button>
@@ -1180,6 +1289,21 @@
             </div>
         </div>
 
+        <!-- GOALS RAG SECTION (Feature 3) -->
+        <div class="goals-section" id="goalSection" style="display:none;">
+            <div class="goals-header-bar">
+                <div style="font-size:12px;font-weight:700;color:var(--header-blue);text-transform:uppercase;letter-spacing:.6px;">🎯 Monthly Goals — RAG Status</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div class="goals-toggle">
+                        <button class="goals-toggle-btn active" id="goalToggleCoach" onclick="switchGoalView('coach',this)">By Coach</button>
+                        <button class="goals-toggle-btn" id="goalToggleSite" onclick="switchGoalView('site',this)">By Site</button>
+                    </div>
+                    <button class="btn btn-ghost btn-small" onclick="openGoalsModal()" style="font-size:11px;">⚙️ Set Goals</button>
+                </div>
+            </div>
+            <div class="goals-row" id="goalsRow"></div>
+        </div>
+
         <div class="kpi-row">
             <div class="kpi-box green clickable" onclick="drillKPI('all')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
             <div class="kpi-box indigo clickable" onclick="drillKPI('all')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
@@ -1190,6 +1314,22 @@
             <div class="kpi-box teal clickable" onclick="drillKPI('all')"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub" id="kpiStdDev">σ 0</div></div>
             <div class="kpi-box orange clickable" onclick="drillKPI('overHold')"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub" id="kpiHoldOver">0 over threshold</div></div>
         </div>
+
+        <!-- DATA QUALITY TILE (Feature 1) -->
+        <div class="dq-tile" id="dqTile">
+            <div class="dq-tile-header">
+                <span>🔍 Data Quality Health</span>
+                <button class="btn btn-ghost btn-small" style="font-size:11px;" onclick="renderDataQualityTile(getFilteredData(),getHoldThreshold())">↻ Refresh</button>
+            </div>
+            <div class="dq-grid" id="dqGrid">
+                <div class="dq-item ok"><div class="dq-dot"></div><div class="dq-item-val" id="dqMissing">—</div><div class="dq-item-label">Missing Fields</div></div>
+                <div class="dq-item ok"><div class="dq-dot"></div><div class="dq-item-val" id="dqDups">—</div><div class="dq-item-label">Duplicate CNNs</div></div>
+                <div class="dq-item ok"><div class="dq-dot"></div><div class="dq-item-val" id="dqFastEval">—</div><div class="dq-item-label">Fast Evals (&lt;60s)</div></div>
+                <div class="dq-item ok"><div class="dq-dot"></div><div class="dq-item-val" id="dqHoldOut">—</div><div class="dq-item-label">Hold Outliers (&gt;600s)</div></div>
+                <div class="dq-item ok"><div class="dq-dot"></div><div class="dq-item-val" id="dqCoverage">—</div><div class="dq-item-label">Field Coverage</div></div>
+            </div>
+        </div>
+
         <div class="dash-container">
             <div class="dash-col" style="flex:1.5;">
                 <div class="dash-card">
@@ -2106,6 +2246,17 @@
             <canvas id="adminDailyChart" height="90"></canvas>
         </div>
     </div>
+
+    <!-- RECENT EDITS PANEL (Feature 2) -->
+    <div class="card" style="margin-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:700;color:var(--header-blue);">🕑 Recent Edits / Audit Log</div>
+            <button class="admin-refresh-btn" onclick="loadAdminRecentEdits()">↻ Refresh</button>
+        </div>
+        <div id="adminRecentEdits" class="admin-recent-edits">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic;padding:10px 0;">Click Refresh to load recent edits.</div>
+        </div>
+    </div>
 </div>
 
 </div><!-- /main-content -->
@@ -2187,6 +2338,35 @@
             <button class="modal-close" onclick="closeCoachScorecards()">×</button>
         </div>
         <div class="modal-body" id="scorecardBody"></div>
+    </div>
+</div>
+
+<!-- GOALS SET MODAL (Feature 3) -->
+<div class="modal-overlay" id="goalsModal" onclick="if(event.target===this)closeGoalsModal()">
+    <div class="modal-content" style="max-width:640px;">
+        <div class="modal-header">
+            <div class="modal-title">🎯 Set Monthly Goals</div>
+            <button class="modal-close" onclick="closeGoalsModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+                Set per-coach or per-site monthly targets. Goals are saved in your browser (localStorage) and shown as RAG cards on the Overview dashboard.
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+                <label style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;">Add goal for:</label>
+                <select id="goalTypeSelect" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:13px;background:white;">
+                    <option value="coach">Coach</option>
+                    <option value="site">Site</option>
+                </select>
+                <input type="text" id="goalEntityInput" placeholder="Name…" style="padding:7px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:13px;flex:1;">
+                <button class="btn btn-small" onclick="addGoalRow()">+ Add</button>
+            </div>
+            <div id="goalEditorRows"></div>
+        </div>
+        <div style="padding:14px 24px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn btn-ghost" onclick="closeGoalsModal()">Cancel</button>
+            <button class="btn" onclick="saveGoals()">💾 Save Goals</button>
+        </div>
     </div>
 </div>
 
@@ -4409,6 +4589,9 @@ async function saveEvaluation() {
     const dateVal = document.getElementById('f_Date').value;
     if (!dateVal) { showToast("⚠️ Evaluation Date is required", "#C8102E"); return; }
 
+    // Feature 1: soft missing-field warning (non-blocking)
+    checkMissingFieldsBeforeSave();
+
     const agent = sel.options[sel.selectedIndex].text;
     const agentInfo = getRosterAgentById(sel.value);
     // dateVal already validated above
@@ -4472,7 +4655,10 @@ async function saveEvaluation() {
             saved_at:   new Date().toISOString(),
             agent_id:   sel.value,
             sentiment_engine: currentSentiment.engine || 'local',
-            form_time_seconds: formTimeSec
+            form_time_seconds: formTimeSec,
+            quality_flags: {
+                fast_eval: (formTimeSec !== null && formTimeSec < 60) ? true : false
+            }
         }
     };
 
@@ -4535,6 +4721,11 @@ async function saveEvaluation() {
                     .single();
                 if (error) throw error;
                 showToast("✓ Updated in Supabase!");
+                // Feature 2: audit log — diff old vs new
+                const oldSnap = buildEvalSnapshot(evaluationsDB.find(r => r.id === currentEditingEvalId) || {});
+                const newSnap = buildEvalSnapshot(local);
+                const auditDiff = diffSnapshots(oldSnap, newSnap);
+                writeAuditLog(currentEditingEvalId, 'update', auditDiff);
             } else {
                 // Insert new record in Supabase
                 console.log("Saving evaluation to Supabase:", supabasePayload);
@@ -4546,6 +4737,8 @@ async function saveEvaluation() {
                 if (error) throw error;
                 if (data && data.id) local.id = data.id;  // keep DB id for future edits
                 showToast("✓ Saved to Supabase!");
+                // Feature 2: audit log — record creation
+                writeAuditLog(data.id, 'create', {});
                 // Write evaluator session record (fire-and-forget — always insert)
                 const qaName = currentUser ? (currentUser.display_name || currentUser.username) : (document.getElementById('f_Eval').value || 'Unknown');
                 supabaseClient.from('evaluator_sessions').insert({
@@ -6090,6 +6283,11 @@ function renderOverview(data, threshold, holdThr) {
     renderOverviewTrendChart(data);
     renderOverviewMonthTable(data);
 
+    // Feature 1: Data Quality tile
+    renderDataQualityTile(data, holdThr);
+    // Feature 3: Goals RAG tiles
+    renderGoalsRAG(data);
+
     // LEADERBOARD
     const byAgent = {};
     data.forEach(r => {
@@ -7148,15 +7346,29 @@ function renderQADeepDive(data) {
 
     // Stash for drilldowns
     allQ.forEach(q => { window[`__allQ_q${q.id}`] = q.fails; });
+    // Feature 4: precompute trend series and store on window for lazy render
+    window.__deepDiveData = data;
 
     const strip = document.getElementById('allQuestionsStrip');
     strip.innerHTML = allQ.map(q => {
         const color = q.pct >= 90 ? CHART_COLORS.green : q.pct >= 75 ? CHART_COLORS.yellow : CHART_COLORS.red;
         const safeTitle = q.title.replace(/'/g,"&#39;");
-        return `<div class="perf-row" onclick="openDrillModal('Q${q.id} fails: ${safeTitle}', '${q.fails.length} record${q.fails.length===1?'':'s'} · weight ${q.weight}%', window.__allQ_q${q.id} || [])" title="Click to see ${q.fails.length} failing record${q.fails.length===1?'':'s'}">
+        // Feature 4: compute trend arrow badge
+        const series = computeQTrend(data, q.id);
+        const arrow = getTrendArrow(series);
+        const arrowHtml = `<span class="q-trend-arrow ${arrow}" title="6-month trend">${arrow === 'up' ? '↑' : arrow === 'down' ? '↓' : '→'}</span>`;
+        const canvasId = `qTrendChart_${q.id}`;
+        return `
+        <div class="perf-row" onclick="openDrillModal('Q${q.id} fails: ${safeTitle}', '${q.fails.length} record${q.fails.length===1?'':'s'} · weight ${q.weight}%', window.__allQ_q${q.id} || [])" title="Click to see ${q.fails.length} failing record${q.fails.length===1?'':'s'}">
             <div class="perf-label">Q${q.id}. ${q.title} <span style="color:var(--text-muted); font-size:10.5px; margin-left:6px;">(w ${q.weight}%)</span></div>
             <div class="perf-bar-wrap"><div class="perf-bar" style="width:${q.pct}%; background:${color};">${q.pct >= 15 ? q.pct.toFixed(0)+'%' : ''}</div></div>
             <div class="perf-value">${q.pct.toFixed(1)}%</div>
+            ${arrowHtml}
+            <button class="q-trend-toggle btn btn-ghost btn-small" style="font-size:10px;padding:2px 7px;" onclick="event.stopPropagation();toggleQTrendChart(this,'${canvasId}',${q.id})">📈</button>
+        </div>
+        <div class="perf-expansion" id="qExpand_${q.id}" style="display:none;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Pass Rate Trend (last 6 months) — Q${q.id}</div>
+            <div style="height:80px;"><canvas id="${canvasId}"></canvas></div>
         </div>`;
     }).join('');
 
@@ -8445,6 +8657,10 @@ function _buildDBRow(r, cols, threshold) {
                 const cls = val === 'Positive' ? 'badge-green' : val === 'Negative' ? 'badge-red' : 'badge-yellow';
                 return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${cls}">${val}</span></td>`;
             }
+            if (c.key === 'cnn') {
+                const isFast = (r.metadata || {}).quality_flags?.fast_eval;
+                return `<td onclick="openDetailModal(${mainIdx})" title="${val ?? ''}">${val ?? '—'}${isFast ? ' <span class="fast-eval-badge" title="Evaluation completed in under 60 seconds">⚡ Fast</span>' : ''}</td>`;
+            }
             return `<td onclick="openDetailModal(${mainIdx})" title="${val ?? ''}">${val ?? '—'}</td>`;
         }).join('') +
         '</tr>';
@@ -8601,7 +8817,7 @@ function openDetailModal(idx) {
             <button class="btn btn-small btn-danger" onclick="deleteEvaluation(${idx})">🗑 Delete</button>
         </div>`;
 
-    const body = `
+    const detailPane = `
         <div class="detail-section">
             <div class="detail-section-title">Overview</div>
             <div class="detail-grid">
@@ -8636,8 +8852,37 @@ function openDetailModal(idx) {
             </div>
             ${r.upsell_notes ? `<div style="margin-top:12px; padding:12px; background:var(--bg-main); border-radius:6px; font-size:13px;">${r.upsell_notes}</div>` : ''}
         </div>`;
+
+    const body = `
+        ${actionBar}
+        <div class="detail-tabs">
+            <button class="detail-tab active" onclick="switchDetailTab(this,'dtDetail')">📋 Details</button>
+            <button class="detail-tab" onclick="switchDetailTab(this,'dtHistory');loadDetailHistory('${r.id || ''}')">🕑 Edit History</button>
+        </div>
+        <div class="detail-tab-pane active" id="dtDetail">${detailPane}</div>
+        <div class="detail-tab-pane" id="dtHistory">
+            <div id="dtHistoryInner" style="padding:8px 0;">
+                <div style="color:var(--text-muted);font-size:12px;font-style:italic;">Click the Edit History tab to load.</div>
+            </div>
+        </div>`;
     document.getElementById('modalBody').innerHTML = body;
     document.getElementById('detailModal').classList.add('active');
+}
+
+function switchDetailTab(btn, paneId) {
+    document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.detail-tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const pane = document.getElementById(paneId);
+    if (pane) pane.classList.add('active');
+}
+
+async function loadDetailHistory(evalId) {
+    const inner = document.getElementById('dtHistoryInner');
+    if (!inner) return;
+    inner.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Loading history…</div>';
+    const entries = await loadAuditLog(evalId);
+    inner.innerHTML = renderAuditTimeline(entries);
 }
 
 function closeDetailModal() {
@@ -8880,6 +9125,8 @@ async function deleteEvaluation(idx) {
 
     if (supabaseEnabled && r.id) {
         try {
+            // Feature 2: log delete before it fires
+            writeAuditLog(r.id, 'delete', buildEvalSnapshot(r));
             const { error } = await supabaseClient.from('evaluations').delete().eq('id', r.id);
             if (error) throw error;
             showToast("Record deleted from Supabase", "#FFB612");
@@ -8889,6 +9136,457 @@ async function deleteEvaluation(idx) {
         }
     } else {
         showToast("Record removed (local only)", "#FFB612");
+    }
+}
+
+// ============================================================
+// FEATURE 1 — CNN DUPLICATE GUARD & DATA VALIDATION
+// ============================================================
+let _cnnDupCheckTimer = null;
+
+function clearCNNWarning() {
+    const w = document.getElementById('cnnDupWarning');
+    if (w) { w.style.display = 'none'; w.innerHTML = ''; }
+}
+
+async function checkCNNDuplicate(val) {
+    const cnn = (val || '').trim();
+    if (!cnn) return;
+    const editId = window.currentEditingEvalId || null;
+    const warn = document.getElementById('cnnDupWarning');
+    if (!warn) return;
+
+    // 1. Check local cache first (fast path)
+    const localDup = evaluationsDB.find(r => r.cnn === cnn && r.id !== editId);
+    if (localDup) {
+        const idx = evaluationsDB.indexOf(localDup);
+        warn.innerHTML = `⚠️ Duplicate CNN detected — this case number already exists for <strong>${localDup.agent_name}</strong> on ${localDup.eval_date}.
+            <a onclick="openDetailModal(${idx})"> View record →</a>`;
+        warn.style.display = 'block';
+        return;
+    }
+
+    // 2. Query Supabase if connected
+    if (supabaseEnabled) {
+        try {
+            let q = supabaseClient.from('evaluations').select('id,"Agent Name","Eval Date"').eq('"CNN"', cnn);
+            if (editId) q = q.neq('id', editId);
+            const { data } = await q.limit(1);
+            if (data && data.length > 0) {
+                const dup = data[0];
+                warn.innerHTML = `⚠️ Duplicate CNN detected — already saved for <strong>${dup['Agent Name'] || '?'}</strong> on ${dup['Eval Date'] || '?'}.`;
+                warn.style.display = 'block';
+            }
+        } catch (e) { /* silent */ }
+    }
+}
+
+function checkHoldTimeWarning(val) {
+    const badge = document.getElementById('holdWarnBadge');
+    if (!badge) return;
+    const v = parseInt(val, 10);
+    badge.style.display = (!isNaN(v) && v > 600) ? 'inline-block' : 'none';
+}
+
+function checkMissingFieldsBeforeSave() {
+    const missing = [];
+    if (!document.getElementById('f_Product').value) missing.push('Product Type');
+    if (!document.getElementById('f_CallType').value) missing.push('Call Type');
+    if (missing.length === 0) {
+        const b = document.getElementById('fieldWarnBanner');
+        if (b) b.style.display = 'none';
+        return true;
+    }
+    const banner = document.getElementById('fieldWarnBanner');
+    const txt = document.getElementById('fieldWarnText');
+    if (banner && txt) {
+        txt.textContent = missing.join(', ') + ' — you can still save.';
+        banner.style.display = 'flex';
+    }
+    return true; // soft warning — don't block
+}
+
+// ============================================================
+// FEATURE 1 — DATA QUALITY TILE
+// ============================================================
+function renderDataQualityTile(data, holdThr) {
+    if (!data || !data.length) return;
+    const total = data.length;
+
+    // Missing fields
+    const missingCount = data.filter(r => !r.product_type || !r.call_type).length;
+    const missingPct = total ? Math.round(missingCount / total * 100) : 0;
+
+    // Duplicate CNNs (within this filtered dataset)
+    const cnnCounts = {};
+    data.forEach(r => { if (r.cnn) cnnCounts[r.cnn] = (cnnCounts[r.cnn] || 0) + 1; });
+    const dupCount = Object.values(cnnCounts).filter(c => c > 1).length;
+
+    // Fast evals (quality_flag in metadata or form_time < 60 from evaluator_sessions — we approximate via metadata)
+    const fastCount = data.filter(r => {
+        const m = r.metadata || {};
+        return m.quality_flags && m.quality_flags.fast_eval;
+    }).length;
+
+    // Hold time outliers
+    const holdOutCount = data.filter(r => r.hold_time > (holdThr > 0 ? holdThr + 480 : 600)).length;
+
+    // Field coverage (% of records with all key fields)
+    const fullCount = data.filter(r => r.product_type && r.call_type && r.hold_time !== undefined).length;
+    const coveragePct = total ? Math.round(fullCount / total * 100) : 100;
+
+    function setDQ(id, parentId, val, threshWarn, threshBad, isPercent) {
+        const el = document.getElementById(id);
+        const par = document.getElementById(parentId);
+        if (!el || !par) return;
+        el.textContent = isPercent ? val + '%' : val;
+        par.className = 'dq-item ' + (val <= threshWarn ? 'ok' : val <= threshBad ? 'warn' : 'bad');
+    }
+
+    setDQ('dqMissing',  'dqMissing',  missingCount, 0, 2, false);
+    setDQ('dqDups',     'dqDups',     dupCount,     0, 1, false);
+    setDQ('dqFastEval', 'dqFastEval', fastCount,    0, 2, false);
+    setDQ('dqHoldOut',  'dqHoldOut',  holdOutCount, 0, 2, false);
+    setDQ('dqCoverage', 'dqCoverage', coveragePct,  100, 90, true);
+
+    // Fix parent IDs (items share id with val — use grid children instead)
+    const grid = document.getElementById('dqGrid');
+    if (!grid) return;
+    const items = grid.querySelectorAll('.dq-item');
+    const states = [
+        missingCount === 0   ? 'ok' : missingCount <= 2  ? 'warn' : 'bad',
+        dupCount === 0       ? 'ok' : dupCount <= 1      ? 'warn' : 'bad',
+        fastCount === 0      ? 'ok' : fastCount <= 2     ? 'warn' : 'bad',
+        holdOutCount === 0   ? 'ok' : holdOutCount <= 2  ? 'warn' : 'bad',
+        coveragePct >= 100   ? 'ok' : coveragePct >= 90  ? 'warn' : 'bad',
+    ];
+    items.forEach((item, i) => {
+        item.className = 'dq-item ' + (states[i] || 'ok');
+    });
+}
+
+// ============================================================
+// FEATURE 2 — AUDIT TRAIL
+// ============================================================
+const AUDIT_TABLE = 'evaluation_audit_log';
+
+// Fields we diff on save (maps our normalized key → display label)
+const AUDIT_FIELDS = {
+    eval_date:    'Eval Date',
+    cnn:          'CNN',
+    agent_name:   'Agent',
+    qa_name:      'QA Name',
+    final_score:  'Score',
+    auto_failed:  'Auto-Failed',
+    hold_time:    'Hold Time',
+    product_type: 'Product',
+    call_type:    'Call Type',
+    lob:          'LOB',
+    site:         'Site',
+    coach:        'Coach',
+};
+
+function buildEvalSnapshot(r) {
+    const snap = {};
+    Object.keys(AUDIT_FIELDS).forEach(k => { snap[k] = r[k] ?? null; });
+    return snap;
+}
+
+function diffSnapshots(before, after) {
+    const diff = {};
+    Object.keys(AUDIT_FIELDS).forEach(k => {
+        const bv = String(before[k] ?? '');
+        const av = String(after[k] ?? '');
+        if (bv !== av) diff[k] = [bv, av];
+    });
+    return diff;
+}
+
+async function writeAuditLog(evalId, action, diff) {
+    if (!supabaseEnabled || !evalId) return;
+    try {
+        await supabaseClient.from(AUDIT_TABLE).insert({
+            evaluation_id: evalId,
+            changed_by:    currentUser ? (currentUser.display_name || currentUser.username) : 'unknown',
+            action:        action,
+            diff:          diff,
+        });
+    } catch (e) {
+        console.warn('Audit log write failed (table may not exist yet):', e.message);
+    }
+}
+
+async function loadAuditLog(evalId) {
+    if (!supabaseEnabled || !evalId) return [];
+    try {
+        const { data, error } = await supabaseClient
+            .from(AUDIT_TABLE)
+            .select('*')
+            .eq('evaluation_id', evalId)
+            .order('changed_at', { ascending: false })
+            .limit(50);
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('Audit log load failed:', e.message);
+        return [];
+    }
+}
+
+function renderAuditTimeline(entries) {
+    if (!entries || !entries.length) {
+        return `<div style="color:var(--text-muted);font-size:12px;font-style:italic;padding:12px 0;">No edit history found for this record.</div>`;
+    }
+    return `<div class="audit-timeline">${entries.map(e => {
+        const diffEntries = Object.entries(e.diff || {});
+        const diffHtml = diffEntries.length ? `
+            <div class="audit-diff">
+                ${diffEntries.map(([k, [ov, nv]]) => `
+                    <div class="audit-diff-row">
+                        <span class="audit-field">${AUDIT_FIELDS[k] || k}</span>
+                        <span class="audit-old">${ov || '—'}</span>
+                        <span class="audit-arrow">→</span>
+                        <span class="audit-new">${nv || '—'}</span>
+                    </div>`).join('')}
+            </div>` : `<div style="font-size:11px;color:var(--text-muted);font-style:italic;">No field changes recorded.</div>`;
+        const ts = e.changed_at ? new Date(e.changed_at).toLocaleString() : '—';
+        return `
+            <div class="audit-entry">
+                <div class="audit-dot-col"><div class="audit-dot ${e.action || 'update'}"></div></div>
+                <div class="audit-content">
+                    <div class="audit-meta"><strong>${e.changed_by || '—'}</strong> · ${e.action || 'update'} · ${ts}</div>
+                    ${diffHtml}
+                </div>
+            </div>`;
+    }).join('')}</div>`;
+}
+
+async function loadAdminRecentEdits() {
+    const container = document.getElementById('adminRecentEdits');
+    if (!container) return;
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">Loading…</div>';
+    if (!supabaseEnabled) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Supabase not connected.</div>';
+        return;
+    }
+    try {
+        const { data, error } = await supabaseClient
+            .from(AUDIT_TABLE)
+            .select('*')
+            .order('changed_at', { ascending: false })
+            .limit(20);
+        if (error) throw error;
+        if (!data || !data.length) {
+            container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;font-style:italic;">No edits recorded yet.</div>';
+            return;
+        }
+        container.innerHTML = data.map(e => {
+            const fields = Object.keys(e.diff || {}).map(k => AUDIT_FIELDS[k] || k).join(', ') || 'no changes';
+            const ts = e.changed_at ? new Date(e.changed_at).toLocaleString() : '—';
+            const evalRef = evaluationsDB.find(r => r.id === e.evaluation_id);
+            const cnnLabel = evalRef ? evalRef.cnn : e.evaluation_id?.substring(0,8) + '…';
+            return `<div class="are-row">
+                <span class="are-badge ${e.action || 'update'}">${(e.action || 'update').toUpperCase()}</span>
+                <span style="font-weight:600;color:var(--text-dark);">${e.changed_by || '—'}</span>
+                <span style="color:var(--text-muted);">·</span>
+                <span>CNN: <strong>${cnnLabel}</strong></span>
+                <span style="color:var(--text-muted);font-size:11px;margin-left:auto;">${fields}</span>
+                <span style="color:var(--text-muted);font-size:11px;white-space:nowrap;">${ts}</span>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = `<div style="color:var(--text-muted);font-size:12px;font-style:italic;">Audit log table not set up yet. Run the SQL in supabase.sql first.</div>`;
+    }
+}
+
+// ============================================================
+// FEATURE 3 — GOAL TRACKING RAG TILES
+// ============================================================
+const GOALS_KEY = 'qa_hub_goals_v1';
+let _goalView = 'coach'; // 'coach' | 'site'
+
+function loadGoals() {
+    try { return JSON.parse(localStorage.getItem(GOALS_KEY) || '{}'); } catch { return {}; }
+}
+function saveGoalsToStorage(goals) {
+    localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+}
+
+function switchGoalView(type, btn) {
+    _goalView = type;
+    document.querySelectorAll('.goals-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGoalsRAG(window.__lastDashData || []);
+}
+
+function renderGoalsRAG(data) {
+    window.__lastDashData = data;
+    const goals = loadGoals();
+    const goalEntries = Object.entries(goals).filter(([k]) => k.startsWith(_goalView + ':'));
+    const section = document.getElementById('goalSection');
+    const row = document.getElementById('goalsRow');
+    if (!section || !row) return;
+
+    if (!goalEntries.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+
+    const threshold = getPassThreshold();
+    row.innerHTML = goalEntries.map(([key, g]) => {
+        const name = key.split(':').slice(1).join(':');
+        const subset = data.filter(r => _goalView === 'coach' ? r.coach === name : r.site === name);
+        const total = subset.length;
+        const avg = total ? subset.reduce((s, r) => s + r.final_score, 0) / total : null;
+        const passed = subset.filter(r => r.final_score >= threshold && r.auto_failed !== 'Yes').length;
+        const passRate = total ? Math.round(passed / total * 100) : null;
+
+        // RAG for score
+        const tScore = g.score || 0;
+        const tPass  = g.passRate || 0;
+        const tAudits = g.audits || 0;
+        const scoreRag = avg === null ? 'gray' : avg >= tScore ? 'green' : avg >= tScore - 3 ? 'amber' : 'red';
+        const passRag  = passRate === null ? 'na' : passRate >= tPass  ? 'ok'  : passRate  >= tPass  - 5  ? 'warn'  : 'bad';
+        const auditRag = total === 0  ? 'na' : total  >= tAudits ? 'ok'  : total    >= tAudits * 0.8 ? 'warn'  : 'bad';
+
+        return `<div class="goal-card rag-${scoreRag}" title="${name} — ${total} audits this period">
+            <div class="goal-card-name">${_goalView === 'coach' ? '👤' : '📍'} ${name}</div>
+            <div class="goal-card-score">${avg !== null ? avg.toFixed(1) + '%' : '—'}</div>
+            <div class="goal-card-target">Target: ${tScore}% · ${total} audit${total === 1 ? '' : 's'}</div>
+            <div class="goal-card-kpis">
+                ${tPass  ? `<span class="goal-chip ${passRag}">Pass ${passRate !== null ? passRate + '%' : '—'} / ${tPass}%</span>` : ''}
+                ${tAudits ? `<span class="goal-chip ${auditRag}">${total} / ${tAudits} audits</span>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openGoalsModal() {
+    const goals = loadGoals();
+    const rows = document.getElementById('goalEditorRows');
+    if (!rows) return;
+    rows.innerHTML = Object.entries(goals).map(([key, g]) => {
+        const [type, ...nameParts] = key.split(':');
+        const name = nameParts.join(':');
+        return buildGoalEditorRow(type, name, g);
+    }).join('') || '<div style="color:var(--text-muted);font-size:12px;font-style:italic;padding:8px 0;">No goals set yet. Add one above.</div>';
+    document.getElementById('goalsModal').classList.add('active');
+}
+
+function addGoalRow() {
+    const type = document.getElementById('goalTypeSelect').value;
+    const name = (document.getElementById('goalEntityInput').value || '').trim();
+    if (!name) { showToast('Enter a name first', '#C8102E'); return; }
+    const rows = document.getElementById('goalEditorRows');
+    const key = type + ':' + name;
+    // Check not already present
+    if (rows.querySelector(`[data-goal-key="${key}"]`)) { showToast('Goal for this entity already exists', '#FFB612'); return; }
+    const existing = rows.querySelector('div[style*="italic"]');
+    if (existing) existing.remove();
+    rows.insertAdjacentHTML('beforeend', buildGoalEditorRow(type, name, {}));
+    document.getElementById('goalEntityInput').value = '';
+}
+
+function buildGoalEditorRow(type, name, g) {
+    const key = type + ':' + name;
+    return `<div class="goal-modal-grid" data-goal-key="${key}" style="border:1px solid var(--border-light);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--bg-main);">
+        <div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:700;color:var(--header-blue);">${type === 'coach' ? '👤' : '📍'} ${name}</span>
+            <button class="btn btn-danger btn-small" style="padding:3px 8px;font-size:11px;" onclick="this.closest('[data-goal-key]').remove()">✕ Remove</button>
+        </div>
+        <div class="goal-modal-group"><label>Score Target %</label>
+            <input type="number" min="0" max="100" value="${g.score || 90}" data-gfield="score" style="padding:7px;border:1px solid var(--border-medium);border-radius:6px;font-size:13px;"></div>
+        <div class="goal-modal-group"><label>Pass Rate Target %</label>
+            <input type="number" min="0" max="100" value="${g.passRate || 80}" data-gfield="passRate" style="padding:7px;border:1px solid var(--border-medium);border-radius:6px;font-size:13px;"></div>
+        <div class="goal-modal-group"><label>Monthly Audit Target</label>
+            <input type="number" min="0" value="${g.audits || 20}" data-gfield="audits" style="padding:7px;border:1px solid var(--border-medium);border-radius:6px;font-size:13px;"></div>
+    </div>`;
+}
+
+function saveGoals() {
+    const goals = {};
+    document.querySelectorAll('#goalEditorRows [data-goal-key]').forEach(row => {
+        const key = row.getAttribute('data-goal-key');
+        const inputs = row.querySelectorAll('[data-gfield]');
+        const g = {};
+        inputs.forEach(inp => { g[inp.getAttribute('data-gfield')] = parseFloat(inp.value) || 0; });
+        goals[key] = g;
+    });
+    saveGoalsToStorage(goals);
+    closeGoalsModal();
+    showToast('✅ Goals saved');
+    renderGoalsRAG(window.__lastDashData || []);
+}
+
+function closeGoalsModal() {
+    document.getElementById('goalsModal').classList.remove('active');
+}
+
+// ============================================================
+// FEATURE 4 — QUESTION-LEVEL TREND CHARTS (Deep Dive)
+// ============================================================
+function computeQTrend(data, qId) {
+    // Group by month (last 6), return [{label, pct}]
+    const monthly = {};
+    data.forEach(r => {
+        const m = (r.eval_date || '').substring(0, 7);
+        if (!m) return;
+        if (!monthly[m]) monthly[m] = { total: 0, pass: 0 };
+        monthly[m].total++;
+        if ((r.qa_details || {})[`Q${qId}_Answer`] === 'Yes') monthly[m].pass++;
+    });
+    return Object.entries(monthly)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-6)
+        .map(([m, s]) => ({ label: m, pct: s.total ? Math.round(s.pass / s.total * 100) : 0 }));
+}
+
+function getTrendArrow(series) {
+    if (series.length < 2) return 'flat';
+    const last  = series[series.length - 1].pct;
+    const prev  = series[series.length - 2].pct;
+    if (last > prev + 1)  return 'up';
+    if (last < prev - 1)  return 'down';
+    return 'flat';
+}
+
+function renderQTrendChart(canvasId, series) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    const existing = Chart.getChart(ctx);
+    if (existing) existing.destroy();
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: series.map(s => s.label),
+            datasets: [{
+                data: series.map(s => s.pct),
+                borderColor: '#00aeef',
+                backgroundColor: 'rgba(0,174,239,.08)',
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: true,
+                tension: 0.3,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + '%' } } },
+            scales: {
+                x: { ticks: { font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
+                y: { min: 0, max: 100, ticks: { font: { size: 9 }, callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,.04)' } }
+            }
+        }
+    });
+}
+
+function toggleQTrendChart(btn, canvasId, qId) {
+    const panel = document.getElementById(`qExpand_${qId}`);
+    if (!panel) return;
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    if (!open) {
+        // Lazy render — only compute when first opened
+        const series = computeQTrend(window.__deepDiveData || [], qId);
+        renderQTrendChart(canvasId, series);
     }
 }
 
