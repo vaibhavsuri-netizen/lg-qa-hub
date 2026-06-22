@@ -681,6 +681,10 @@
     .admin-refresh-btn { padding: 7px 14px; border-radius: var(--radius-sm); background: var(--header-blue); color: white; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     .admin-refresh-btn:hover { background: var(--header-blue-light); }
 
+    /* CALIBRATION TABS */
+    .calibration-tab-pane { display: none; }
+    .calibration-tab-pane.active { display: block; animation: fadeIn 0.35s ease-out; }
+
     /* ROLE BADGES */
     .role-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .role-badge.admin { background: rgba(165,0,52,0.12); color: var(--lg-red); }
@@ -859,6 +863,7 @@
         <div class="nav-section-label">Admin</div>
         <div class="nav-link" data-view="admin-view" data-roles="admin" onclick="switchView('admin-view', this)"><span>🛡️</span>Evaluator Stats</div>
         <div class="nav-link" data-view="users-view" data-roles="admin" onclick="switchView('users-view', this)"><span>👤</span>User Management</div>
+        <div class="nav-link" data-view="calibration-view" data-roles="qa,admin" onclick="switchView('calibration-view', this)"><span>🎯</span>Calibration</div>
     </div>
     <!-- Save Status Badge -->
     <div id="saveStatusBadge" style="display:none;margin:8px 12px 0;padding:7px 10px;border-radius:6px;font-size:11px;font-weight:700;line-height:1.4;cursor:pointer;" onclick="retryPendingQueue()" title="Click to retry pending saves"></div>
@@ -979,10 +984,10 @@
                 <td><select id="up_OfferType" onchange="throttledCalcScore()"><option>LG Extended Warranty</option><option>Accessory</option><option>Water Filter</option><option>ThinQ Explanation</option></select></td>
             </tr>
             <tr id="row_OfferQuality"><td><div class="q-title">Offer Quality (Rate the HOW)</div></td>
-                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="throttledCalcScore()"><option value="Adding Value">Adding Value (0%)</option><option value="Indifferent">Indifferent (-3%)</option><option value="Pushy / Sales-y">Pushy / Sales-y (-5%)</option></select></td>
+                <td><select id="up_OfferQuality" class="select-yes-no yes" onchange="throttledCalcScore()"><option value="Adding Value">Adding Value (0%)</option><option value="Indifferent">Indifferent</option><option value="Pushy / Sales-y">Pushy / Sales-y</option></select></td>
             </tr>
             <tr id="row_OppExisted" class="hidden"><td><div class="q-title">Opportunity Existed?</div></td>
-                <td><select id="up_OppExisted" class="select-yes-no no" onchange="throttledCalcScore()"><option value="Yes">Yes (-10% Penalty)</option><option value="No">No (N/A)</option></select></td>
+                <td><select id="up_OppExisted" class="select-yes-no no" onchange="throttledCalcScore()"><option value="Yes">Yes (Penalty)</option><option value="No">No (N/A)</option></select></td>
             </tr>
             <tr id="row_NoReason" class="hidden"><td><div class="q-title">Reason for No Offer</div></td>
                 <td><select id="up_NoReason" onchange="throttledCalcScore()"><option>Call Transferred</option><option>Irate Customer</option><option>Escalation</option></select></td>
@@ -1054,6 +1059,7 @@
                 <div style="display:flex; align-items:center; gap:12px; margin-top:4px;">
                     <span id="filterCountLabel" style="font-size:12px; color:var(--text-muted);">0 records</span>
                     <span class="live-indicator">Live</span>
+                    <button class="btn btn-ghost btn-small" style="font-size:11px; padding:3px 10px;" onclick="loadEvaluationsIfNeeded(true).then(()=>updateDashboard())" title="Pull latest data from Supabase">↻ Refresh</button>
                 </div>
             </div>
         </div>
@@ -1145,6 +1151,7 @@
         <button class="dash-tab" data-tab="dash-segment" onclick="switchDashTab('dash-segment', this)">🗂️ Segments</button>
         <button class="dash-tab" data-tab="dash-coaching" onclick="switchDashTab('dash-coaching', this)">🎯 Coaching</button>
         <button class="dash-tab" data-tab="dash-insights" onclick="switchDashTab('dash-insights', this)">💡 Insights</button>
+        <button class="dash-tab" data-tab="dash-calibration" onclick="switchDashTab('dash-calibration', this); renderCalibrationDashboard();">🎯 Calibration</button>
     </div>
 
     <!-- OVERVIEW -->
@@ -1522,6 +1529,89 @@
             </div>
         </div>
     </div>
+
+    <!-- CALIBRATION DASHBOARD TAB -->
+    <div id="dash-calibration" class="dash-subview">
+        <!-- Action Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+            <div style="font-size:13px; color:var(--text-muted);">Calibration data is isolated from regular QA evaluations.</div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-ghost btn-small" onclick="exportCalibrationCSV()">⬇ Export CSV</button>
+                <button class="btn btn-secondary btn-small" onclick="openExerciseModal()">+ New Exercise</button>
+            </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px;">
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0;">
+                <div class="kpi-value" id="calDashTotal" style="font-size:26px;">—</div>
+                <div class="kpi-label">Total Exercises</div>
+            </div>
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0; cursor:pointer;" onclick="calDashKpiDrillDown('scored')" title="Click to highlight scored exercises">
+                <div class="kpi-value" id="calDashScored" style="font-size:26px; color:var(--pass-green);">—</div>
+                <div class="kpi-label">Scored ↗</div>
+            </div>
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0; cursor:pointer;" onclick="calDashKpiDrillDown('pending')" title="Click to highlight pending exercises">
+                <div class="kpi-value" id="calDashPending" style="font-size:26px; color:var(--warn-yellow);">—</div>
+                <div class="kpi-label">Pending ↗</div>
+            </div>
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0; cursor:pointer;" onclick="calDashKpiDrillDown('trend')" title="Click to jump to variance trend">
+                <div class="kpi-value" id="calDashVariance" style="font-size:26px;">—</div>
+                <div class="kpi-label">Avg Variance ↗</div>
+            </div>
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0;">
+                <div class="kpi-value" id="calDashAvgScore" style="font-size:26px;">—</div>
+                <div class="kpi-label">Avg Group Score</div>
+            </div>
+            <div class="dash-card" style="padding:14px; text-align:center; margin:0;">
+                <div class="kpi-value" id="calDashHealth" style="font-size:22px;">—</div>
+                <div class="kpi-label">Alignment Health</div>
+            </div>
+        </div>
+
+        <div class="dash-container">
+            <!-- Col 1: Evaluator Alignment -->
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>👥 Evaluator Alignment<div class="dash-card-subtitle">Alignment % vs group consensus</div></div></div>
+                    <div id="calDashAlignmentList"><div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">No calibration data yet.</div></div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>⚠️ High Disagreement Questions<div class="dash-card-subtitle">Where QAs disagree most</div></div></div>
+                    <div id="calDashDisagreements"><div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">Score exercises to see disagreements.</div></div>
+                </div>
+            </div>
+            <!-- Col 2: Recent Exercises -->
+            <div class="dash-col">
+                <div class="dash-card">
+                    <div class="dash-card-header"><div>📋 All Exercises<div class="dash-card-subtitle">Click any row to review notes &amp; scores</div></div></div>
+                    <div id="calDashRecentList"><div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">No exercises yet.</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-width Notes Review Panel -->
+        <div class="dash-card" style="margin-top:18px; display:none;" id="calDashNotesPanel">
+            <div class="dash-card-header">
+                <div>📝 Notes Review<div class="dash-card-subtitle" id="calDashNotesPanelTitle">Select an exercise above</div></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-ghost btn-small" onclick="exportCalibrationReport()">🖨 Print Report</button>
+                    <button class="btn btn-ghost btn-small" onclick="document.getElementById('calDashNotesPanel').style.display='none'">✕ Close</button>
+                </div>
+            </div>
+            <div id="calDashNotesContent"></div>
+        </div>
+
+        <!-- Variance Trend Chart -->
+        <div class="dash-card" style="margin-top:18px;" id="calDashTrendCard">
+            <div class="dash-card-header">
+                <div>📈 Variance Trend<div class="dash-card-subtitle">Score variance per exercise over time — lower is better</div></div>
+            </div>
+            <div id="calDashTrendWrap" style="position:relative; height:200px;">
+                <canvas id="calVarianceTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ========== DATABASE VIEW ========== -->
@@ -1529,9 +1619,16 @@
     <div class="page-header">
         <div>
             <div class="page-title">🗃️ Database Records</div>
-            <div class="page-subtitle"><span id="dbRecordCount">0 records</span></div>
+            <div class="page-subtitle"><span id="dbRecordCount">0 records</span> <span id="dbLastLoaded" style="margin-left:8px; color:var(--text-muted); font-size:11px;"></span></div>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <span id="dbDataAgeIndicator" style="font-size:11px;color:var(--text-muted);font-weight:600;">📅 Last 30d</span>
+            <select id="dbDateRangeSelector" onchange="onDateRangeChange(this.value)" style="padding:5px 10px;border:1px solid var(--border-medium);border-radius:6px;font-size:12px;background:white;">
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+                <option value="all">📊 All time</option>
+            </select>
+            <button class="btn btn-ghost btn-small" onclick="loadEvaluationsIfNeeded(true).then(()=>{initColumnToggles();renderDBTable();document.getElementById('dbLastLoaded').textContent='Updated '+new Date().toLocaleTimeString();})" title="Pull latest data from Supabase">↻ Refresh Data</button>
             <button class="btn btn-ghost btn-small" onclick="toggleColPanel()">⚙️ Columns</button>
             <button class="btn btn-secondary btn-small" onclick="downloadCSV()">⬇ Download CSV</button>
             <button class="btn btn-small" onclick="document.getElementById('importEvalFile').click()">⬆ Import CSV</button>
@@ -1661,8 +1758,9 @@
 
     <!-- Tabs -->
     <div style="display:flex; gap:4px; margin-bottom:18px; border-bottom:2px solid var(--border-medium); padding-bottom:0;">
-        <button id="rtab-options" onclick="switchRefreshTab('options')" style="padding:8px 18px;border:none;background:#002b5e;color:#fff;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;cursor:pointer;">⚙️ Selection Options</button>
-        <button id="rtab-target"  onclick="switchRefreshTab('target')"  style="padding:8px 18px;border:none;background:#e8edf5;color:#4a5568;border-radius:6px 6px 0 0;font-weight:600;font-size:13px;cursor:pointer;">🎯 Score Target</button>
+        <button id="rtab-options"   onclick="switchRefreshTab('options')"   style="padding:8px 18px;border:none;background:#002b5e;color:#fff;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;cursor:pointer;">⚙️ Selection Options</button>
+        <button id="rtab-target"    onclick="switchRefreshTab('target')"    style="padding:8px 18px;border:none;background:#e8edf5;color:#4a5568;border-radius:6px 6px 0 0;font-weight:600;font-size:13px;cursor:pointer;">🎯 Score Target</button>
+        <button id="rtab-weightage" onclick="switchRefreshTab('weightage'); renderWeightageManager();" style="padding:8px 18px;border:none;background:#e8edf5;color:#4a5568;border-radius:6px 6px 0 0;font-weight:600;font-size:13px;cursor:pointer;">⚖️ Weightage</button>
     </div>
 
     <!-- Tab: Selection Options -->
@@ -1677,6 +1775,64 @@
             <button class="btn btn-ghost btn-small" onclick="resetSelectionOptions()">Reset Defaults</button>
         </div>
         <div class="option-manager-grid" id="optionManagerGrid"></div>
+    </div>
+
+    <!-- Tab: Weightage -->
+    <div id="rtab-weightage-pane" style="display:none;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:6px;">
+            <button class="btn btn-small" onclick="saveWeightage()">☁️ Save &amp; Apply to All</button>
+            <button class="btn btn-ghost btn-small" onclick="resetWeightage()">↺ Reset Defaults</button>
+            <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">Total must equal <strong>100%</strong>. Current: <strong id="weightageTotal">—</strong></span>
+        </div>
+        <div id="weightageLastSaved" style="font-size:11px; color:var(--text-muted); margin-bottom:14px;"></div>
+
+        <!-- View Personalization -->
+        <div class="card" style="padding:18px 22px; margin-bottom:18px; border-left:4px solid var(--accent-cyan);">
+            <div style="font-size:13px; font-weight:700; color:var(--header-blue); text-transform:uppercase; letter-spacing:.4px; margin-bottom:14px;">🎨 View Personalization</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px;">
+
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border:1px solid var(--border-medium); border-radius:8px; background:var(--bg-main);">
+                    <input type="checkbox" id="vp_showWeightBadge" checked onchange="applyViewPersonalization()" style="width:16px;height:16px;accent-color:var(--header-blue);">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">Show weight badges on form</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Displays the % value next to each question in the scoring form</div>
+                    </div>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border:1px solid var(--border-medium); border-radius:8px; background:var(--bg-main);">
+                    <input type="checkbox" id="vp_showSectionTotals" checked onchange="applyViewPersonalization()" style="width:16px;height:16px;accent-color:var(--header-blue);">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">Show section weight totals</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Adds a running total per section header in the weightage editor above</div>
+                    </div>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border:1px solid var(--border-medium); border-radius:8px; background:var(--bg-main);">
+                    <input type="checkbox" id="vp_showDefaultCol" checked onchange="applyViewPersonalization()" style="width:16px;height:16px;accent-color:var(--header-blue);">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">Show default weight column</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Shows the original default value alongside the current weight in the editor</div>
+                    </div>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; padding:10px 14px; border:1px solid var(--border-medium); border-radius:8px; background:var(--bg-main);">
+                    <input type="checkbox" id="vp_highlightChanged" onchange="applyViewPersonalization()" style="width:16px;height:16px;accent-color:var(--header-blue);">
+                    <div>
+                        <div style="font-size:13px; font-weight:600; color:var(--text-dark);">Highlight modified weights</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Marks any weight that differs from its default value in the editor</div>
+                    </div>
+                </label>
+
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 380px; gap:18px; align-items:start;">
+            <div id="weightageManagerGrid"></div>
+            <div class="card" style="padding:18px;">
+                <div style="font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin-bottom:12px;">🕑 Change History</div>
+                <div id="weightageHistory"><div style="color:var(--text-muted); font-size:12px; font-style:italic;">No changes recorded yet.</div></div>
+            </div>
+        </div>
     </div>
 
     <!-- Tab: Score Target -->
@@ -2035,6 +2191,156 @@
 </div>
 
 <div class="toast" id="toast">✓ Done</div>
+<div id="networkStatusBadge" style="position:fixed;right:18px;bottom:18px;z-index:9999;display:none;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:800;box-shadow:0 8px 22px rgba(0,0,0,.18);"></div>
+
+<!-- ========== CALIBRATION VIEW ========== -->
+<div id="calibration-view" class="view-section">
+    <div class="page-header">
+        <div>
+            <div class="page-title">🎯 Calibration</div>
+            <div class="page-subtitle">Create exercises and have up to 5 QAs score the same call together on one form</div>
+        </div>
+        <button class="btn btn-small" onclick="openExerciseModal()">+ New Exercise</button>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 20px;">
+        <div class="kpi-box">
+            <div class="kpi-value" id="calStatTotalSessions">0</div>
+            <div class="kpi-label">Total Exercises</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-value" id="calStatPending">0</div>
+            <div class="kpi-label">Pending</div>
+        </div>
+        <div class="kpi-box">
+            <div class="kpi-value" id="calStatAvgVariance">—</div>
+            <div class="kpi-label">Avg Score Variance</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+        <input type="text" id="calExerciseSearch" placeholder="🔍 Search exercises…" oninput="renderCalibrationExercises()" style="flex:1; min-width:200px; padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px;">
+        <select id="calExerciseStatusFilter" onchange="renderCalibrationExercises()" style="padding:8px 12px; border:1px solid var(--border-medium); border-radius:6px; font-size:13px; background:white;">
+            <option value="all">All Status</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="scored">✅ Scored</option>
+        </select>
+    </div>
+
+    <!-- Exercises List -->
+    <div class="card">
+        <div id="calExercisesList" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="text-align:center; padding:40px; color:var(--text-muted);">No exercises yet. Click <strong>+ New Exercise</strong> to get started.</div>
+        </div>
+    </div>
+</div>
+<!-- CALIBRATION DELETE CONFIRM MODAL -->
+<div id="calDeleteModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" style="max-width:420px;">
+        <div class="modal-header">
+            <h3 style="color:var(--fail-red);">🗑 Delete Exercise?</h3>
+            <button class="modal-close" onclick="document.getElementById('calDeleteModal').style.display='none'">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:14px; color:var(--text-dark); margin-bottom:8px;"><strong id="calDeleteExName">Exercise</strong></p>
+            <p style="font-size:13px; color:var(--text-muted);" id="calDeleteExDetail">This will permanently delete the exercise and all its scores.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="document.getElementById('calDeleteModal').style.display='none'">Cancel</button>
+            <button class="btn" id="calDeleteConfirmBtn" style="background:var(--fail-red);" onclick="confirmDeleteCalibrationExercise()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- CALIBRATION SESSION MODAL (kept for backward compat) -->
+<div id="calSessionModal" class="modal-backdrop" style="display:none;"></div>
+
+<!-- CALIBRATION EXERCISE MODAL -->
+<div id="calExerciseModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" style="max-width:680px;">
+        <div class="modal-header">
+            <h3>New Calibration Exercise</h3>
+            <button class="modal-close" onclick="closeExerciseModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Row 1: Name + CNN -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Exercise Name *</label>
+                    <input type="text" id="calExerciseName" placeholder="e.g., Call #1 - Technical Support">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>CNN / Case Number</label>
+                    <input type="text" id="calExerciseCNN" placeholder="e.g., 123456789">
+                </div>
+            </div>
+            <!-- Row 2: Site + LOB -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Site</label>
+                    <select id="calExerciseSite">
+                        <option value="">Select site...</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>LOB</label>
+                    <select id="calExerciseLOB">
+                        <option value="">Select LOB...</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Row 3: Recording URL -->
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Call Recording URL (Optional)</label>
+                <input type="url" id="calExerciseRecording" placeholder="https://...">
+            </div>
+            <!-- Evaluator Names (up to 5) -->
+            <div style="background:var(--bg-main); padding:16px; border-radius:8px; margin-bottom:16px;">
+                <label style="font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin-bottom:12px; display:block;">👥 QA Evaluator Names (up to 5)</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="form-group" style="margin:0;"><label>QA 1 *</label><input type="text" id="calQA1" placeholder="Evaluator 1"></div>
+                    <div class="form-group" style="margin:0;"><label>QA 2 *</label><input type="text" id="calQA2" placeholder="Evaluator 2"></div>
+                    <div class="form-group" style="margin:0;"><label>QA 3</label><input type="text" id="calQA3" placeholder="Evaluator 3 (optional)"></div>
+                    <div class="form-group" style="margin:0;"><label>QA 4</label><input type="text" id="calQA4" placeholder="Evaluator 4 (optional)"></div>
+                    <div class="form-group" style="margin:0; grid-column:1/-1;"><label>QA 5</label><input type="text" id="calQA5" placeholder="Evaluator 5 (optional)"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Gold Standard Score % <small style="color:var(--text-muted); font-weight:400;">(optional — leave blank for open calibration)</small></label>
+                <input type="number" id="calExerciseGoldScore" min="0" max="100" placeholder="e.g., 85" style="width:130px;">
+            </div>
+            <input type="hidden" id="calExerciseMode" value="group">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeExerciseModal()">Cancel</button>
+            <button class="btn" id="calCreateExerciseBtn" onclick="saveCalibrationExercise()">Create Exercise</button>
+        </div>
+    </div>
+</div>
+
+<!-- CALIBRATION SCORING MODAL -->
+<div id="calScoringModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" id="calScoringModalInner" style="max-width:900px; max-height:92vh; overflow-y:auto;">
+        <div class="modal-header">
+            <h3>Score Calibration Exercise</h3>
+            <button class="modal-close" onclick="closeScoringModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="calScoringContent">
+                <!-- Exercise details and scoring form -->
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-direction:column; align-items:stretch; gap:10px;">
+            <div id="calUnansweredAlert" style="display:none; padding:10px 14px; background:#fff3cd; border:1px solid #ffc107; border-radius:8px; font-size:12px; color:#856404; line-height:1.5;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-secondary" onclick="closeScoringModal()">Cancel</button>
+                <button class="btn" id="calSubmitBtn" onclick="dispatchCalibrationSubmit()">Submit Score</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- AGENT PROFILE DRAWER -->
 <div class="ap-backdrop" id="apBackdrop" onclick="closeAgentProfile()"></div>
@@ -2068,8 +2374,72 @@
 //
 const APP_PASSWORD = "lgqa2026";
 
-const SUPABASE_URL = "https://bizqnuttsiugnmazbqdb.supabase.co";
+// ============================================================
+// ⚙️  PROJECT CONFIG — update these 2 values when moving to a
+//     new Supabase project or any other Postgres-backed host.
+//     Everything else in the app adapts automatically.
+// ============================================================
+const SUPABASE_URL      = "https://bizqnuttsiugnmazbqdb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_r02NeNyDQ4xLiC_cHyTC2w_GmEPBDnn";
+// ============================================================
+
+// ============================================================
+// 📁 CODE ORGANIZATION GUIDE
+// ============================================================
+// This file is organized into logical sections for future modularization.
+// When splitting into ES modules, consider this structure:
+//
+//  📂 modules/
+//    ├── config.js          — Constants, Supabase setup, feature flags
+//    ├── auth.js            — Login, user management, session handling
+//    ├── data/
+//    │   ├── supabase.js    — All Supabase queries and data fetching
+//    │   ├── cache.js       — evaluationsDB, localStorage management
+//    │   └── export.js      — CSV, Excel, PDF export functions
+//    ├── scoring/
+//    │   ├── form.js        — Evaluation form logic, validation
+//    │   ├── calc.js        — Score calculation, penalties, weighting
+//    │   └── draft.js       — Auto-save draft, form recovery
+//    ├── dashboard/
+//    │   ├── charts.js      — Chart rendering, Sparklines
+//    │   ├── filters.js     — Dashboard slicers, filtering logic
+//    │   └── overview.js    — Main dashboard view
+//    ├── admin/
+//    │   ├── weightage.js   — Weightage editor, penalties
+//    │   ├── options.js     — Selection options management
+//    │   ├── roster.js      — Agent roster CRUD
+//    │   └── users.js       — User management
+//    ├── database/
+//    │   ├── table.js       — Database table rendering, pagination
+//    │   ├── filters.js     — DB view filters, search
+//    │   └── bulk.js        — Bulk operations, selection
+//    ├── utils/
+//    │   ├── ui.js          — Toast, modals, common UI helpers
+//    │   ├── debounce.js    — Debounce, throttle utilities
+//    │   └── format.js      — Date, number formatting
+//    └── features/
+//        ├── sentiment.js   — AI/local sentiment analysis
+//        ├── calibration.js — Calibration sessions
+//        ├── email.js       — EmailJS alerts
+//        └── failsafe.js    — Offline queue, retry logic
+//
+// Current line count by section (approximate):
+//   Config & Init:        ~150 lines
+//   Auth & Users:         ~400 lines
+//   Scoring Form:         ~800 lines
+//   Score Calculation:    ~200 lines
+//   Dashboard:           ~1200 lines
+//   Database View:        ~600 lines
+//   Admin/Weightage:      ~500 lines
+//   Data Export/Import:   ~300 lines
+//   Utils & Helpers:      ~400 lines
+//   Failsafe & Queue:     ~300 lines
+//   Sentiment & AI:       ~400 lines
+//   Calibration:          ~800 lines
+//   Roster:               ~400 lines
+//   =========================
+//   TOTAL:              ~11,000 lines
+// ============================================================
 
 // Supabase client — initialized immediately at page load so login can query app_users
 let supabaseClient = null;
@@ -2590,12 +2960,16 @@ function applySelectionOptions() {
         selectionOptions[id].forEach(v => {
             const o = document.createElement('option');
             o.value = v;
-            o.textContent = id === 'up_OfferQuality' && v === 'Adding Value' ? `${v} (0%)`
-                : id === 'up_OfferQuality' && v === 'Indifferent' ? `${v} (-3%)`
-                : id === 'up_OfferQuality' && v === 'Pushy / Sales-y' ? `${v} (-5%)`
-                : id === 'up_FollowThrough' && v === 'Properly Followed Up' ? `${v} (0%)`
-                : id === 'up_FollowThrough' && v === 'Partially Addressed' ? `${v} (-2.5%)`
-                : id === 'up_FollowThrough' && v === 'Left Hanging' ? `${v} (-5%)`
+            // For penalty-bearing fields, look up the deduction from live penaltyMeta
+            const isPenaltyField = PENALTY_FIELDS.some(f => f.id === id);
+            const isBaseline = isPenaltyField && selectionOptions[id]?.[0] === v;
+            let penaltyAmt = null;
+            if (isPenaltyField && !isBaseline) {
+                const match = Object.entries(penaltyMeta).find(([, m]) => m.field === id && m.value === v);
+                if (match) penaltyAmt = penalties[match[0]];
+            }
+            o.textContent = isBaseline ? `${v} (0%)`
+                : penaltyAmt != null ? `${v} (-${penaltyAmt}%)`
                 : v;
             sel.appendChild(o);
         });
@@ -2604,10 +2978,13 @@ function applySelectionOptions() {
 }
 
 function switchRefreshTab(tab) {
-    document.getElementById('rtab-options-pane').style.display = tab === 'options' ? '' : 'none';
-    document.getElementById('rtab-target-pane').style.display  = tab === 'target'  ? '' : 'none';
-    document.getElementById('rtab-options').style.background = tab === 'options' ? '#002b5e' : '#e8edf5';
-    document.getElementById('rtab-options').style.color      = tab === 'options' ? '#fff'    : '#4a5568';
+    document.getElementById('rtab-options-pane').style.display   = tab === 'options'   ? '' : 'none';
+    document.getElementById('rtab-target-pane').style.display    = tab === 'target'    ? '' : 'none';
+    document.getElementById('rtab-weightage-pane').style.display = tab === 'weightage' ? '' : 'none';
+    document.getElementById('rtab-options').style.background   = tab === 'options'   ? '#002b5e' : '#e8edf5';
+    document.getElementById('rtab-options').style.color        = tab === 'options'   ? '#fff' : '#4a5568';
+    document.getElementById('rtab-weightage').style.background = tab === 'weightage' ? '#002b5e' : '#e8edf5';
+    document.getElementById('rtab-weightage').style.color      = tab === 'weightage' ? '#fff' : '#4a5568';
     document.getElementById('rtab-target').style.background  = tab === 'target'  ? '#002b5e' : '#e8edf5';
     document.getElementById('rtab-target').style.color       = tab === 'target'  ? '#fff'    : '#4a5568';
     if (tab === 'target') {
@@ -2615,6 +2992,396 @@ function switchRefreshTab(tab) {
         document.getElementById('scoreTargetRefreshes').value = v;
         document.getElementById('targetDisplayBig').textContent = v + '%';
     }
+}
+
+// ============================================================
+// WEIGHTAGE MANAGER  (Supabase-backed, global, with history)
+// ============================================================
+const DEFAULT_WEIGHTS = Object.fromEntries(qaQuestions.map(q => [q.id, q.w]));
+
+// Penalty weightage — dynamically derived from selectionOptions.
+// The FIRST value in each penalised list is always the "no penalty" baseline (0 points off).
+// All subsequent values get a penalty entry. Missed opportunity is always fixed.
+//
+// penalties map: { key: number }  — value is the DEDUCTION amount (positive number)
+// penaltyMeta  map: { key: { label, field, value } } — used by calcScore & weightage editor
+let penalties    = {};   // rebuilt by buildPenaltiesFromOptions()
+let penaltyMeta  = {};   // rebuilt by buildPenaltiesFromOptions()
+
+const PENALTY_FIELDS = [
+    { id: 'up_OfferQuality',  prefix: 'oq',  label: 'Offer Quality' },
+    { id: 'up_FollowThrough', prefix: 'ft',  label: 'Follow-Through' }
+];
+const MISSED_OPP_KEY = 'missed_opportunity';
+const MISSED_OPP_DEFAULT = 10;
+
+function buildPenaltiesFromOptions(savedPenalties) {
+    // savedPenalties is an optional {key:value} map from Supabase to restore saved values
+    const prev = savedPenalties || penalties;
+    penalties   = {};
+    penaltyMeta = {};
+
+    PENALTY_FIELDS.forEach(({ id, prefix, label }) => {
+        const opts = selectionOptions[id] || [];
+        // First option is the baseline (0 deduction) — skip it
+        opts.slice(1).forEach(val => {
+            const key = `${prefix}_${val.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+            penalties[key]   = prev[key] ?? 3;  // default 3% for new options
+            penaltyMeta[key] = { label: `${label} — ${val}`, field: id, value: val };
+        });
+    });
+
+    // Missed opportunity is always present
+    penalties[MISSED_OPP_KEY]   = prev[MISSED_OPP_KEY] ?? MISSED_OPP_DEFAULT;
+    penaltyMeta[MISSED_OPP_KEY] = { label: 'Missed Opportunity (no offer when one existed)', field: 'up_OppExisted', value: 'Yes' };
+}
+
+// Load active weights from Supabase on startup and apply globally
+async function loadSavedWeightage() {
+    try {
+        if (!supabaseEnabled) return;
+        const { data, error } = await supabaseClient
+            .from('qa_weightage')
+            .select('question_id, weight, section')
+            .eq('is_active', true);
+        if (error || !data || data.length === 0) return;
+        // Collect saved penalty values first, then rebuild from live options
+        const savedPenalties = {};
+        data.forEach(r => {
+            if (r.section === 'Penalties') {
+                savedPenalties[r.question_id] = r.weight;
+            } else {
+                const q = qaQuestions.find(q => String(q.id) === String(r.question_id));
+                if (q) q.w = r.weight;
+            }
+        });
+        // Rebuild penalties from current selectionOptions, restoring saved values
+        buildPenaltiesFromOptions(savedPenalties);
+        buildQuestionsTable();
+    } catch(e) { console.warn('loadSavedWeightage:', e.message); }
+}
+
+function renderWeightageManager() {
+    const grid = document.getElementById('weightageManagerGrid');
+    if (!grid) return;
+    const sections = [...new Set(qaQuestions.map(q => q.section))];
+    grid.innerHTML = sections.map(sec => {
+        const qs = qaQuestions.filter(q => q.section === sec);
+        const secTotal = qs.reduce((a, q) => a + q.w, 0);
+        return `
+        <div class="card" style="margin-bottom:16px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="font-size:13px; font-weight:700; color:var(--header-blue); text-transform:uppercase; letter-spacing:.4px;">${sec}</div>
+                <div style="font-size:12px; color:var(--text-muted);">Section total: <strong>${secTotal.toFixed(1)}%</strong></div>
+            </div>
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:var(--bg-main); border-bottom:2px solid var(--border-medium);">
+                        <th style="text-align:left; padding:8px 12px; font-size:12px; width:50px;">#</th>
+                        <th style="text-align:left; padding:8px 12px; font-size:12px;">Question</th>
+                        <th style="text-align:center; padding:8px 12px; font-size:12px; width:120px;">Weight (%)</th>
+                        <th style="text-align:center; padding:8px 12px; font-size:12px; width:100px;">Default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                ${qs.map(q => `
+                    <tr style="border-bottom:1px solid var(--border-light);">
+                        <td style="padding:8px 12px; font-size:12px; color:var(--text-muted); font-weight:700;">Q${q.id}</td>
+                        <td style="padding:8px 12px; font-size:13px; color:var(--text-dark);">${q.title}</td>
+                        <td style="padding:8px 12px; text-align:center;">
+                            <input type="number" id="wInput_${q.id}" value="${q.w}" min="0" max="100" step="0.5"
+                                style="width:80px; padding:6px 10px; border:2px solid var(--border-medium); border-radius:6px; font-size:14px; font-weight:700; text-align:center; color:var(--header-blue);"
+                                oninput="updateWeightageTotal()">
+                        </td>
+                        <td style="padding:8px 12px; text-align:center; font-size:12px; color:var(--text-muted);">${DEFAULT_WEIGHTS[q.id]}%</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>`;
+    }).join('');
+
+    // Append penalties card — rows are derived live from selectionOptions
+    const penaltyKeys = Object.keys(penalties);
+    grid.innerHTML += `
+    <div class="card" style="margin-bottom:16px; padding:20px; border-left:4px solid var(--fail-red);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="font-size:13px; font-weight:700; color:var(--fail-red); text-transform:uppercase; letter-spacing:.4px;">⚠️ Personalization Penalties</div>
+            <div style="font-size:11px; color:var(--text-muted);">Deducted from score — driven by Selection Options above</div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Add or remove options in <strong>Selection Options → Offer Quality / Follow-Through</strong> to add or remove rows here.</div>
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:var(--bg-main); border-bottom:2px solid var(--border-medium);">
+                    <th style="text-align:left; padding:8px 12px; font-size:12px;">Penalty Trigger</th>
+                    <th style="text-align:center; padding:8px 12px; font-size:12px; width:140px;">Deduction (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${penaltyKeys.map(key => `
+                <tr style="border-bottom:1px solid var(--border-light);">
+                    <td style="padding:8px 12px; font-size:13px; color:var(--text-dark);">${penaltyMeta[key]?.label || key}</td>
+                    <td style="padding:8px 12px; text-align:center;">
+                        <input type="number" id="pInput_${key}" value="${penalties[key]}" min="0" max="100" step="0.5"
+                            style="width:80px; padding:6px 10px; border:2px solid var(--border-medium); border-radius:6px; font-size:14px; font-weight:700; text-align:center; color:var(--fail-red);">
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+    </div>`;
+
+    updateWeightageTotal();
+    loadWeightageHistory();
+    // Re-apply personalization prefs after the grid re-renders
+    setTimeout(applyViewPersonalization, 0);
+}
+
+function updateWeightageTotal() {
+    let total = 0;
+    qaQuestions.forEach(q => {
+        const inp = document.getElementById(`wInput_${q.id}`);
+        if (inp) total += parseFloat(inp.value) || 0;
+    });
+    const el = document.getElementById('weightageTotal');
+    if (el) {
+        el.textContent = total.toFixed(1) + '%';
+        el.style.color = Math.abs(total - 100) < 0.05 ? 'var(--pass-green)' : 'var(--fail-red)';
+    }
+    return total;
+}
+
+async function saveWeightage() {
+    const total = updateWeightageTotal();
+    const errors = [];
+    
+    // Validate total = 100%
+    if (Math.abs(total - 100) > 0.1) {
+        errors.push(`Weights total ${total.toFixed(1)}% — must be exactly 100%`);
+    }
+    
+    // Validate no negative weights
+    qaQuestions.forEach(q => {
+        const inp = document.getElementById(`wInput_${q.id}`);
+        const val = parseFloat(inp?.value);
+        if (val < 0) {
+            errors.push(`Question ${q.id} has negative weight (${val}%)`);
+            inp.style.borderColor = 'var(--fail-red)';
+        } else if (inp) {
+            inp.style.borderColor = '';
+        }
+    });
+    
+    // Validate no negative penalties
+    Object.keys(penalties).forEach(key => {
+        const inp = document.getElementById(`pInput_${key}`);
+        const val = parseFloat(inp?.value);
+        if (val < 0) {
+            errors.push(`Penalty "${penaltyMeta[key]?.label || key}" has negative value (${val}%)`);
+            inp.style.borderColor = 'var(--fail-red)';
+        } else if (inp) {
+            inp.style.borderColor = '';
+        }
+    });
+    
+    if (errors.length > 0) {
+        showToast("⚠️ " + errors[0], "#C8102E", 5000);
+        return;
+    }
+
+    const changedBy = currentUser?.display_name || currentUser?.username || 'Admin';
+    const changedAt = new Date().toISOString();
+    const weights   = {};
+    qaQuestions.forEach(q => {
+        const inp  = document.getElementById(`wInput_${q.id}`);
+        weights[q.id] = parseFloat(inp?.value) || q.w;
+    });
+
+    if (!supabaseEnabled) {
+        showToast('Supabase offline — cannot save', '#FFB612');
+        return;
+    }
+
+    try {
+        // Mark all previous rows inactive
+        await supabaseClient.from('qa_weightage').update({ is_active: false }).eq('is_active', true);
+
+        // Read penalty inputs from the rendered editor
+        const penaltyValues = {};
+        Object.keys(penalties).forEach(key => {
+            const inp = document.getElementById(`pInput_${key}`);
+            penaltyValues[key] = parseFloat(inp?.value) ?? penalties[key];
+        });
+
+        // Insert one row per question + one row per penalty
+        const rows = [
+            ...qaQuestions.map(q => ({
+                question_id:    q.id,
+                question_title: q.title,
+                section:        q.section,
+                weight:         weights[q.id],
+                is_active:      true,
+                changed_by:     changedBy,
+                changed_at:     changedAt
+            })),
+            ...Object.keys(penaltyValues).map(key => ({
+                question_id:    key,
+                question_title: penaltyMeta[key]?.label || key,
+                section:        'Penalties',
+                weight:         penaltyValues[key],
+                is_active:      true,
+                changed_by:     changedBy,
+                changed_at:     changedAt
+            }))
+        ];
+        const { error } = await supabaseClient.from('qa_weightage').insert(rows);
+        if (error) throw error;
+
+        // Apply to live objects
+        qaQuestions.forEach(q => { q.w = weights[q.id]; });
+        Object.assign(penalties, penaltyValues);
+        buildQuestionsTable();
+
+        const lastEl = document.getElementById('weightageLastSaved');
+        if (lastEl) lastEl.textContent = `Last saved by ${changedBy} on ${new Date(changedAt).toLocaleString()}`;
+
+        showToast('✓ Weights saved and applied to all users');
+        loadWeightageHistory();
+    } catch(e) {
+        console.error('saveWeightage:', e);
+        alert('Failed to save weights: ' + e.message);
+    }
+}
+
+async function loadWeightageHistory() {
+    const el = document.getElementById('weightageHistory');
+    const lastEl = document.getElementById('weightageLastSaved');
+    if (!el || !supabaseEnabled) return;
+
+    try {
+        // Fetch distinct save events (one representative row per save = same changed_at)
+        const { data, error } = await supabaseClient
+            .from('qa_weightage')
+            .select('changed_by, changed_at, is_active')
+            .order('changed_at', { ascending: false })
+            .limit(100);
+        if (error) throw error;
+
+        // Deduplicate by changed_at timestamp (each save writes N rows with same timestamp)
+        const seen = new Set();
+        const events = [];
+        (data || []).forEach(r => {
+            const key = r.changed_at;
+            if (!seen.has(key)) {
+                seen.add(key);
+                events.push(r);
+            }
+        });
+
+        if (events.length === 0) {
+            el.innerHTML = '<div style="color:var(--text-muted); font-size:12px; font-style:italic;">No changes recorded yet.</div>';
+            return;
+        }
+
+        // Show last saved banner
+        const latest = events[0];
+        if (lastEl && latest.is_active) {
+            lastEl.textContent = `Active weights set by ${latest.changed_by} on ${new Date(latest.changed_at).toLocaleString()}`;
+        }
+
+        el.innerHTML = events.map((e, i) => {
+            const dt   = new Date(e.changed_at);
+            const label = i === 0 ? '<span style="background:var(--pass-green);color:white;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-left:6px;">ACTIVE</span>' : '';
+            return `<div style="padding:9px 0; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; font-weight:600; color:var(--text-dark);">${e.changed_by}${label}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                        ${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                        &nbsp;·&nbsp; ${dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = `<div style="color:var(--fail-red); font-size:12px;">Could not load history: ${e.message}</div>`;
+    }
+}
+
+async function resetWeightage() {
+    if (!confirm('Reset all weights to system defaults and save to Supabase?')) return;
+    qaQuestions.forEach(q => { q.w = DEFAULT_WEIGHTS[q.id]; });
+    renderWeightageManager();
+    await saveWeightage();
+    showToast('Weights reset to defaults and saved');
+}
+
+// ============================================================
+// VIEW PERSONALIZATION  (localStorage — per-user, per-browser)
+// ============================================================
+const VP_KEY = 'lgqa_viewPrefs';
+
+function loadViewPersonalization() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(VP_KEY) || 'null');
+        if (!saved) return;
+        ['vp_showWeightBadge','vp_showSectionTotals','vp_showDefaultCol','vp_highlightChanged'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && saved[id] !== undefined) el.checked = saved[id];
+        });
+    } catch(e) { /* silent */ }
+    applyViewPersonalization();
+}
+
+function applyViewPersonalization() {
+    const showBadge     = document.getElementById('vp_showWeightBadge')?.checked   ?? true;
+    const showSecTotals = document.getElementById('vp_showSectionTotals')?.checked ?? true;
+    const showDefCol    = document.getElementById('vp_showDefaultCol')?.checked    ?? true;
+    const highlight     = document.getElementById('vp_highlightChanged')?.checked  ?? false;
+
+    // Persist per-user in localStorage
+    try {
+        localStorage.setItem(VP_KEY, JSON.stringify({
+            vp_showWeightBadge: showBadge,
+            vp_showSectionTotals: showSecTotals,
+            vp_showDefaultCol: showDefCol,
+            vp_highlightChanged: highlight
+        }));
+    } catch(e) { /* silent */ }
+
+    // 1. Weight badges on the scoring form
+    document.querySelectorAll('.weight-badge').forEach(el => {
+        el.style.display = showBadge ? '' : 'none';
+    });
+
+    // 2. Section totals in the weightage editor
+    document.querySelectorAll('[id^="secTotal_"]').forEach(el => {
+        const cell = el.closest('div');
+        if (cell) cell.style.display = showSecTotals ? '' : 'none';
+    });
+
+    // 3. Default column in the weightage editor (last <th> and last <td> per row)
+    document.querySelectorAll('#weightageManagerGrid table').forEach(tbl => {
+        const ths = tbl.querySelectorAll('thead th');
+        if (ths.length) ths[ths.length - 1].style.display = showDefCol ? '' : 'none';
+        tbl.querySelectorAll('tbody tr').forEach(tr => {
+            const tds = tr.querySelectorAll('td');
+            if (tds.length) tds[tds.length - 1].style.display = showDefCol ? '' : 'none';
+        });
+    });
+
+    // 4. Highlight modified weights (inputs that differ from default)
+    document.querySelectorAll('#weightageManagerGrid input[type="number"]').forEach(inp => {
+        const id  = inp.id.replace('wInput_', '');
+        const qid = parseInt(id);
+        const def = DEFAULT_WEIGHTS[qid];
+        if (def === undefined) return;
+        const cur = parseFloat(inp.value);
+        if (highlight && Math.abs(cur - def) > 0.05) {
+            inp.style.borderColor     = 'var(--warn-yellow)';
+            inp.style.backgroundColor = '#fffbea';
+        } else {
+            inp.style.borderColor     = '';
+            inp.style.backgroundColor = '';
+        }
+    });
 }
 
 function syncScoreTarget(val) {
@@ -2655,6 +3422,7 @@ async function addSelectionOption(id) {
     input.value = '';
     saveSelectionOptions();
     applySelectionOptions();
+    if (id === 'up_OfferQuality' || id === 'up_FollowThrough') buildPenaltiesFromOptions();
     renderOptionManager();
     await syncSelectionOptionsToSupabase();
     showToast("Option added");
@@ -2665,6 +3433,7 @@ async function removeSelectionOption(id, idx) {
     selectionOptions[id].splice(idx, 1);
     saveSelectionOptions();
     applySelectionOptions();
+    if (id === 'up_OfferQuality' || id === 'up_FollowThrough') buildPenaltiesFromOptions();
     renderOptionManager();
     await syncSelectionOptionsToSupabase();
     showToast("Option removed", "#FFB612");
@@ -2675,6 +3444,7 @@ async function resetSelectionOptions() {
     selectionOptions = JSON.parse(JSON.stringify(DEFAULT_SELECTION_OPTIONS));
     saveSelectionOptions();
     applySelectionOptions();
+    buildPenaltiesFromOptions();
     renderOptionManager();
     await syncSelectionOptionsToSupabase();
     showToast("Selection options reset", "#0056b3");
@@ -2747,17 +3517,16 @@ function calcScore() {
 
     let upStr = "Pending";
     if (oMade.value === "Yes") {
-        oQual.className = "select-yes-no " + (oQual.value === "Adding Value" ? "yes" : "no");
-        fThr.className  = "select-yes-no " + (fThr.value === "Properly Followed Up" ? "yes" : "no");
-        if (oQual.value === "Pushy / Sales-y") score -= 5;
-        if (oQual.value === "Indifferent")     score -= 3;
-        if (cInt.value === "Yes") {
-            if (fThr.value === "Left Hanging")        score -= 5;
-            if (fThr.value === "Partially Addressed") score -= 2.5;
-        }
+        oQual.className = "select-yes-no " + (oQual.value === (selectionOptions.up_OfferQuality?.[0] || 'Adding Value') ? "yes" : "no");
+        fThr.className  = "select-yes-no " + (fThr.value === (selectionOptions.up_FollowThrough?.[0] || 'Properly Followed Up') ? "yes" : "no");
+        // Apply all offer quality penalties dynamically from penaltyMeta
+        Object.entries(penaltyMeta).forEach(([key, meta]) => {
+            if (meta.field === 'up_OfferQuality' && oQual.value === meta.value) score -= penalties[key];
+            if (meta.field === 'up_FollowThrough' && cInt.value === 'Yes' && fThr.value === meta.value) score -= penalties[key];
+        });
         upStr = `Done — ${oQual.value}`;
     } else {
-        if (oOpp.value === "Yes") { score -= 10; upStr = "No Offer — Missed Opp (-10%)"; }
+        if (oOpp.value === 'Yes') { score -= penalties.missed_opportunity; upStr = `No Offer — Missed Opp (-${penalties.missed_opportunity}%)`; }
         else upStr = "No Offer — N/A";
     }
     for (let i = 1; i <= 5; i++) {
@@ -2975,8 +3744,43 @@ function analyzeSentimentAsync(text) {
 
 // Debounced versions of expensive functions
 const debouncedUpdateDashboard = debounce(updateDashboard, 100);
-const debouncedRenderDBTable = debounce(renderDBTable, 150);
+const debouncedRenderDBTable = debounce(() => {
+    showTableLoadingState(true);
+    renderDBTable();
+    showTableLoadingState(false);
+}, 400); // Increased from 150ms to 400ms for better performance with large datasets
 const throttledCalcScore = throttle(calcScore, 50);
+
+// Show/hide loading state for database table
+function showTableLoadingState(show) {
+    const table = document.getElementById('dbTable');
+    if (!table) return;
+    if (show) {
+        table.style.opacity = '0.6';
+        table.style.pointerEvents = 'none';
+    } else {
+        table.style.opacity = '1';
+        table.style.pointerEvents = 'auto';
+    }
+}
+
+// Handle date range change from UI
+async function onDateRangeChange(range) {
+    setEvalDateRange(range);
+    updateDataAgeIndicator(range);
+    
+    // Reload data with new range
+    _evalsLoaded = false; // Force reload
+    await loadEvaluationsIfNeeded(true, range);
+    
+    // Refresh UI
+    initColumnToggles();
+    renderDBTable();
+    updateDashboard();
+    
+    const label = range === 'all' ? 'all time' : `last ${range}`;
+    showToast(`✓ Switched to ${label} data`, '#00843D');
+}
 
 // ============================================================
 // SENTIMENT
@@ -3268,12 +4072,27 @@ function switchView(viewId, el) {
     if (target) target.classList.add('active');
     if (el) el.classList.add('active');
 
-    if (viewId === 'dashboard-view') updateDashboard();
-    if (viewId === 'database-view')  { initColumnToggles(); renderDBTable(); }
-    if (viewId === 'roster-view')    populateRosterTable();
-    if (viewId === 'refreshes-view') renderOptionManager();
-    if (viewId === 'admin-view')     updateAdminView();
-    if (viewId === 'users-view')     loadUsersTable();
+    // Views that need evaluation data: load on first visit, then render
+    if (viewId === 'dashboard-view') {
+        loadEvaluationsIfNeeded().then(() => updateDashboard());
+    } else if (viewId === 'database-view') {
+        // Initialize date range selector to saved preference
+        const savedRange = getEvalDateRange();
+        const selector = document.getElementById('dbDateRangeSelector');
+        if (selector) selector.value = savedRange;
+        updateDataAgeIndicator(savedRange);
+        loadEvaluationsIfNeeded().then(() => { initColumnToggles(); renderDBTable(); });
+    } else if (viewId === 'admin-view') {
+        loadEvaluationsIfNeeded().then(() => updateAdminView());
+    } else if (viewId === 'roster-view') {
+        populateRosterTable();
+    } else if (viewId === 'refreshes-view') {
+        renderOptionManager();
+    } else if (viewId === 'users-view') {
+        loadUsersTable();
+    } else if (viewId === 'calibration-view') {
+        initCalibrationView();
+    }
 }
 
 function switchDashTab(tabId, el) {
@@ -3281,7 +4100,7 @@ function switchDashTab(tabId, el) {
     document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     if (el) el.classList.add('active');
-    updateDashboard();
+    loadEvaluationsIfNeeded().then(() => updateDashboard());
 }
 
 // ============================================================
@@ -3587,10 +4406,12 @@ async function saveEvaluation() {
     if (!sel.value) { showToast("⚠️ Select an Agent first", "#C8102E"); return; }
     const cnnVal = document.getElementById('f_CNN').value.trim();
     if (!cnnVal) { showToast("⚠️ CNN / Case Number is required", "#C8102E"); return; }
+    const dateVal = document.getElementById('f_Date').value;
+    if (!dateVal) { showToast("⚠️ Evaluation Date is required", "#C8102E"); return; }
 
     const agent = sel.options[sel.selectedIndex].text;
     const agentInfo = getRosterAgentById(sel.value);
-    const dateVal = document.getElementById('f_Date').value || new Date().toISOString().split('T')[0];
+    // dateVal already validated above
 
     // Build qa_details (per-question answers and notes) — matches SQL schema's JSONB shape
     const qaData = {};
@@ -3701,7 +4522,7 @@ async function saveEvaluation() {
     if (supabaseEnabled) {
         const btn = document.getElementById('saveBtn');
         const originalText = btn.textContent;
-        btn.disabled = true; btn.textContent = isEditing ? "Updating..." : "Saving...";
+        setButtonLoading(btn, true, isEditing ? "Updating..." : "Saving...");
         try {
             if (isEditing && currentEditingEvalId) {
                 // Update existing record in Supabase
@@ -3758,11 +4579,11 @@ async function saveEvaluation() {
             // ❌ Push to pending queue — DO NOT reset the form
             addToPendingQueue(supabasePayload, local, isEditing, currentEditingEvalId);
             updateSaveStatusBadge();
-            btn.disabled = false;
+            setButtonLoading(btn, false);
             btn.textContent = originalText;
             return; // skip finally reset
         } finally {
-            btn.disabled = false;
+            setButtonLoading(btn, false);
             if (isEditing) {
                 currentEditingEvalIdx = null;
                 currentEditingEvalId = null;
@@ -4139,6 +4960,78 @@ function showToast(msg, color = '#00843D', duration = 2500) {
     t._timer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
+function setFieldInvalid(id, isInvalid = true) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.borderColor = isInvalid ? 'var(--fail-red)' : '';
+    el.style.boxShadow = isInvalid ? '0 0 0 3px rgba(200,16,46,0.12)' : '';
+}
+
+function clearFieldInvalid(ids) {
+    ids.forEach(id => setFieldInvalid(id, false));
+}
+
+function setButtonLoading(btnOrId, isLoading, loadingText) {
+    const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
+    if (!btn) return;
+    if (isLoading) {
+        if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = loadingText || 'Working...';
+    } else {
+        btn.disabled = false;
+        if (btn.dataset.originalText) {
+            btn.textContent = btn.dataset.originalText;
+            delete btn.dataset.originalText;
+        }
+    }
+}
+
+function updateNetworkStatusBadge() {
+    const badge = document.getElementById('networkStatusBadge');
+    if (!badge) return;
+    const online = navigator.onLine !== false;
+    badge.style.display = online ? 'none' : 'block';
+    badge.style.background = online ? '#00843D' : '#C8102E';
+    badge.style.color = 'white';
+    badge.textContent = online ? 'Online' : 'Offline — saves will queue locally';
+}
+
+function initNetworkStatusIndicator() {
+    updateNetworkStatusBadge();
+    window.addEventListener('online', () => {
+        updateNetworkStatusBadge();
+        showToast('✓ Back online — retrying pending saves');
+        retryPendingQueue();
+    });
+    window.addEventListener('offline', () => {
+        updateNetworkStatusBadge();
+        showToast('⚠️ You are offline. Saves will queue locally.', '#C8102E', 5000);
+    });
+}
+
+function initKeyboardShortcuts() {
+    if (window.__lgqaShortcutsReady) return;
+    window.__lgqaShortcutsReady = true;
+    document.addEventListener('keydown', (e) => {
+        const tag = (e.target?.tagName || '').toLowerCase();
+        const isTyping = ['input','textarea','select'].includes(tag);
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            if (document.getElementById('evaluation-view')?.classList.contains('active')) saveEvaluation();
+        }
+        if (e.key === 'Escape') {
+            ['calExerciseModal','calScoringModal'].forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal && modal.style.display !== 'none') modal.style.display = 'none';
+            });
+        }
+        if (!isTyping && e.key.toLowerCase() === 'n') {
+            if (document.getElementById('calibration-view')?.classList.contains('active')) openExerciseModal();
+        }
+    });
+}
+
 // ============================================================
 // FAILSAFE ENGINE — Pending Queue, Auto-Draft, Save Status
 // ============================================================
@@ -4159,14 +5052,38 @@ function addToPendingQueue(supabasePayload, localRecord, isEditing, editId) {
     console.warn(`[Failsafe] Queued 1 record. Total pending: ${q.length}`);
 }
 
+// Enhanced pending queue with error tracking
+function getPendingQueueWithErrors() {
+    const q = getPendingQueue();
+    const errors = JSON.parse(localStorage.getItem('lgqa_pending_errors') || '{}');
+    return q.map((item, idx) => ({ ...item, _idx: idx, _error: errors[idx] || null }));
+}
+function setPendingQueueErrors(errorMap) {
+    localStorage.setItem('lgqa_pending_errors', JSON.stringify(errorMap));
+}
+function clearPendingQueueErrors() {
+    localStorage.removeItem('lgqa_pending_errors');
+}
+
 async function retryPendingQueue() {
     if (!supabaseEnabled) { showToast('Supabase still offline — cannot retry', '#C8102E'); return; }
     const q = getPendingQueue();
     if (!q.length) { showToast('No pending records to retry', '#0056b3'); updateSaveStatusBadge(); return; }
+    
+    // Show enhanced retry dialog if there are previous errors
+    const errors = JSON.parse(localStorage.getItem('lgqa_pending_errors') || '{}');
+    const hasErrors = Object.keys(errors).length > 0;
+    if (hasErrors) {
+        openPendingQueueModal();
+        return;
+    }
+    
     showToast(`Retrying ${q.length} pending record${q.length>1?'s':''}…`, '#0056b3', 3000);
     const remaining = [];
+    const errorMap = {};
     let ok = 0, fail = 0;
-    for (const item of q) {
+    for (let i = 0; i < q.length; i++) {
+        const item = q[i];
         try {
             if (item.isEditing && item.editId) {
                 const { error } = await supabaseClient.from('evaluations').update(item.supabasePayload).eq('id', item.editId).select().single();
@@ -4174,24 +5091,165 @@ async function retryPendingQueue() {
             } else {
                 const { data, error } = await supabaseClient.from('evaluations').insert(item.supabasePayload).select().single();
                 if (error) throw error;
-                // Update local record id
                 const idx = evaluationsDB.findIndex(r => r.cnn === item.localRecord.cnn && r.eval_date === item.localRecord.eval_date && r.agent_name === item.localRecord.agent_name);
                 if (idx !== -1 && data?.id) evaluationsDB[idx].id = data.id;
             }
             ok++;
         } catch(e) {
-            console.error('[Failsafe] Retry failed:', e);
+            console.error('[Failsafe] Retry failed for item', i, ':', e);
+            errorMap[i] = { message: e.message, code: e.code, time: new Date().toISOString() };
             remaining.push(item);
             fail++;
         }
     }
     savePendingQueue(remaining);
+    setPendingQueueErrors(errorMap);
     window.__lastSavedAt = Date.now();
     updateSaveStatusBadge();
+    updateSaveStatusDetails();
     if (ok)   showToast(`✓ ${ok} record${ok>1?'s':''} synced to Supabase`, '#00843D', 4000);
     if (fail) {
-        showToast(`⚠️ ${fail} still failed — check connection`, '#C8102E', 5000);
+        showToast(`⚠️ ${fail} still failed — click badge for details`, '#C8102E', 5000);
         sendPendingQueueAlert(fail);
+    }
+}
+
+// View pending queue details modal
+function openPendingQueueModal() {
+    const q = getPendingQueue();
+    const errors = JSON.parse(localStorage.getItem('lgqa_pending_errors') || '{}');
+    if (!q.length) { showToast('No pending records', '#0056b3'); return; }
+    
+    const rows = q.map((item, idx) => {
+        const err = errors[idx];
+        const payload = item.supabasePayload || {};
+        return `
+        <tr>
+            <td><input type="checkbox" class="retry-check" value="${idx}" checked></td>
+            <td>${payload['CNN'] || '—'}</td>
+            <td>${payload['Agent Name'] || '—'}</td>
+            <td>${payload['Eval Date'] || '—'}</td>
+            <td>${err ? `<span style="color:var(--fail-red)">${err.code || ''}: ${err.message}</span>` : '<span style="color:var(--text-muted)">Pending</span>'}</td>
+        </tr>`;
+    }).join('');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'pendingQueueModal';
+    modal.innerHTML = `
+    <div class="modal" style="max-width:800px; max-height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <div class="modal-title">⚠️ Unsaved Records Queue</div>
+            <button class="btn btn-ghost" onclick="closePendingQueueModal()">✕</button>
+        </div>
+        <div style="padding:16px; overflow:auto;">
+            <div style="margin-bottom:12px; font-size:12px; color:var(--text-muted);">
+                ${q.length} record(s) waiting to sync. Check rows to retry, uncheck to skip.
+            </div>
+            <table style="width:100%; font-size:12px;">
+                <thead>
+                    <tr style="background:var(--bg-main);">
+                        <th style="padding:8px;"><input type="checkbox" id="selectAllPending" checked onclick="toggleAllPending(this)"></th>
+                        <th style="padding:8px;">CNN</th>
+                        <th style="padding:8px;">Agent</th>
+                        <th style="padding:8px;">Date</th>
+                        <th style="padding:8px;">Status/Error</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closePendingQueueModal()">Cancel</button>
+            <button class="btn btn-secondary" onclick="discardPendingSelected()">🗑 Discard Selected</button>
+            <button class="btn" onclick="retrySelectedPending()">↻ Retry Selected</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+}
+
+function closePendingQueueModal() {
+    const m = document.getElementById('pendingQueueModal');
+    if (m) m.remove();
+}
+
+function toggleAllPending(cb) {
+    document.querySelectorAll('.retry-check').forEach(c => c.checked = cb.checked);
+}
+
+function getSelectedPendingIndices() {
+    return [...document.querySelectorAll('.retry-check:checked')].map(cb => parseInt(cb.value));
+}
+
+async function retrySelectedPending() {
+    const indices = getSelectedPendingIndices();
+    if (!indices.length) { showToast('No records selected', '#FFB612'); return; }
+    const q = getPendingQueue();
+    const errors = JSON.parse(localStorage.getItem('lgqa_pending_errors') || '{}');
+    const remaining = [];
+    const newErrors = {};
+    let ok = 0, fail = 0, skipped = 0;
+    
+    for (let i = 0; i < q.length; i++) {
+        if (!indices.includes(i)) {
+            remaining.push(q[i]);
+            if (errors[i]) newErrors[remaining.length - 1] = errors[i];
+            skipped++;
+            continue;
+        }
+        const item = q[i];
+        try {
+            if (item.isEditing && item.editId) {
+                const { error } = await supabaseClient.from('evaluations').update(item.supabasePayload).eq('id', item.editId).select().single();
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabaseClient.from('evaluations').insert(item.supabasePayload).select().single();
+                if (error) throw error;
+                const idx = evaluationsDB.findIndex(r => r.cnn === item.localRecord.cnn && r.eval_date === item.localRecord.eval_date && r.agent_name === item.localRecord.agent_name);
+                if (idx !== -1 && data?.id) evaluationsDB[idx].id = data.id;
+            }
+            ok++;
+        } catch(e) {
+            newErrors[remaining.length] = { message: e.message, code: e.code, time: new Date().toISOString() };
+            remaining.push(item);
+            fail++;
+        }
+    }
+    savePendingQueue(remaining);
+    setPendingQueueErrors(newErrors);
+    updateSaveStatusBadge();
+    updateSaveStatusDetails();
+    closePendingQueueModal();
+    showToast(`✓ ${ok} synced, ${fail} failed, ${skipped} skipped`, fail ? '#FFB612' : '#00843D', 4000);
+}
+
+function discardPendingSelected() {
+    const indices = getSelectedPendingIndices();
+    if (!indices.length) { showToast('No records selected', '#FFB612'); return; }
+    if (!confirm(`Discard ${indices.length} selected record(s)? This cannot be undone.`)) return;
+    const q = getPendingQueue();
+    const remaining = q.filter((_, i) => !indices.includes(i));
+    savePendingQueue(remaining);
+    clearPendingQueueErrors();
+    updateSaveStatusBadge();
+    updateSaveStatusDetails();
+    closePendingQueueModal();
+    showToast(`Discarded ${indices.length} record(s)`, '#6b7280');
+}
+
+// Enhanced save status badge with click to view details
+function updateSaveStatusDetails() {
+    const badge = document.getElementById('saveStatusBadge');
+    if (!badge) return;
+    const q = getPendingQueue();
+    if (q.length > 0) {
+        badge.onclick = () => openPendingQueueModal();
+        badge.style.cursor = 'pointer';
+        badge.title = 'Click to view details and retry';
+    } else {
+        badge.onclick = null;
+        badge.style.cursor = 'default';
+        badge.title = 'All records saved';
     }
 }
 
@@ -4873,6 +5931,10 @@ function initRealtimeSync() {
 }
 
 function handleRealtimeUpdate(payload) {
+    // Only mutate the in-memory cache if it has already been loaded.
+    // If the user hasn't opened a data view yet, we just skip —
+    // they will get fresh data when they navigate there.
+    if (!_evalsLoaded) return;
     if (payload.eventType === 'INSERT') {
         const normalized = normalizeEval(payload.new);
         evaluationsDB.unshift(normalized);
@@ -7281,11 +8343,16 @@ function clearDBFilters() {
     renderDBTable();
 }
 
+// Full filtered row set — used by CSV export and Load More.
+// Always reflects the current filter state regardless of how many rows are rendered.
+let _dbFilteredRows = [];
+let _dbRenderedCount = 0;
+const DB_PAGE_SIZE = 50;
+
 function renderDBTable() {
     const table = document.getElementById('dbTable');
     if (!table) return;
 
-    // Populate dropdowns on first call / after data load
     populateDBFilterDropdowns();
 
     const search      = document.getElementById('dbSearch').value.trim();
@@ -7305,7 +8372,6 @@ function renderDBTable() {
 
     let rows = evaluationsDB;
 
-    // Fuzzy search first (if there's a query)
     if (search) {
         if (typeof Fuse !== 'undefined') {
             rebuildFuseIndex();
@@ -7318,58 +8384,118 @@ function renderDBTable() {
         }
     }
 
-    // Apply all column filters
-    if (dateFrom)    rows = rows.filter(r => r.eval_date >= dateFrom);
-    if (dateTo)      rows = rows.filter(r => r.eval_date <= dateTo);
-    if (cnnQ)        rows = rows.filter(r => String(r.cnn || '').toLowerCase().includes(cnnQ));
-    if (agentF)      rows = rows.filter(r => r.agent_name === agentF);
-    if (coachF)      rows = rows.filter(r => r.coach === coachF);
-    if (evaluatorF)  rows = rows.filter(r => (r.evaluator || r.qa_name) === evaluatorF);
-    if (productF)    rows = rows.filter(r => (r.f_Product || r.product) === productF);
-    if (callTypeF)   rows = rows.filter(r => (r.f_CallType || r.call_type) === callTypeF);
-    if (offerF)      rows = rows.filter(r => r.upsell_offer_made === offerF);
+    if (dateFrom)         rows = rows.filter(r => r.eval_date >= dateFrom);
+    if (dateTo)           rows = rows.filter(r => r.eval_date <= dateTo);
+    if (cnnQ)             rows = rows.filter(r => String(r.cnn || '').toLowerCase().includes(cnnQ));
+    if (agentF)           rows = rows.filter(r => r.agent_name === agentF);
+    if (coachF)           rows = rows.filter(r => r.coach === coachF);
+    if (evaluatorF)       rows = rows.filter(r => (r.evaluator || r.qa_name) === evaluatorF);
+    if (productF)         rows = rows.filter(r => (r.f_Product || r.product) === productF);
+    if (callTypeF)        rows = rows.filter(r => (r.f_CallType || r.call_type) === callTypeF);
+    if (offerF)           rows = rows.filter(r => r.upsell_offer_made === offerF);
     if (!isNaN(scoreMin)) rows = rows.filter(r => r.final_score >= scoreMin);
     if (!isNaN(scoreMax)) rows = rows.filter(r => r.final_score <= scoreMax);
-    if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score >= threshold);
-    if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== "Yes" && r.final_score < threshold);
-    if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === "Yes");
+    if (status === 'Pass')     rows = rows.filter(r => r.auto_failed !== 'Yes' && r.final_score >= threshold);
+    if (status === 'Fail')     rows = rows.filter(r => r.auto_failed !== 'Yes' && r.final_score < threshold);
+    if (status === 'AutoFail') rows = rows.filter(r => r.auto_failed === 'Yes');
 
-    document.getElementById('dbRecordCount').textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+    // Store full filtered set for export — CSV always gets everything
+    _dbFilteredRows   = rows;
+    _dbRenderedCount  = 0;
+
+    document.getElementById('dbRecordCount').textContent =
+        `${rows.length} record${rows.length === 1 ? '' : 's'}`;
 
     const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
     if (!cols.length) { table.innerHTML = '<thead><tr><th>No columns visible</th></tr></thead>'; return; }
 
-    let html = '<thead><tr><th style="width:40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th><th>Actions</th>' + cols.map(c => `<th>${c.label}</th>`).join('') + '</tr></thead><tbody>';
-    rows.slice(0, 500).forEach((r, idx) => {
-        const mainIdx = evaluationsDB.indexOf(r);
-        html += `<tr data-idx="${mainIdx}">` +
-            `<td><input type="checkbox" class="row-select" value="${mainIdx}" onclick="event.stopPropagation();"></td>` +
-            `<td style="white-space:nowrap;">` +
-            `<button class="btn-icon edit" onclick="event.stopPropagation(); openEvalEditModal(${mainIdx});" title="Edit">✎</button>` +
-            `<button class="btn-icon delete" onclick="event.stopPropagation(); deleteEvaluation(${mainIdx});" title="Delete">🗑</button>` +
-            `<button class="btn-icon view" onclick="event.stopPropagation(); openDetailModal(${mainIdx});" title="View">👁</button>` +
-            `</td>` +
-            cols.map(c => {
-                const val = r[c.key];
-                if (c.key === 'final_score') {
-                    const pass = r.auto_failed !== "Yes" && val >= threshold;
-                    return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
-                }
-                if (c.key === 'auto_failed') return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === "Yes" ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
-                if (c.key === 'upsell_offer_made') return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === "Yes" ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
-                if (c.key === 'sentiment_label') {
-                    const cls = val === "Positive" ? 'badge-green' : val === "Negative" ? 'badge-red' : 'badge-yellow';
-                    return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${cls}">${val}</span></td>`;
-                }
-                return `<td onclick="openDetailModal(${mainIdx})" title="${val ?? ''}">${val ?? '—'}</td>`;
-            }).join('') + '</tr>';
-    });
-    html += '</tbody>';
-    if (rows.length > 500) html += `<tfoot><tr><td colspan="${cols.length + 2}" style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">Showing first 500 of ${rows.length} records — refine filters or download CSV for full set</td></tr></tfoot>`;
-    table.innerHTML = html;
-    
-    // Attach checkbox listeners for bulk actions
+    // Render thead once, then append first page into a fresh tbody
+    table.innerHTML =
+        '<thead><tr>' +
+        '<th style="width:40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>' +
+        '<th>Actions</th>' +
+        cols.map(c => `<th>${c.label}</th>`).join('') +
+        '</tr></thead><tbody id="dbTbody"></tbody>';
+
+    _appendDBRows(cols, threshold);
     attachCheckboxListeners();
+}
+
+// Builds one row of HTML — shared by initial render and Load More
+function _buildDBRow(r, cols, threshold) {
+    const mainIdx = evaluationsDB.indexOf(r);
+    return `<tr data-idx="${mainIdx}">` +
+        `<td><input type="checkbox" class="row-select" value="${mainIdx}" onclick="event.stopPropagation();"></td>` +
+        `<td style="white-space:nowrap;">` +
+        `<button class="btn-icon edit"   onclick="event.stopPropagation(); openEvalEditModal(${mainIdx});"  title="Edit">✎</button>` +
+        `<button class="btn-icon delete" onclick="event.stopPropagation(); deleteEvaluation(${mainIdx});"   title="Delete">🗑</button>` +
+        `<button class="btn-icon view"   onclick="event.stopPropagation(); openDetailModal(${mainIdx});"    title="View">👁</button>` +
+        `</td>` +
+        cols.map(c => {
+            const val = r[c.key];
+            if (c.key === 'final_score') {
+                const pass = r.auto_failed !== 'Yes' && val >= threshold;
+                return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${pass ? 'badge-green' : 'badge-red'}">${(val ?? 0).toFixed(1)}%</span></td>`;
+            }
+            if (c.key === 'auto_failed')
+                return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === 'Yes' ? 'badge-red' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'upsell_offer_made')
+                return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${val === 'Yes' ? 'badge-blue' : 'badge-gray'}">${val}</span></td>`;
+            if (c.key === 'sentiment_label') {
+                const cls = val === 'Positive' ? 'badge-green' : val === 'Negative' ? 'badge-red' : 'badge-yellow';
+                return `<td onclick="openDetailModal(${mainIdx})"><span class="badge ${cls}">${val}</span></td>`;
+            }
+            return `<td onclick="openDetailModal(${mainIdx})" title="${val ?? ''}">${val ?? '—'}</td>`;
+        }).join('') +
+        '</tr>';
+}
+
+// Appends the next page of rows into the existing tbody
+function _appendDBRows(cols, threshold) {
+    const tbody = document.getElementById('dbTbody');
+    if (!tbody) return;
+
+    // Remove existing Load More footer if present
+    const existing = document.getElementById('dbLoadMoreRow');
+    if (existing) existing.remove();
+
+    const page   = _dbFilteredRows.slice(_dbRenderedCount, _dbRenderedCount + DB_PAGE_SIZE);
+    const frag   = document.createDocumentFragment();
+    page.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = _buildDBRow(r, cols, threshold).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
+        tr.dataset.idx = evaluationsDB.indexOf(r);
+        frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+    _dbRenderedCount += page.length;
+
+    // Add Load More footer if there are more rows
+    const remaining = _dbFilteredRows.length - _dbRenderedCount;
+    if (remaining > 0) {
+        const totalCols = (ALL_COLUMNS.filter(c => visibleColumns.includes(c.key)).length) + 2;
+        const tfoot = document.createElement('tfoot');
+        tfoot.id = 'dbLoadMoreRow';
+        tfoot.innerHTML = `
+            <tr>
+                <td colspan="${totalCols}" style="text-align:center; padding:14px; border-top:2px solid var(--border-medium);">
+                    <button class="btn btn-secondary btn-small" onclick="dbLoadMore()" style="min-width:200px;">
+                        Load ${Math.min(remaining, DB_PAGE_SIZE)} more
+                        <span style="color:var(--text-muted); font-weight:400; margin-left:6px;">(${remaining} remaining · ${_dbFilteredRows.length} total · CSV exports all)</span>
+                    </button>
+                </td>
+            </tr>`;
+        document.getElementById('dbTable').appendChild(tfoot);
+    }
+
+    attachCheckboxListeners();
+}
+
+// Called by the Load More button
+function dbLoadMore() {
+    const threshold = getPassThreshold();
+    const cols = ALL_COLUMNS.filter(c => visibleColumns.includes(c.key));
+    _appendDBRows(cols, threshold);
 }
 
 // Bulk selection functions
@@ -8808,9 +9934,12 @@ function fuzzyFilterEvaluations(query) {
 
 // CSV DOWNLOAD
 function downloadCSV() {
-    if (!evaluationsDB.length) { showToast("No records to export", "#FFB612"); return; }
+    // Use the filtered set if the DB table has been rendered, otherwise fall back to full set
+    const source = (_dbFilteredRows && _dbFilteredRows.length > 0) ? _dbFilteredRows : evaluationsDB;
+    if (!source.length) { showToast("No records to export", "#FFB612"); return; }
+    const isFiltered = source.length < evaluationsDB.length;
     // Flatten qa_details into columns
-    const flat = evaluationsDB.map(r => {
+    const flat = source.map(r => {
         const row = { ...r };
         delete row.qa_details;
         const qa = r.qa_details || {};
@@ -8828,9 +9957,10 @@ function downloadCSV() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `LG_QA_Export_${new Date().toISOString().substring(0,10)}.csv`;
+    const suffix = isFiltered ? `_filtered_${source.length}rows` : `_all_${source.length}rows`;
+    link.download = `LG_QA_Export_${new Date().toISOString().substring(0,10)}${suffix}.csv`;
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    showToast("✅ CSV downloaded");
+    showToast(`✅ CSV downloaded — ${source.length} record${source.length === 1 ? '' : 's'}${isFiltered ? ' (filtered)' : ''}`);
 }
 
 // ============================================================
@@ -9394,16 +10524,47 @@ function makeSparkline(scores) {
 // INITIALIZATION
 // ============================================================
 // Paginated loader — fetches all rows in 1000-row batches to bypass Supabase default limit
-async function fetchAllEvaluations() {
+// Date range for evaluation loading (default: last 30 days for performance)
+let _evaluationsDateRange = '30d'; // '30d' | '90d' | 'all'
+const DEFAULT_EVAL_DATE_RANGE = '30d';
+
+function getEvalDateRange() {
+    return _evaluationsDateRange || localStorage.getItem('lgqa_eval_date_range') || DEFAULT_EVAL_DATE_RANGE;
+}
+
+function setEvalDateRange(range) {
+    _evaluationsDateRange = range;
+    localStorage.setItem('lgqa_eval_date_range', range);
+}
+
+// Get the date cutoff based on range setting
+function getDateCutoffForRange(range) {
+    const now = new Date();
+    if (range === 'all') return null;
+    const days = parseInt(range) || 30;
+    const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    return cutoff.toISOString().split('T')[0];
+}
+
+async function fetchAllEvaluations(dateRange = null) {
     const PAGE = 1000;
     let allRows = [];
     let from = 0;
+    const range = dateRange || getEvalDateRange();
+    const dateCutoff = getDateCutoffForRange(range);
+    
     while (true) {
-        const { data, error } = await supabaseClient
+        let query = supabaseClient
             .from('evaluations')
             .select('*')
-            .order('created_at', { ascending: false })
-            .range(from, from + PAGE - 1);
+            .order('created_at', { ascending: false });
+        
+        // Apply date filter if not loading 'all'
+        if (dateCutoff) {
+            query = query.gte('"Eval Date"', dateCutoff);
+        }
+        
+        const { data, error } = await query.range(from, from + PAGE - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
         allRows = allRows.concat(data);
@@ -9413,18 +10574,1864 @@ async function fetchAllEvaluations() {
     return allRows;
 }
 
+// Force load all evaluations regardless of date setting
+async function loadAllEvaluations() {
+    _evalsLoading = true;
+    showDataLoadingBanner(true, 'Loading all evaluation data...');
+    try {
+        const evalData = await fetchAllEvaluations('all');
+        evaluationsDB = evalData.map(normalizeEval).filter(Boolean);
+        _evalsLoaded = true;
+        showToast(`✓ Loaded ${evaluationsDB.length} records (all time)`, '#00843D');
+    } catch (e) {
+        console.warn('Could not load all evaluations:', e.message);
+        showToast('Could not load all data — check connection', '#C8102E');
+    } finally {
+        _evalsLoading = false;
+        showDataLoadingBanner(false);
+    }
+}
+
+// ============================================================
+// CALIBRATION SESSIONS
+// ============================================================
+let calibrationSessions = [];
+let calibrationExercises = [];
+let calibrationScores = [];
+let currentCalSession = null;
+let currentCalExercise = null;
+let calTempParticipants = [];
+
+// Show SQL for calibration tables
+function showCalibrationSQL() {
+    const sql = `
+-- Run this in your Supabase SQL Editor to enable Calibration Sessions
+
+-- Table: calibration_sessions - Stores calibration meeting schedules
+CREATE TABLE IF NOT EXISTS calibration_sessions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            TEXT NOT NULL,
+    facilitator     TEXT NOT NULL,
+    scheduled_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    participants    JSONB NOT NULL DEFAULT '[]', -- Array of evaluator names
+    description     TEXT,
+    status          TEXT NOT NULL DEFAULT 'scheduled', -- scheduled, in_progress, completed, cancelled
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_by      TEXT
+);
+
+-- Table: calibration_exercises - Stores scoring exercises for each session
+CREATE TABLE IF NOT EXISTS calibration_exercises (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id      UUID NOT NULL REFERENCES calibration_sessions(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    recording_url   TEXT,
+    cnn             TEXT,
+    questions       JSONB DEFAULT '[]', -- Subset of QA questions to score
+    gold_score      INTEGER, -- Expected/gold standard score (optional)
+    mode            TEXT DEFAULT 'individual', -- 'individual' or 'group'
+    group_evaluators JSONB DEFAULT NULL, -- Array of 4 evaluator names for group mode
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table: calibration_scores - Stores individual evaluator scores
+CREATE TABLE IF NOT EXISTS calibration_scores (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exercise_id     UUID NOT NULL REFERENCES calibration_exercises(id) ON DELETE CASCADE,
+    evaluator_name  TEXT NOT NULL,
+    session_id      UUID NOT NULL REFERENCES calibration_sessions(id) ON DELETE CASCADE,
+    score           INTEGER NOT NULL,
+    answers         JSONB NOT NULL, -- Question-by-question answers
+    comments        TEXT,
+    is_group_submission BOOLEAN DEFAULT FALSE, -- True if submitted via group form
+    group_index     INTEGER, -- Position in group (0-3) for group submissions
+    submitted_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_cal_sessions_status ON calibration_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_cal_sessions_date ON calibration_sessions(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_cal_exercises_session ON calibration_exercises(session_id);
+CREATE INDEX IF NOT EXISTS idx_cal_scores_exercise ON calibration_scores(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_cal_scores_evaluator ON calibration_scores(evaluator_name);
+
+-- Enable Row Level Security (adjust policies as needed)
+ALTER TABLE calibration_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calibration_exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calibration_scores ENABLE ROW LEVEL SECURITY;
+
+-- Create permissive policy for demo (restrict in production)
+CREATE POLICY "Allow all" ON calibration_sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON calibration_exercises FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON calibration_scores FOR ALL USING (true) WITH CHECK (true);
+`;
+    console.log(sql);
+    alert('Calibration tables SQL printed to console (F12). Run this in Supabase SQL Editor.');
+}
+
+// Initialize calibration data from Supabase
+async function loadCalibrationData() {
+    if (!supabaseEnabled) return;
+    try {
+        // Load exercises
+        const { data: exercises, error: exErr } = await supabaseClient
+            .from('calibration_exercises')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (exErr && !exErr.message?.includes('does not exist')) throw exErr;
+        calibrationExercises = exercises || [];
+
+        // Load scores
+        const { data: scores, error: scErr } = await supabaseClient
+            .from('calibration_scores')
+            .select('*');
+        if (scErr && !scErr.message?.includes('does not exist')) throw scErr;
+        calibrationScores = scores || [];
+
+        updateCalibrationStats();
+    } catch (e) {
+        console.error('Error loading calibration data:', e);
+    }
+}
+
+// Update calibration statistics
+function updateCalibrationStats() {
+    const total = calibrationExercises.length;
+    const scored = calibrationExercises.filter(ex => calibrationScores.some(s => s.exercise_id === ex.id)).length;
+    const pending = total - scored;
+
+    // Calculate average variance across all exercises
+    let totalVariance = 0;
+    let varianceCount = 0;
+    calibrationExercises.forEach(ex => {
+        const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+        if (exScores.length > 1) {
+            const vals = exScores.map(s => s.score);
+            const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+            const variance = Math.sqrt(vals.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / vals.length);
+            totalVariance += variance;
+            varianceCount++;
+        }
+    });
+    const avgVariance = varianceCount > 0 ? (totalVariance / varianceCount).toFixed(1) + '%' : '—';
+
+    const el1 = document.getElementById('calStatTotalSessions');
+    const el2 = document.getElementById('calStatPending');
+    const el3 = document.getElementById('calStatAvgVariance');
+    if (el1) el1.textContent = total;
+    if (el2) el2.textContent = pending;
+    if (el3) el3.textContent = avgVariance;
+}
+
+// Tab switching
+function switchCalibrationTab(tabName, el) {
+    document.querySelectorAll('#calibrationTabs .admin-period-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    
+    document.querySelectorAll('.calibration-tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('calTab-' + tabName).classList.add('active');
+    
+    if (tabName === 'sessions') renderCalibrationSessions();
+    if (tabName === 'exercises') renderCalibrationExercises();
+    if (tabName === 'alignment') renderAlignmentReport();
+    if (tabName === 'history') renderCalibrationHistory();
+}
+
+// Render sessions table
+function renderCalibrationSessions() {
+    const statusFilter = document.getElementById('calFilterStatus')?.value || 'all';
+    const dateFrom = document.getElementById('calFilterDateFrom')?.value;
+    const dateTo = document.getElementById('calFilterDateTo')?.value;
+    
+    let filtered = calibrationSessions;
+    
+    if (statusFilter !== 'all') {
+        filtered = filtered.filter(s => s.status === statusFilter);
+    }
+    if (dateFrom) {
+        filtered = filtered.filter(s => new Date(s.scheduled_at) >= new Date(dateFrom));
+    }
+    if (dateTo) {
+        filtered = filtered.filter(s => new Date(s.scheduled_at) <= new Date(dateTo + 'T23:59:59'));
+    }
+    
+    const tbody = document.getElementById('calSessionsBody');
+    if (!tbody) return;
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No calibration sessions found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filtered.map(session => {
+        const exercises = calibrationExercises.filter(e => e.session_id === session.id);
+        const exerciseCount = exercises.length;
+        
+        // Calculate variance for this session
+        let sessionVariance = '—';
+        if (exercises.length > 0) {
+            let totalVar = 0;
+            let count = 0;
+            exercises.forEach(ex => {
+                const scores = calibrationScores.filter(s => s.exercise_id === ex.id);
+                if (scores.length > 1) {
+                    const sc = scores.map(s => s.score);
+                    const avg = sc.reduce((a,b) => a+b, 0) / sc.length;
+                    const var_ = Math.sqrt(sc.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / sc.length);
+                    totalVar += var_;
+                    count++;
+                }
+            });
+            if (count > 0) sessionVariance = (totalVar / count).toFixed(1) + '%';
+        }
+        
+        const participants = session.participants || [];
+        const statusColors = {
+            scheduled: '#00aeef',
+            in_progress: '#FFB612',
+            completed: '#00843D',
+            cancelled: '#C8102E'
+        };
+        
+        return `
+            <tr>
+                <td><strong>${session.name}</strong></td>
+                <td>${new Date(session.scheduled_at).toLocaleString()}</td>
+                <td>${session.facilitator}</td>
+                <td>${participants.length} evaluators</td>
+                <td><span style="color:${statusColors[session.status] || '#666'}; font-weight:600; text-transform:capitalize;">${session.status}</span></td>
+                <td>${exerciseCount} exercises</td>
+                <td>${sessionVariance}</td>
+                <td>
+                    <button class="btn btn-small" onclick="editCalibrationSession('${session.id}')" style="padding:4px 8px; font-size:11px;">Edit</button>
+                    <button class="btn btn-secondary btn-small" onclick="deleteCalibrationSession('${session.id}')" style="padding:4px 8px; font-size:11px;">Delete</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Reset filters
+function resetCalibrationFilters() {
+    document.getElementById('calFilterStatus').value = 'all';
+    document.getElementById('calFilterDateFrom').value = '';
+    document.getElementById('calFilterDateTo').value = '';
+    renderCalibrationSessions();
+}
+
+// Open modal for new session
+function openCalibrationModal(sessionId = null) {
+    calTempParticipants = [];
+    const modal = document.getElementById('calSessionModal');
+    const title = document.getElementById('calModalTitle');
+    
+    if (sessionId) {
+        const session = calibrationSessions.find(s => s.id === sessionId);
+        if (!session) return;
+        currentCalSession = session;
+        title.textContent = 'Edit Calibration Session';
+        document.getElementById('calSessionName').value = session.name;
+        document.getElementById('calFacilitator').value = session.facilitator;
+        document.getElementById('calSessionDate').value = session.scheduled_at.substring(0, 10);
+        document.getElementById('calSessionTime').value = session.scheduled_at.substring(11, 16);
+        document.getElementById('calSessionNotes').value = session.description || '';
+        document.getElementById('calSessionStatus').value = session.status;
+        calTempParticipants = [...(session.participants || [])];
+    } else {
+        currentCalSession = null;
+        title.textContent = 'New Calibration Session';
+        document.getElementById('calSessionName').value = '';
+        document.getElementById('calFacilitator').value = '';
+        document.getElementById('calSessionDate').value = '';
+        document.getElementById('calSessionTime').value = '';
+        document.getElementById('calSessionNotes').value = '';
+        document.getElementById('calSessionStatus').value = 'scheduled';
+    }
+    
+    // Populate facilitator and participant dropdowns
+    populateCalFacilitatorDropdown();
+    updateCalParticipantsList();
+    
+    modal.style.display = 'flex';
+}
+
+// Close session modal
+function closeCalibrationModal() {
+    document.getElementById('calSessionModal').style.display = 'none';
+    currentCalSession = null;
+    calTempParticipants = [];
+}
+
+// Populate facilitator dropdown with evaluators
+function populateCalFacilitatorDropdown() {
+    const select = document.getElementById('calFacilitator');
+    if (!select) return;
+    const evaluators = [...new Set(evaluationsDB.map(e => e.evaluator).filter(Boolean))];
+    select.innerHTML = '<option value="">Select Facilitator...</option>' + 
+        evaluators.map(e => `<option value="${e}">${e}</option>`).join('');
+    
+    // Also populate add participant dropdown
+    const partSelect = document.getElementById('calAddParticipant');
+    if (partSelect) {
+        partSelect.innerHTML = '<option value="">+ Add evaluator...</option>' + 
+            evaluators.map(e => `<option value="${e}">${e}</option>`).join('');
+    }
+}
+
+// Add participant to temp list
+function addCalibrationParticipant(name) {
+    if (!name || calTempParticipants.includes(name)) return;
+    calTempParticipants.push(name);
+    updateCalParticipantsList();
+    document.getElementById('calAddParticipant').value = '';
+}
+
+// Remove participant from temp list
+function removeCalParticipant(name) {
+    calTempParticipants = calTempParticipants.filter(p => p !== name);
+    updateCalParticipantsList();
+}
+
+// Update participants display
+function updateCalParticipantsList() {
+    const container = document.getElementById('calParticipantsList');
+    if (!container) return;
+    if (calTempParticipants.length === 0) {
+        container.innerHTML = '<span style="color:var(--text-muted); font-size:12px;">Select evaluators to invite...</span>';
+        return;
+    }
+    container.innerHTML = calTempParticipants.map(p => `
+        <span style="background:var(--header-blue); color:white; padding:4px 10px; border-radius:12px; font-size:12px; display:flex; align-items:center; gap:6px;">
+            ${p}
+            <button onclick="removeCalParticipant('${p}')" style="background:none; border:none; color:white; cursor:pointer; font-size:14px; padding:0;">&times;</button>
+        </span>
+    `).join('');
+}
+
+// Save calibration session
+async function saveCalibrationSession() {
+    const name = document.getElementById('calSessionName').value.trim();
+    const facilitator = document.getElementById('calFacilitator').value;
+    const date = document.getElementById('calSessionDate').value;
+    const time = document.getElementById('calSessionTime').value;
+    const notes = document.getElementById('calSessionNotes').value.trim();
+    const status = document.getElementById('calSessionStatus').value;
+    
+    if (!name || !facilitator || !date || !time) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    if (calTempParticipants.length === 0) {
+        alert('Please add at least one participant');
+        return;
+    }
+    
+    const scheduledAt = new Date(date + 'T' + time).toISOString();
+    const sessionData = {
+        name,
+        facilitator,
+        scheduled_at: scheduledAt,
+        participants: calTempParticipants,
+        description: notes,
+        status,
+        updated_at: new Date().toISOString()
+    };
+    
+    try {
+        if (currentCalSession) {
+            // Update existing
+            const { error } = await supabaseClient
+                .from('calibration_sessions')
+                .update(sessionData)
+                .eq('id', currentCalSession.id);
+            if (error) throw error;
+            showToast('Session updated successfully');
+        } else {
+            // Create new
+            sessionData.created_at = new Date().toISOString();
+            sessionData.created_by = currentUser?.display_name || 'Unknown';
+            const { error } = await supabaseClient
+                .from('calibration_sessions')
+                .insert([sessionData]);
+            if (error) throw error;
+            showToast('Session created successfully');
+        }
+        
+        closeCalibrationModal();
+        await loadCalibrationData();
+        renderCalibrationSessions();
+    } catch (e) {
+        console.error('Error saving calibration session:', e);
+        alert('Failed to save session. Check console for details.');
+    }
+}
+
+// Edit session
+function editCalibrationSession(sessionId) {
+    openCalibrationModal(sessionId);
+}
+
+// Delete session
+async function deleteCalibrationSession(sessionId) {
+    if (!confirm('Delete this calibration session? All exercises and scores will also be deleted.')) return;
+    
+    try {
+        const { error } = await supabaseClient
+            .from('calibration_sessions')
+            .delete()
+            .eq('id', sessionId);
+        if (error) throw error;
+        
+        showToast('Session deleted');
+        await loadCalibrationData();
+        renderCalibrationSessions();
+    } catch (e) {
+        console.error('Error deleting session:', e);
+        alert('Failed to delete session');
+    }
+}
+
+// Open exercise modal
+function openExerciseModal() {
+    document.getElementById('calExerciseModal').style.display = 'flex';
+    const createBtn = document.getElementById('calCreateExerciseBtn');
+    if (createBtn) setButtonLoading(createBtn, false);
+    // Clear text fields
+    ['calExerciseName','calExerciseRecording','calExerciseCNN','calExerciseGoldScore',
+     'calQA1','calQA2','calQA3','calQA4','calQA5'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    clearFieldInvalid(['calExerciseName','calExerciseGoldScore','calQA1','calQA2','calQA3','calQA4','calQA5']);
+    // Populate Site dropdown from existing evaluations data
+    const siteSelect = document.getElementById('calExerciseSite');
+    const lobSelect  = document.getElementById('calExerciseLOB');
+    if (siteSelect) {
+        const sites = ['', ...new Set(evaluationsDB.map(e => e.site).filter(Boolean))].sort();
+        siteSelect.innerHTML = '<option value="">Select site...</option>' +
+            sites.filter(Boolean).map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+    if (lobSelect) {
+        const lobs = [...new Set(evaluationsDB.map(e => e.lob).filter(Boolean))].sort();
+        lobSelect.innerHTML = '<option value="">Select LOB...</option>' +
+            lobs.map(l => `<option value="${l}">${l}</option>`).join('');
+    }
+}
+
+// Close exercise modal
+function closeExerciseModal() {
+    document.getElementById('calExerciseModal').style.display = 'none';
+}
+
+// Toggle group calibration fields
+function toggleGroupCalFields() {
+    const mode = document.getElementById('calExerciseMode').value;
+    const groupFields = document.getElementById('calGroupFields');
+    if (groupFields) {
+        groupFields.style.display = mode === 'group' ? 'block' : 'none';
+    }
+}
+
+// Save exercise
+async function saveCalibrationExercise() {
+    clearFieldInvalid(['calExerciseName','calExerciseGoldScore','calQA1','calQA2','calQA3','calQA4','calQA5']);
+    const name      = document.getElementById('calExerciseName').value.trim();
+    const recording = document.getElementById('calExerciseRecording').value.trim();
+    const cnn       = document.getElementById('calExerciseCNN').value.trim();
+    const goldScore = document.getElementById('calExerciseGoldScore').value;
+    const site      = document.getElementById('calExerciseSite')?.value || '';
+    const lob       = document.getElementById('calExerciseLOB')?.value || '';
+
+    if (!name) {
+        setFieldInvalid('calExerciseName');
+        showToast('⚠️ Please enter an exercise name', '#C8102E');
+        return;
+    }
+
+    if (goldScore && (Number(goldScore) < 0 || Number(goldScore) > 100)) {
+        setFieldInvalid('calExerciseGoldScore');
+        showToast('⚠️ Gold Standard Score must be between 0 and 100', '#C8102E');
+        return;
+    }
+
+    // Collect evaluator names (up to 5)
+    const groupEvaluators = [];
+    for (let i = 1; i <= 5; i++) {
+        const val = document.getElementById(`calQA${i}`)?.value.trim();
+        if (val) groupEvaluators.push(val);
+    }
+    if (groupEvaluators.length < 2) {
+        setFieldInvalid('calQA1');
+        setFieldInvalid('calQA2');
+        showToast('⚠️ Please enter at least 2 QA evaluator names', '#C8102E');
+        return;
+    }
+
+    const createBtn = document.getElementById('calCreateExerciseBtn');
+    try {
+        setButtonLoading(createBtn, true, 'Creating...');
+        // Auto-create a session for this exercise
+        const sessionName = `${name} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        const { data: sessionData, error: sessErr } = await supabaseClient
+            .from('calibration_sessions')
+            .insert([{
+                name: sessionName,
+                facilitator: groupEvaluators[0],
+                scheduled_at: new Date().toISOString(),
+                participants: groupEvaluators,
+                site: site || null,
+                lob: lob || null,
+                status: 'in_progress'
+            }])
+            .select('id')
+            .single();
+        if (sessErr) throw sessErr;
+
+        const exerciseData = {
+            session_id: sessionData.id,
+            name,
+            recording_url: recording || null,
+            cnn: cnn || null,
+            site: site || null,
+            lob: lob || null,
+            questions: typeof qaQuestions !== 'undefined' ? qaQuestions.map(q => q.id) : [],
+            gold_score: goldScore ? parseInt(goldScore) : null,
+            mode: 'group',
+            group_evaluators: groupEvaluators
+        };
+
+        const { error: exErr } = await supabaseClient
+            .from('calibration_exercises')
+            .insert([exerciseData]);
+        if (exErr) throw exErr;
+
+        showToast('Exercise created successfully');
+        closeExerciseModal();
+        await loadCalibrationData();
+        renderCalibrationExercises();
+    } catch (e) {
+        console.error('Error saving exercise:', e);
+        showToast('⚠️ Failed to create exercise: ' + e.message, '#C8102E', 6000);
+    } finally {
+        setButtonLoading(createBtn, false);
+    }
+}
+
+// Render exercises list
+function renderCalibrationExercises() {
+    const container = document.getElementById('calExercisesList');
+    if (!container) return;
+
+    const query  = (document.getElementById('calExerciseSearch')?.value || '').toLowerCase().trim();
+    const status = document.getElementById('calExerciseStatusFilter')?.value || 'all';
+
+    let exercises = calibrationExercises;
+
+    // Filter by status
+    if (status !== 'all') {
+        exercises = exercises.filter(ex => {
+            const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+            const completed = [...new Set(exScores.map(s => s.evaluator_name))].length;
+            const expected  = ex.group_evaluators?.length || 2;
+            const isScored  = completed >= expected;
+            return status === 'scored' ? isScored : !isScored;
+        });
+    }
+
+    // Filter by search query
+    if (query) {
+        exercises = exercises.filter(ex =>
+            (ex.name || '').toLowerCase().includes(query) ||
+            (ex.cnn  || '').toLowerCase().includes(query) ||
+            (ex.site || '').toLowerCase().includes(query) ||
+            (ex.lob  || '').toLowerCase().includes(query) ||
+            (ex.group_evaluators || []).some(e => e.toLowerCase().includes(query))
+        );
+    }
+
+    if (calibrationExercises.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:42px; color:var(--text-muted);"><div style="font-size:40px; margin-bottom:10px;">🎯</div><strong style="color:var(--header-blue);">No calibration exercises yet</strong><div style="margin:6px 0 14px; font-size:13px;">Create a group exercise so multiple QAs can score the same call and compare alignment.</div><button class="btn btn-secondary btn-small" onclick="openExerciseModal()">+ New Exercise</button></div>';
+        return;
+    }
+    if (exercises.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:32px; color:var(--text-muted);"><div style="font-size:32px; margin-bottom:8px;">🔍</div><strong>No exercises match your filter</strong><div style="margin-top:6px; font-size:13px;">Try a different search or status filter.</div></div>';
+        return;
+    }
+
+    container.innerHTML = exercises.map(ex => {
+        const scores = calibrationScores.filter(s => s.exercise_id === ex.id);
+        const completedEvaluators = [...new Set(scores.map(s => s.evaluator_name))];
+        const evaluators = ex.group_evaluators || [];
+        const expectedCount = evaluators.length || 2;
+        const isScored = completedEvaluators.length >= expectedCount;
+        const createdDate = ex.created_at ? new Date(ex.created_at).toLocaleDateString() : '';
+
+        // Inline score summary
+        let scoreSummaryHtml = '';
+        if (scores.length > 0) {
+            const vals = scores.map(s => s.score);
+            const variance = vals.length > 1 ? Math.max(...vals) - Math.min(...vals) : 0;
+            const varColor = variance <= 5 ? 'var(--pass-green)' : variance <= 10 ? 'var(--warn-yellow)' : 'var(--fail-red)';
+            const scorePills = scores.map(s => `<span style="display:inline-block; background:var(--bg-main); border:1px solid var(--border-light); border-radius:10px; padding:2px 8px; font-size:11px; font-weight:700; color:var(--text-dark);">${s.evaluator_name.split(' ')[0]} <span style="color:${s.score >= 88 ? 'var(--pass-green)' : 'var(--fail-red)'};">${s.score}%</span></span>`).join(' ');
+            scoreSummaryHtml = `<div style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                ${scorePills}
+                <span style="font-size:11px; font-weight:800; color:${varColor}; background:${varColor}1a; padding:2px 8px; border-radius:10px;">±${variance}pt variance</span>
+                ${ex.gold_score ? `<span style="font-size:11px; color:var(--text-muted);">vs Gold ${ex.gold_score}%</span>` : ''}
+            </div>`;
+        }
+
+        return `
+            <div style="background:white; border:1px solid var(--border-light); border-radius:10px; padding:16px; display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
+                        <h4 style="font-size:14px; font-weight:700; color:var(--header-blue); margin:0;">${ex.name}</h4>
+                        ${isScored ? `<span style="background:var(--pass-green); color:white; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;">SCORED</span>` : `<span style="background:var(--warn-yellow); color:white; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;">PENDING</span>`}
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted); display:flex; gap:14px; flex-wrap:wrap;">
+                        ${ex.cnn ? `<span>📋 CNN: ${ex.cnn}</span>` : ''}
+                        ${ex.site ? `<span>📍 ${ex.site}</span>` : ''}
+                        ${ex.lob ? `<span>📂 ${ex.lob}</span>` : ''}
+                        ${createdDate ? `<span>📅 ${createdDate}</span>` : ''}
+                        ${!scores.length && ex.gold_score ? `<span style="color:var(--pass-green);">🎯 Gold: ${ex.gold_score}%</span>` : ''}
+                        <span>👥 ${evaluators.join(', ') || 'No evaluators set'}</span>
+                    </div>
+                    ${scoreSummaryHtml}
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+                    ${ex.recording_url ? `<a href="${ex.recording_url}" target="_blank" class="btn btn-ghost btn-small" style="font-size:11px;">🎧 Listen</a>` : ''}
+                    ${isScored
+                        ? `<button class="btn btn-ghost btn-small" onclick="openCalScoringModal('${ex.id}')" style="font-size:12px;">↺ Re-score</button>`
+                        : `<button class="btn btn-small" onclick="openCalScoringModal('${ex.id}')" style="font-size:12px;">▶ Score Group</button>`
+                    }
+                    <button class="btn btn-danger btn-small" onclick="openCalDeleteModal('${ex.id}')" style="font-size:11px; padding:6px 10px;">✕</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Open scoring modal
+function openCalScoringModal(exerciseId) {
+    const ex = calibrationExercises.find(e => e.id === exerciseId);
+    if (!ex) return;
+    currentCalExercise = ex;
+    
+    document.getElementById('calScoringModal').style.display = 'flex';
+    const container = document.getElementById('calScoringContent');
+    const isGroupMode = ex.mode === 'group';
+    const evaluators = ex.group_evaluators || [];
+    
+    // Build scoring form based on mode
+    if (isGroupMode && evaluators.length > 0) {
+        // GROUP MODE: Exact replica of main evaluation form with 4-5 evaluator columns
+        const evalCount = evaluators.length;
+        
+        // Widen modal for group mode
+        document.getElementById('calScoringModalInner').style.maxWidth = Math.min(95, 55 + evalCount * 9) + 'vw';
+        document.getElementById('calScoringModalInner').style.width = '100%';
+        
+        // Use ALL 22 questions from qaQuestions - exact same as main form
+        const allQuestions = typeof qaQuestions !== 'undefined' ? qaQuestions : [];
+        const sections = [...new Set(allQuestions.map(q => q.section))];
+        
+        // Build the score header bar (mirrors the green score display)
+        let scoreHeaderHtml = evaluators.map((ev, idx) => `
+            <div style="flex:1; text-align:center; padding:12px 8px; border-left:1px solid rgba(255,255,255,0.2);">
+                <div style="font-size:10px; font-weight:600; text-transform:uppercase; opacity:0.85; letter-spacing:0.5px;">${ev}</div>
+                <div id="calScoreDisplay_${idx}" style="font-size:26px; font-weight:900; line-height:1.1;">100%</div>
+                <div id="calScoreSub_${idx}" style="font-size:10px; opacity:0.85;">0 failed · 0 auto-fails</div>
+                ${ex.gold_score ? `<div id="calGoldGap_${idx}" style="font-size:10px; margin-top:2px; opacity:0.9;"></div>` : ''}
+            </div>
+        `).join('');
+        
+        // Build question rows - each with N evaluator dropdowns + ONE shared note
+        let tbodyHtml = '';
+        sections.forEach(section => {
+            tbodyHtml += `<tr><td colspan="${evalCount + 3}" class="row-header">▶ ${section}</td></tr>`;
+            allQuestions.filter(q => q.section === section).forEach(q => {
+                let evalCells = evaluators.map((ev, eidx) => `
+                    <td style="text-align:center; padding:8px 6px; border-left:1px solid var(--border-light); vertical-align:middle;">
+                        <select id="cal_q${q.id}_e${eidx}" class="select-yes-no yes"
+                            style="min-width:80px; font-size:13px;"
+                            onchange="updateCalRowScore(${q.id}, ${eidx})">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </td>
+                `).join('');
+                tbodyHtml += `
+                    <tr class="eval-row" data-weight="${q.w}">
+                        <td><div class="q-title"><span class="q-number">${q.id}</span>${q.title}</div></td>
+                        ${evalCells}
+                        <td style="border-left:1px solid var(--border-light); vertical-align:middle; padding:6px 8px;">
+                            <input type="text" id="cal_note_q${q.id}" placeholder="Add note..."
+                                style="width:100%; padding:5px 8px; border:1px solid var(--border-light); border-radius:5px; font-size:12px; color:var(--text-dark);">
+                        </td>
+                        <td style="text-align:center; border-left:1px solid var(--border-light); vertical-align:middle; white-space:nowrap;"><span class="weight-badge">${q.w.toFixed(1)}%</span></td>
+                    </tr>`;
+            });
+        });
+        
+        let html = `
+            <!-- Score Header -->
+            <div style="background:linear-gradient(135deg, var(--pass-green) 0%, var(--pass-green-light) 100%); color:white; border-radius:10px; margin-bottom:16px; display:flex; align-items:stretch; overflow:hidden;">
+                <div style="padding:16px 20px; min-width:160px;">
+                    <div style="font-size:10px; font-weight:600; text-transform:uppercase; opacity:0.85; letter-spacing:0.5px;">Group Calibration</div>
+                    <div style="font-size:13px; font-weight:700; margin-top:4px;">${ex.name}</div>
+                    ${ex.cnn ? `<div style="font-size:11px; opacity:0.85; margin-top:2px;">CNN: ${ex.cnn}</div>` : ''}
+                    ${ex.recording_url ? `<a href="${ex.recording_url}" target="_blank" style="font-size:11px; color:rgba(255,255,255,0.9); margin-top:4px; display:block;">🎧 Listen</a>` : ''}
+                    ${ex.gold_score ? `<div style="font-size:11px; margin-top:4px; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:10px; display:inline-block;">Gold: ${ex.gold_score}%</div>` : ''}
+                </div>
+                ${scoreHeaderHtml}
+            </div>
+            
+            <!-- Section 2: Evaluation Criteria -->
+            <div style="font-weight:700; font-size:13px; color:var(--header-blue); margin-bottom:10px; border-bottom:2px solid var(--border-medium); padding-bottom:8px;">
+                Evaluation Criteria &nbsp;·&nbsp; Yes = Pass &nbsp;·&nbsp; No = Fail
+            </div>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; padding:10px 12px; background:var(--bg-main); border-bottom:2px solid var(--border-medium);">Quality Parameter</th>
+                            ${evaluators.map((ev, idx) => `
+                                <th style="text-align:center; padding:10px 6px; background:var(--bg-main); border-bottom:2px solid var(--border-medium); border-left:1px solid var(--border-medium); min-width:88px;">
+                                    <div style="font-size:12px; font-weight:700; color:var(--header-blue);">${ev}</div>
+                                </th>
+                            `).join('')}
+                            <th style="text-align:left; padding:10px 8px; background:var(--bg-main); border-bottom:2px solid var(--border-medium); border-left:1px solid var(--border-medium); min-width:140px;">Discussion Note</th>
+                            <th style="text-align:center; padding:10px 8px; background:var(--bg-main); border-bottom:2px solid var(--border-medium); border-left:1px solid var(--border-medium);">Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tbodyHtml}</tbody>
+                </table>
+            </div>
+
+            <!-- Section 3: Personalization Group Discussion -->
+            <div style="margin-top:20px; font-weight:700; font-size:13px; color:var(--header-blue); margin-bottom:10px; border-bottom:2px solid var(--border-medium); padding-bottom:8px; border-left:4px solid var(--header-blue); padding-left:10px;">
+                Personalization / Upselling &nbsp;·&nbsp; Group Discussion
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Offer Made?</label>
+                    <select id="cal_up_OfferMade" class="select-yes-no yes">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>What was Offered?</label>
+                    <select id="cal_up_OfferType">
+                        <option>LG Extended Warranty</option>
+                        <option>Accessory</option>
+                        <option>Water Filter</option>
+                        <option>ThinQ Explanation</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Offer Quality</label>
+                    <select id="cal_up_OfferQuality" class="select-yes-no yes">
+                        <option value="Adding Value">Adding Value</option>
+                        <option value="Indifferent">Indifferent</option>
+                        <option value="Pushy / Sales-y">Pushy / Sales-y</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Customer Interested?</label>
+                    <select id="cal_up_CustInterested" class="select-yes-no yes">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Follow-Through</label>
+                    <select id="cal_up_FollowThrough" class="select-yes-no yes">
+                        <option value="Properly Followed Up">Properly Followed Up</option>
+                        <option value="Partially Addressed">Partially Addressed</option>
+                        <option value="Left Hanging">Left Hanging</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Personalization Notes</label>
+                    <input type="text" id="cal_up_Notes" placeholder="Group discussion notes on personalization...">
+                </div>
+            </div>
+
+            <!-- Variance Alert -->
+            <div id="calVarianceAlert" style="margin-top:14px; padding:12px 16px; background:#fff3cd; border-radius:8px; border-left:4px solid #ffc107; display:none;">
+                <strong style="color:#856404;">⚠️ Score Variance:</strong>
+                <span id="calVarianceText" style="font-size:12px; color:#856404;"></span>
+            </div>
+            
+            <div class="form-group" style="margin-top:16px;">
+                <label>Overall Calibration Notes</label>
+                <textarea id="calGroupComments" rows="3" placeholder="Document scoring discussions, disagreements, and consensus reached..."></textarea>
+            </div>
+        `;
+        container.innerHTML = html;
+        
+        // Initialize score tracking with all questions
+        initCalScoreTracking(allQuestions, evalCount);
+        
+        // Mark modal as group mode for dispatcher
+        document.getElementById('calScoringModal').dataset.mode = 'group';
+        const submitBtn = document.getElementById('calSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Save Group Results';
+    } else {
+        // INDIVIDUAL MODE: Simple form
+        container.innerHTML = `
+            <div style="margin-bottom:20px; padding:16px; background:var(--bg-main); border-radius:8px;">
+                <h4 style="font-size:14px; color:var(--header-blue); margin-bottom:8px;">${ex.name}</h4>
+                <p style="font-size:12px; color:var(--text-muted);">
+                    ${ex.cnn ? `Case: ${ex.cnn}` : ''}
+                    ${ex.recording_url ? ` • <a href="${ex.recording_url}" target="_blank">Listen to recording</a>` : ''}
+                </p>
+                ${ex.gold_score ? `<p style="font-size:12px; color:var(--pass-green); margin-top:8px;">Expected Score: ${ex.gold_score}%</p>` : ''}
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Your Name *</label>
+                <input type="text" id="calScoreEvaluator" value="${currentUser?.display_name || ''}" ${currentUser ? 'readonly' : ''}>
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Overall Score % *</label>
+                <input type="number" id="calScoreValue" min="0" max="100" placeholder="Enter score">
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Comments / Rationale</label>
+                <textarea id="calScoreComments" rows="3" placeholder="Explain your scoring decisions..."></textarea>
+            </div>
+        `;
+        
+        // Mark modal as individual mode for dispatcher
+        document.getElementById('calScoringModal').dataset.mode = 'individual';
+        const submitBtn = document.getElementById('calSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Submit My Score';
+    }
+}
+
+// Close scoring modal
+function closeScoringModal() {
+    document.getElementById('calScoringModal').style.display = 'none';
+    currentCalExercise = null;
+    const modal = document.getElementById('calScoringModal');
+    if (modal) modal.dataset.warnedUnanswered = '';
+    const alertEl = document.getElementById('calUnansweredAlert');
+    if (alertEl) { alertEl.style.display = 'none'; alertEl.innerHTML = ''; }
+    const submitBtn = document.getElementById('calSubmitBtn');
+    if (submitBtn) submitBtn.textContent = 'Submit Score';
+}
+
+// Submit calibration score
+async function submitCalibrationScore() {
+    clearFieldInvalid(['calScoreEvaluator','calScoreValue']);
+    const evaluator = document.getElementById('calScoreEvaluator').value.trim();
+    const score = parseInt(document.getElementById('calScoreValue').value);
+    const comments = document.getElementById('calScoreComments').value.trim();
+    
+    if (!evaluator || isNaN(score)) {
+        setFieldInvalid('calScoreEvaluator', !evaluator);
+        setFieldInvalid('calScoreValue', isNaN(score));
+        showToast('⚠️ Please enter your name and a valid score', '#C8102E');
+        return;
+    }
+    if (score < 0 || score > 100) {
+        setFieldInvalid('calScoreValue');
+        showToast('⚠️ Score must be between 0 and 100', '#C8102E');
+        return;
+    }
+    
+    const scoreData = {
+        exercise_id: currentCalExercise.id,
+        evaluator_name: evaluator,
+        session_id: currentCalExercise.session_id,
+        score,
+        answers: {}, // Simplified - could include question-by-question
+        comments,
+        submitted_at: new Date().toISOString()
+    };
+    
+    const submitBtn = document.getElementById('calSubmitBtn');
+    try {
+        setButtonLoading(submitBtn, true, 'Submitting...');
+        const { error } = await supabaseClient
+            .from('calibration_scores')
+            .insert([scoreData]);
+        if (error) throw error;
+        
+        showToast('Score submitted successfully');
+        closeScoringModal();
+        await loadCalibrationData();
+        renderCalibrationExercises();
+    } catch (e) {
+        console.error('Error submitting score:', e);
+        showToast('⚠️ Failed to submit score: ' + e.message, '#C8102E', 6000);
+    } finally {
+        setButtonLoading(submitBtn, false);
+    }
+}
+
+// Global tracker for calibration scores
+let currentCalQuestions = [];
+let currentCalEvalCount = 0;
+
+// Initialize score tracking for group calibration
+function initCalScoreTracking(questions, evalCount) {
+    currentCalQuestions = questions;
+    currentCalEvalCount = evalCount;
+    // Initial score calculation
+    for (let i = 0; i < evalCount; i++) {
+        calculateCalEvaluatorScore(i);
+    }
+}
+
+// Update row score display and recalculate
+function updateCalRowScore(qid, eidx) {
+    const select = document.getElementById(`cal_q${qid}_e${eidx}`);
+    if (select) {
+        select.className = 'select-yes-no ' + (select.value === 'Yes' ? 'yes' : 'no');
+    }
+    calculateCalEvaluatorScore(eidx);
+
+    // Live disagreement highlighting for this question row
+    const evalCount = currentCalEvalCount || 0;
+    const answers = [];
+    for (let i = 0; i < evalCount; i++) {
+        const sel = document.getElementById(`cal_q${qid}_e${i}`);
+        if (sel) answers.push(sel.value);
+    }
+    const hasYes = answers.includes('Yes');
+    const hasNo  = answers.includes('No');
+    const isSplit = hasYes && hasNo;
+
+    // Find the row by its data-qid or by the first select's closest TR
+    const anySelect = document.getElementById(`cal_q${qid}_e0`);
+    const row = anySelect?.closest('tr');
+    if (row) {
+        row.style.background = isSplit ? 'rgba(200,16,46,0.06)' : '';
+        let splitBadge = row.querySelector('.cal-split-badge');
+        if (isSplit && !splitBadge) {
+            const titleCell = row.querySelector('.q-title');
+            if (titleCell) {
+                splitBadge = document.createElement('span');
+                splitBadge.className = 'cal-split-badge';
+                splitBadge.style.cssText = 'margin-left:8px;background:#C8102E;color:white;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;vertical-align:middle;';
+                splitBadge.textContent = '⚠ Split';
+                titleCell.appendChild(splitBadge);
+            }
+        } else if (!isSplit && splitBadge) {
+            splitBadge.remove();
+        }
+    }
+}
+
+// Calculate auto score for an evaluator
+function calculateCalEvaluatorScore(eidx) {
+    let totalWeight = 0;
+    let earnedWeight = 0;
+    let failedCount = 0;
+    
+    currentCalQuestions.forEach(q => {
+        if (q.w > 0) {
+            const select = document.getElementById(`cal_q${q.id}_e${eidx}`);
+            if (select) {
+                const val = select.value;
+                totalWeight += q.w;
+                if (val === 'Yes') {
+                    earnedWeight += q.w;
+                } else if (val === 'No') {
+                    failedCount++;
+                }
+            }
+        }
+    });
+    
+    const score = totalWeight > 0 ? (earnedWeight / totalWeight * 100).toFixed(1) : 100;
+    
+    // Update the green header score display
+    const scoreDisplay = document.getElementById(`calScoreDisplay_${eidx}`);
+    const scoreSub = document.getElementById(`calScoreSub_${eidx}`);
+    if (scoreDisplay) scoreDisplay.textContent = score + '%';
+    if (scoreSub) scoreSub.textContent = `${failedCount} failed · 0 auto-fails`;
+
+    // Gold score gap
+    const goldEl = document.getElementById(`calGoldGap_${eidx}`);
+    if (goldEl && currentCalExercise?.gold_score) {
+        const gap = parseFloat(score) - currentCalExercise.gold_score;
+        goldEl.textContent = (gap >= 0 ? '+' : '') + gap.toFixed(1) + ' vs Gold';
+        goldEl.style.color = Math.abs(gap) <= 5 ? 'rgba(255,255,255,0.9)' : gap > 0 ? '#a8f0c6' : '#ffb3b3';
+    }
+
+    // Check variance across all evaluators
+    checkCalVariance();
+}
+
+// Update score input color based on value
+function updateCalScoreColor(input) {
+    const val = parseInt(input.value) || 0;
+    if (val >= 90) input.style.borderColor = 'var(--pass-green)';
+    else if (val >= 75) input.style.borderColor = 'var(--warn-yellow)';
+    else input.style.borderColor = 'var(--fail-red)';
+}
+
+// Check variance between evaluator scores
+function checkCalVariance() {
+    const scores = [];
+    for (let i = 0; i < currentCalEvalCount; i++) {
+        const el = document.getElementById(`calScoreDisplay_${i}`);
+        const val = el ? parseFloat(el.textContent) : NaN;
+        if (!isNaN(val)) scores.push(val);
+    }
+    
+    if (scores.length >= 2) {
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const range = max - min;
+        
+        const alertDiv = document.getElementById('calVarianceAlert');
+        const alertText = document.getElementById('calVarianceText');
+        
+        if (range > 10) {
+            alertDiv.style.display = 'block';
+            alertText.textContent = `Scores range from ${min}% to ${max}% (variance: ${range}%). Consider discussing differences before submitting.`;
+        } else {
+            alertDiv.style.display = 'none';
+        }
+    }
+}
+
+// Routes submit button to correct handler based on group vs individual mode
+function dispatchCalibrationSubmit() {
+    const mode = document.getElementById('calScoringModal')?.dataset.mode;
+
+    // Unanswered-questions guard (group mode only)
+    if (mode === 'group') {
+        const evalCount = currentCalEvalCount || 0;
+        const unanswered = [];
+        (currentCalQuestions || []).forEach(q => {
+            for (let i = 0; i < evalCount; i++) {
+                const sel = document.getElementById(`cal_q${q.id}_e${i}`);
+                if (sel && !sel.value) {
+                    unanswered.push(q.title || `Q${q.id}`);
+                    break; // count question once
+                }
+            }
+        });
+        if (unanswered.length > 0) {
+            const alreadyWarned = document.getElementById('calScoringModal')?.dataset.warnedUnanswered === 'true';
+            if (!alreadyWarned) {
+                const alertEl = document.getElementById('calUnansweredAlert');
+                if (alertEl) {
+                    alertEl.innerHTML = `<strong>⚠️ ${unanswered.length} question${unanswered.length > 1 ? 's' : ''} unanswered.</strong> Click <em>Save Group Results</em> again to submit anyway, or go back and answer them.`;
+                    alertEl.style.display = 'block';
+                }
+                document.getElementById('calScoringModal').dataset.warnedUnanswered = 'true';
+                return; // stop — let user review or click again
+            }
+        }
+        // Clear the unanswered flag before actual submit
+        if (document.getElementById('calScoringModal')) {
+            document.getElementById('calScoringModal').dataset.warnedUnanswered = '';
+        }
+        submitGroupCalibrationScore();
+    } else {
+        submitCalibrationScore();
+    }
+}
+
+// Submit group calibration score (saves all 4 evaluators at once)
+async function submitGroupCalibrationScore() {
+    const ex = currentCalExercise;
+    const evaluators = ex.group_evaluators || [];
+    const groupComments = document.getElementById('calGroupComments')?.value.trim() || '';
+    const submitBtn = document.getElementById('calSubmitBtn');
+    
+    // Collect shared personalization fields
+    const personalization = {
+        offer_made:       document.getElementById('cal_up_OfferMade')?.value || '',
+        offer_type:       document.getElementById('cal_up_OfferType')?.value || '',
+        offer_quality:    document.getElementById('cal_up_OfferQuality')?.value || '',
+        cust_interested:  document.getElementById('cal_up_CustInterested')?.value || '',
+        follow_through:   document.getElementById('cal_up_FollowThrough')?.value || '',
+        notes:            document.getElementById('cal_up_Notes')?.value.trim() || ''
+    };
+
+    // Collect scores and answers for each evaluator
+    const allScores = [];
+    const questions = currentCalQuestions;
+    
+    for (let eidx = 0; eidx < evaluators.length; eidx++) {
+        const evaluator = evaluators[eidx];
+        // Read score from the live header display
+        const scoreEl = document.getElementById(`calScoreDisplay_${eidx}`);
+        const scoreVal = scoreEl ? parseFloat(scoreEl.textContent) : NaN;
+        
+        if (isNaN(scoreVal)) {
+            showToast(`⚠️ Score could not be calculated for ${evaluator}. Please check answers.`, '#C8102E', 6000);
+            return;
+        }
+        
+        // Collect individual question answers from dropdowns
+        const answers = {};
+        let yesCount = 0;
+        let noCount = 0;
+        
+        questions.forEach(q => {
+            const select = document.getElementById(`cal_q${q.id}_e${eidx}`);
+            const noteEl = document.getElementById(`cal_note_q${q.id}`);
+            if (select) {
+                const val = select.value;
+                answers[`Q${q.id}_Answer`] = val;
+                answers[`Q${q.id}_Note`] = noteEl ? noteEl.value.trim() : '';
+                if (val === 'Yes') yesCount++;
+                else if (val === 'No') noCount++;
+            }
+        });
+        
+        // Validate all questions answered
+        const answeredCount = Object.keys(answers).filter(k => k.endsWith('_Answer')).length;
+        const totalQuestions = questions.length;
+        if (answeredCount < totalQuestions) {
+            if (!confirm(`${evaluator} has only answered ${answeredCount}/${totalQuestions} questions. Continue anyway?`)) {
+                return;
+            }
+        }
+        
+        allScores.push({
+            exercise_id: ex.id,
+            evaluator_name: evaluator,
+            score: parseInt(scoreVal),
+            answers,
+            question_summary: { yes: yesCount, no: noCount, total: totalQuestions },
+            personalization,
+            comments: groupComments,
+            is_group_submission: true,
+            group_index: eidx,
+            submitted_at: new Date().toISOString()
+        });
+    }
+    
+    try {
+        setButtonLoading(submitBtn, true, 'Saving group...');
+        // Save all 4 evaluator scores
+        const { error } = await supabaseClient
+            .from('calibration_scores')
+            .insert(allScores);
+        if (error) throw error;
+        
+        showToast(`Group calibration saved for ${evaluators.length} evaluators`);
+        closeScoringModal();
+        await loadCalibrationData();
+        renderCalibrationExercises();
+    } catch (e) {
+        console.error('Error submitting group calibration:', e);
+        showToast('⚠️ Failed to save group calibration: ' + e.message, '#C8102E', 6000);
+    } finally {
+        setButtonLoading(submitBtn, false);
+    }
+}
+
+// Render alignment report
+function renderAlignmentReport() {
+    const sessionId = document.getElementById('calAlignmentSession')?.value;
+    const refEvaluator = document.getElementById('calAlignmentRef')?.value;
+    const container = document.getElementById('calAlignmentReport');
+    
+    if (!container) return;
+    if (!sessionId) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px; color:var(--text-muted);">
+                <div style="font-size:48px; margin-bottom:16px;">📊</div>
+                <p>Select a completed calibration session to view evaluator alignment</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const session = calibrationSessions.find(s => s.id === sessionId);
+    const exercises = calibrationExercises.filter(e => e.session_id === sessionId);
+    
+    // Build alignment data
+    let html = `<div style="margin-bottom:20px;"><h4 style="font-size:14px; color:var(--header-blue);">Session: ${session.name}</h4></div>`;
+    
+    exercises.forEach(ex => {
+        const scores = calibrationScores.filter(s => s.exercise_id === ex.id);
+        if (scores.length === 0) return;
+        
+        const scoresList = scores.map(s => ({
+            name: s.evaluator_name,
+            score: s.score,
+            diff: ex.gold_score ? s.score - ex.gold_score : 0
+        }));
+        
+        // Calculate consensus
+        const avgScore = scoresList.reduce((a, s) => a + s.score, 0) / scoresList.length;
+        const variance = Math.sqrt(scoresList.reduce((sq, s) => sq + Math.pow(s.score - avgScore, 2), 0) / scoresList.length);
+        
+        html += `
+            <div style="background:white; border:1px solid var(--border-light); border-radius:8px; padding:16px; margin-bottom:16px;">
+                <h5 style="font-size:13px; margin-bottom:12px;">${ex.name}</h5>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:12px; margin-bottom:16px;">
+                    <div style="text-align:center; padding:12px; background:var(--bg-main); border-radius:6px;">
+                        <div style="font-size:20px; font-weight:700; color:var(--header-blue);">${avgScore.toFixed(1)}%</div>
+                        <div style="font-size:10px; color:var(--text-muted);">Consensus</div>
+                    </div>
+                    <div style="text-align:center; padding:12px; background:var(--bg-main); border-radius:6px;">
+                        <div style="font-size:20px; font-weight:700; color:${variance > 10 ? 'var(--fail-red)' : 'var(--pass-green)'}">${variance.toFixed(1)}%</div>
+                        <div style="font-size:10px; color:var(--text-muted);">Variance</div>
+                    </div>
+                    ${ex.gold_score ? `
+                    <div style="text-align:center; padding:12px; background:var(--bg-main); border-radius:6px;">
+                        <div style="font-size:20px; font-weight:700; color:var(--accent-cyan);">${ex.gold_score}%</div>
+                        <div style="font-size:10px; color:var(--text-muted);">Gold Standard</div>
+                    </div>
+                    ` : ''}
+                </div>
+                <table style="font-size:12px;">
+                    <thead>
+                        <tr>
+                            <th>Evaluator</th>
+                            <th>Score</th>
+                            <th>vs Consensus</th>
+                            ${ex.gold_score ? '<th>vs Gold</th>' : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${scoresList.map(s => `
+                            <tr>
+                                <td>${s.name}</td>
+                                <td><strong>${s.score}%</strong></td>
+                                <td style="color:${Math.abs(s.score - avgScore) > 10 ? 'var(--fail-red)' : 'var(--pass-green)'}">${(s.score - avgScore) > 0 ? '+' : ''}${(s.score - avgScore).toFixed(1)}%</td>
+                                ${ex.gold_score ? `<td style="color:${Math.abs(s.diff) > 10 ? 'var(--fail-red)' : 'var(--pass-green)'}">${s.diff > 0 ? '+' : ''}${s.diff}%</td>` : ''}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Render calibration history chart
+function renderCalibrationHistory() {
+    const ctx = document.getElementById('calibrationHistoryChart');
+    if (!ctx) return;
+    
+    // Prepare data - group by month
+    const byMonth = {};
+    calibrationSessions.filter(s => s.status === 'completed').forEach(s => {
+        const month = new Date(s.scheduled_at).toLocaleString('default', { month: 'short', year: 'numeric' });
+        if (!byMonth[month]) byMonth[month] = { sessions: 0, totalVariance: 0, count: 0 };
+        byMonth[month].sessions++;
+    });
+    
+    const labels = Object.keys(byMonth).slice(-6);
+    const data = labels.map(m => byMonth[m]?.sessions || 0);
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Calibration Sessions',
+                data,
+                borderColor: '#00aeef',
+                backgroundColor: 'rgba(0,174,239,0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+}
+
+// Open safe delete confirmation modal
+let _pendingDeleteExerciseId = null;
+function openCalDeleteModal(exerciseId) {
+    const ex = calibrationExercises.find(e => e.id === exerciseId);
+    if (!ex) return;
+    _pendingDeleteExerciseId = exerciseId;
+    const scoreCount = calibrationScores.filter(s => s.exercise_id === exerciseId).length;
+    document.getElementById('calDeleteExName').textContent = ex.name;
+    document.getElementById('calDeleteExDetail').textContent =
+        scoreCount > 0
+            ? `This will permanently delete the exercise and ${scoreCount} score record${scoreCount > 1 ? 's' : ''}. This cannot be undone.`
+            : 'This exercise has no scores yet. It will be permanently deleted.';
+    document.getElementById('calDeleteModal').style.display = 'flex';
+}
+
+async function confirmDeleteCalibrationExercise() {
+    const exerciseId = _pendingDeleteExerciseId;
+    if (!exerciseId) return;
+    const btn = document.getElementById('calDeleteConfirmBtn');
+    setButtonLoading(btn, true, 'Deleting…');
+    try {
+        const { error } = await supabaseClient
+            .from('calibration_exercises')
+            .delete()
+            .eq('id', exerciseId);
+        if (error) throw error;
+        document.getElementById('calDeleteModal').style.display = 'none';
+        _pendingDeleteExerciseId = null;
+        showToast('Exercise deleted');
+        await loadCalibrationData();
+        renderCalibrationExercises();
+    } catch (e) {
+        showToast('⚠️ Failed to delete: ' + e.message, '#C8102E', 5000);
+    } finally {
+        setButtonLoading(btn, false);
+    }
+}
+
+// Delete exercise (kept for backward compat — now routes through modal)
+function deleteCalibrationExercise(exerciseId) {
+    openCalDeleteModal(exerciseId);
+}
+
+// Initialize calibration view when shown
+async function initCalibrationView() {
+    await loadCalibrationData();
+    renderCalibrationExercises();
+}
+
+// Render calibration dashboard tab widgets
+async function renderCalibrationDashboard() {
+    await loadCalibrationData();
+    const el = id => document.getElementById(id);
+
+    const total  = calibrationExercises.length;
+    const scored = calibrationExercises.filter(ex => calibrationScores.some(s => s.exercise_id === ex.id)).length;
+    const pending = total - scored;
+
+    // Avg variance + avg group score
+    let totalVar = 0, varCount = 0, allScoreVals = [];
+    calibrationExercises.forEach(ex => {
+        const vals = calibrationScores.filter(s => s.exercise_id === ex.id).map(s => s.score);
+        vals.forEach(v => allScoreVals.push(v));
+        if (vals.length > 1) {
+            totalVar += Math.max(...vals) - Math.min(...vals);
+            varCount++;
+        }
+    });
+    const avgVar   = varCount > 0 ? (totalVar / varCount).toFixed(1) + '%' : '—';
+    const avgScore = allScoreVals.length > 0
+        ? (allScoreVals.reduce((a,b) => a+b,0) / allScoreVals.length).toFixed(1) + '%' : '—';
+    const avgVarNum = varCount > 0 ? totalVar / varCount : null;
+    const healthLabel = avgVarNum === null ? 'Not Started' : avgVarNum <= 5 ? 'Good' : avgVarNum <= 10 ? 'Watch' : 'High Variance';
+    const healthColor = avgVarNum === null ? 'var(--text-muted)' : avgVarNum <= 5 ? 'var(--pass-green)' : avgVarNum <= 10 ? 'var(--warn-yellow)' : 'var(--fail-red)';
+
+    if (el('calDashTotal'))    el('calDashTotal').textContent    = total;
+    if (el('calDashScored'))   el('calDashScored').textContent   = scored;
+    if (el('calDashPending'))  el('calDashPending').textContent  = pending;
+    if (el('calDashVariance')) el('calDashVariance').textContent = avgVar;
+    if (el('calDashAvgScore')) el('calDashAvgScore').textContent = avgScore;
+    if (el('calDashHealth')) {
+        el('calDashHealth').textContent = healthLabel;
+        el('calDashHealth').style.color = healthColor;
+    }
+
+    // --- Evaluator Alignment ---
+    const alignEl = el('calDashAlignmentList');
+    if (alignEl) {
+        if (calibrationScores.length === 0) {
+            alignEl.innerHTML = '<div style="text-align:center; padding:26px; color:var(--text-muted); font-size:13px;"><div style="font-size:30px; margin-bottom:8px;">👥</div><strong>No evaluator scores yet</strong><div style="margin-top:4px;">Score a group exercise to compare evaluator alignment.</div></div>';
+        } else {
+            const evalMap = {};
+            calibrationExercises.forEach(ex => {
+                const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+                if (exScores.length < 2) return;
+                const groupAvg = exScores.reduce((a,b) => a + b.score, 0) / exScores.length;
+                exScores.forEach(s => {
+                    if (!evalMap[s.evaluator_name]) evalMap[s.evaluator_name] = { diffs: [], scores: [] };
+                    evalMap[s.evaluator_name].diffs.push(Math.abs(s.score - groupAvg));
+                    evalMap[s.evaluator_name].scores.push(s.score);
+                });
+            });
+            // Build per-evaluator worst-gap exercise map
+            const evalWorstGap = {};
+            calibrationExercises.forEach(ex => {
+                const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+                if (exScores.length < 2) return;
+                const groupAvg2 = exScores.reduce((a,b) => a + b.score, 0) / exScores.length;
+                exScores.forEach(s => {
+                    const gap = Math.abs(s.score - groupAvg2);
+                    if (!evalWorstGap[s.evaluator_name] || gap > evalWorstGap[s.evaluator_name].gap) {
+                        evalWorstGap[s.evaluator_name] = { name: ex.name, gap: gap.toFixed(1) };
+                    }
+                });
+            });
+
+            const evaluators = Object.entries(evalMap).map(([name, d]) => ({
+                name,
+                avgScore: (d.scores.reduce((a,b) => a+b,0) / d.scores.length).toFixed(1),
+                avgDiff:  (d.diffs.reduce((a,b) => a+b,0)  / d.diffs.length).toFixed(1),
+                count: d.scores.length
+            })).sort((a,b) => a.avgDiff - b.avgDiff);
+
+            alignEl.innerHTML = evaluators.map(ev => {
+                const pct   = Math.max(0, 100 - parseFloat(ev.avgDiff) * 2);
+                const color = pct >= 90 ? 'var(--pass-green)' : pct >= 75 ? 'var(--warn-yellow)' : 'var(--fail-red)';
+                const label = pct >= 90 ? 'Aligned' : pct >= 75 ? 'Slight Drift' : 'Needs Review';
+                const worst = evalWorstGap[ev.name];
+                const worstHtml = worst && parseFloat(worst.gap) > 0
+                    ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px; padding-left:120px;">Biggest gap: <em>${worst.name}</em> &nbsp;·&nbsp; ${worst.gap}pts</div>`
+                    : '';
+                return `<div style="margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:110px; font-size:12px; font-weight:600; color:var(--text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${ev.name}">${ev.name}</div>
+                        <div style="flex:1; height:10px; background:var(--bg-main); border-radius:5px; overflow:hidden;">
+                            <div style="width:${pct}%; height:100%; background:${color}; border-radius:5px; transition:width 0.4s;"></div>
+                        </div>
+                        <div style="width:44px; text-align:right; font-size:12px; font-weight:700; color:${color};">${pct.toFixed(0)}%</div>
+                        <div style="width:78px; text-align:right; font-size:10px; font-weight:700; color:${color}; text-transform:uppercase;">${label}</div>
+                        <div style="width:52px; text-align:right; font-size:11px; color:var(--text-muted);">avg ${ev.avgScore}%</div>
+                    </div>
+                    ${worstHtml}
+                </div>`;
+            }).join('') || '<div style="text-align:center; padding:26px; color:var(--text-muted); font-size:13px;"><div style="font-size:30px; margin-bottom:8px;">📊</div><strong>Need multiple scores</strong><div style="margin-top:4px;">Alignment appears after at least one exercise has 2+ evaluator scores.</div></div>';
+        }
+    }
+
+    // --- All Exercises (clickable rows) ---
+    const recentEl = el('calDashRecentList');
+    if (recentEl) {
+        if (calibrationExercises.length === 0) {
+            recentEl.innerHTML = '<div style="text-align:center; padding:28px; color:var(--text-muted); font-size:13px;"><div style="font-size:34px; margin-bottom:8px;">🎯</div><strong>No calibration exercises yet</strong><div style="margin:4px 0 12px;">Create your first group exercise to start comparing QA alignment.</div><button class="btn btn-secondary btn-small" onclick="openExerciseModal()">+ New Exercise</button></div>';
+        } else {
+            recentEl.innerHTML = `
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead>
+                        <tr style="background:var(--bg-main); border-bottom:2px solid var(--border-medium);">
+                            <th style="text-align:left; padding:8px 10px;">Exercise</th>
+                            <th style="text-align:left; padding:8px 6px;">Site / LOB</th>
+                            <th style="text-align:center; padding:8px 6px;">Scores</th>
+                            <th style="text-align:center; padding:8px 6px;">Variance</th>
+                            <th style="text-align:center; padding:8px 6px;">Status</th>
+                            <th style="text-align:center; padding:8px 6px;">Review</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    ${calibrationExercises.map(ex => {
+                        const exScores   = calibrationScores.filter(s => s.exercise_id === ex.id);
+                        const scoredNames = [...new Set(exScores.map(s => s.evaluator_name))];
+                        const isScored   = scoredNames.length >= (ex.group_evaluators?.length || 2);
+                        const vals       = exScores.map(s => s.score);
+                        const scoreRange = vals.length > 1 ? `${Math.min(...vals)}–${Math.max(...vals)}%` : vals.length === 1 ? vals[0] + '%' : '—';
+                        const variance   = vals.length > 1 ? (Math.max(...vals) - Math.min(...vals)) + '%' : '—';
+                        const varColor   = vals.length > 1 ? (Math.max(...vals) - Math.min(...vals) > 10 ? 'var(--fail-red)' : 'var(--pass-green)') : 'var(--text-muted)';
+                        const date       = ex.created_at ? new Date(ex.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                        const expected   = ex.group_evaluators?.length || 2;
+                        const progress   = Math.min(100, Math.round((scoredNames.length / expected) * 100));
+                        return `<tr style="border-bottom:1px solid var(--border-light); cursor:pointer;" onclick="${isScored ? `openCalNotesReview('${ex.id}')` : `openScoringModal('${ex.id}')`}" title="${isScored ? 'Open notes review' : 'Open scoring form'}">
+                            <td style="padding:9px 10px;">
+                                <div style="font-weight:600; color:var(--text-dark);">${ex.name}</div>
+                                <div style="color:var(--text-muted); font-size:11px;">${ex.cnn ? 'CNN: '+ex.cnn+' · ' : ''}${date}</div>
+                            </td>
+                            <td style="padding:9px 6px; color:var(--text-muted);">${[ex.site, ex.lob].filter(Boolean).join(' / ') || '—'}</td>
+                            <td style="padding:9px 6px; text-align:center; font-weight:600;">${scoreRange}</td>
+                            <td style="padding:9px 6px; text-align:center; font-weight:700; color:${varColor};">${variance}</td>
+                            <td style="padding:9px 6px; text-align:center;">
+                                <span style="background:${isScored ? 'var(--pass-green)' : 'var(--warn-yellow)'}; color:white; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700;">${isScored ? 'SCORED' : `${scoredNames.length}/${ex.group_evaluators?.length||'?'}`}</span>
+                                <div style="height:4px; background:var(--bg-main); border-radius:4px; overflow:hidden; margin:6px auto 0; width:70px;">
+                                    <div style="height:100%; width:${progress}%; background:${isScored ? 'var(--pass-green)' : 'var(--warn-yellow)'};"></div>
+                                </div>
+                            </td>
+                            <td style="padding:9px 6px; text-align:center;">
+                                ${isScored ? `<button class="btn btn-ghost btn-small" style="font-size:11px;" onclick="event.stopPropagation(); openCalNotesReview('${ex.id}')">📝 Notes</button>` : `<button class="btn btn-secondary btn-small" style="font-size:11px;" onclick="event.stopPropagation(); openScoringModal('${ex.id}')">Score</button>`}
+                            </td>
+                        </tr>`;
+                    }).join('')}
+                    </tbody>
+                </table>`;
+        }
+    }
+
+    // --- High Disagreement Questions ---
+    const disagreeEl = el('calDashDisagreements');
+    if (disagreeEl) {
+        const qDisagree = {};
+        calibrationExercises.forEach(ex => {
+            const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+            if (exScores.length < 2) return;
+            (typeof qaQuestions !== 'undefined' ? qaQuestions : []).forEach(q => {
+                const answers = exScores.map(s => s.answers?.[`Q${q.id}_Answer`]).filter(Boolean);
+                if (answers.length < 2) return;
+                const yesCount = answers.filter(a => a === 'Yes').length;
+                const noCount  = answers.filter(a => a === 'No').length;
+                if (yesCount > 0 && noCount > 0) {
+                    if (!qDisagree[q.id]) qDisagree[q.id] = { title: q.title, count: 0 };
+                    qDisagree[q.id].count++;
+                }
+            });
+        });
+        const sorted = Object.entries(qDisagree).sort((a,b) => b[1].count - a[1].count).slice(0, 8);
+        if (sorted.length === 0) {
+            disagreeEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">Score exercises to see disagreements.</div>';
+        } else {
+            const maxCount = sorted[0][1].count;
+            disagreeEl.innerHTML = sorted.map(([qid, d]) => {
+                const pct = Math.round((d.count / maxCount) * 100);
+                const color = pct >= 75 ? 'var(--fail-red)' : pct >= 40 ? 'var(--warn-yellow)' : '#aaa';
+                return `<div style="padding:8px 0; border-bottom:1px solid var(--border-light);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <span style="background:${color}; color:white; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700; white-space:nowrap; flex-shrink:0;">Q${qid}</span>
+                        <span style="font-size:12px; color:var(--text-dark); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${d.title}</span>
+                        <span style="font-size:11px; font-weight:700; color:${color}; white-space:nowrap;">${d.count}×</span>
+                    </div>
+                    <div style="height:5px; background:var(--bg-main); border-radius:3px; overflow:hidden; margin-left:2px;">
+                        <div style="width:${pct}%; height:100%; background:${color}; border-radius:3px; transition:width 0.4s;"></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    renderCalibrationVarianceTrend();
+}
+
+// Variance Trend Chart for calibration dashboard
+let _calVarianceTrendChartInstance = null;
+function renderCalibrationVarianceTrend() {
+    const wrap = document.getElementById('calDashTrendWrap');
+    if (!wrap) return;
+
+    const scored = calibrationExercises
+        .map(ex => {
+            const vals = calibrationScores.filter(s => s.exercise_id === ex.id).map(s => s.score);
+            if (vals.length < 2) return null;
+            return { name: ex.name, variance: Math.max(...vals) - Math.min(...vals), date: ex.created_at || '' };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (scored.length < 2) {
+        wrap.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px;">Score at least 2 exercises to see the variance trend.</div>';
+        return;
+    }
+
+    // Restore canvas if text replaced it
+    if (!wrap.querySelector('canvas')) {
+        wrap.innerHTML = '<canvas id="calVarianceTrendChart"></canvas>';
+    }
+    const ctx = document.getElementById('calVarianceTrendChart');
+    if (!ctx) return;
+
+    if (_calVarianceTrendChartInstance) { _calVarianceTrendChartInstance.destroy(); _calVarianceTrendChartInstance = null; }
+
+    const labels   = scored.map(d => d.name.length > 18 ? d.name.slice(0, 16) + '…' : d.name);
+    const varData  = scored.map(d => d.variance);
+    const ptColors = varData.map(v => v <= 5 ? '#00843D' : v <= 10 ? '#FFB612' : '#C8102E');
+
+    _calVarianceTrendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Score Variance (pts)',
+                data: varData,
+                borderColor: '#002b5e',
+                backgroundColor: 'rgba(0,43,94,0.07)',
+                pointBackgroundColor: ptColors,
+                pointBorderColor: ptColors,
+                pointRadius: 6,
+                pointHoverRadius: 9,
+                fill: true,
+                tension: 0.35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Variance: ${ctx.parsed.y}pts  ${ctx.parsed.y <= 5 ? '✅ Good' : ctx.parsed.y <= 10 ? '⚠️ Watch' : '🔴 High'}`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Variance (pts)' },
+                    grid: { color: 'rgba(148,163,184,0.12)' }
+                },
+                x: { grid: { display: false } }
+            },
+            annotation: {}
+        },
+        plugins: [{
+            id: 'thresholdLine',
+            afterDraw(chart) {
+                const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
+                const yPos = y.getPixelForValue(10);
+                c.save();
+                c.strokeStyle = '#C8102E';
+                c.lineWidth = 1.5;
+                c.setLineDash([5, 4]);
+                c.beginPath(); c.moveTo(left, yPos); c.lineTo(right, yPos); c.stroke();
+                c.setLineDash([]);
+                c.fillStyle = '#C8102E';
+                c.font = '10px sans-serif';
+                c.fillText('10pt threshold', right - 80, yPos - 4);
+                c.restore();
+            }
+        }]
+    });
+}
+
+// KPI drill-down handler
+function calDashKpiDrillDown(type) {
+    if (type === 'trend') {
+        const card = document.getElementById('calDashTrendCard');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+    const rows = document.querySelectorAll('#calDashRecentList tbody tr');
+    rows.forEach(row => {
+        const statusBadge = row.querySelector('td:nth-child(5) span');
+        if (!statusBadge) return;
+        const isScored = statusBadge.textContent.trim().startsWith('SCORED');
+        const match = type === 'scored' ? isScored : !isScored;
+        row.style.background = match ? '#fffbe6' : '';
+        row.style.transition = 'background 0.3s';
+    });
+    const recentEl = document.getElementById('calDashRecentList');
+    if (recentEl) recentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => rows.forEach(r => { r.style.background = ''; }), 2200);
+}
+
+// Open Notes Review panel for a specific exercise
+function openCalNotesReview(exerciseId) {
+    const ex      = calibrationExercises.find(e => e.id === exerciseId);
+    const scores  = calibrationScores.filter(s => s.exercise_id === exerciseId);
+    const panel   = document.getElementById('calDashNotesPanel');
+    const content = document.getElementById('calDashNotesContent');
+    const title   = document.getElementById('calDashNotesPanelTitle');
+    if (!ex || !panel || !content) return;
+
+    title.textContent = `${ex.name}${ex.cnn ? ' · CNN: ' + ex.cnn : ''}${ex.site ? ' · ' + ex.site : ''}${ex.lob ? ' / ' + ex.lob : ''}`;
+
+    const questions = typeof qaQuestions !== 'undefined' ? qaQuestions : [];
+    const sections  = [...new Set(questions.map(q => q.section))];
+    const evaluators = scores.map(s => s.evaluator_name);
+
+    // Overall calibration notes
+    const overallNotes = [...new Set(scores.map(s => s.comments).filter(Boolean))];
+    // Personalization (shared — take first non-empty)
+    const p = scores.find(s => s.personalization?.offer_made)?.personalization || {};
+
+    let html = '';
+
+    // ---- Evaluator scores summary bar ----
+    html += `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; padding:14px; background:var(--bg-main); border-radius:8px;">`;
+    scores.forEach(s => {
+        const color = s.score >= 88 ? 'var(--pass-green)' : 'var(--fail-red)';
+        html += `<div style="flex:1; min-width:100px; background:white; border-radius:8px; padding:10px 14px; text-align:center; border:2px solid ${color};">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">${s.evaluator_name}</div>
+            <div style="font-size:24px; font-weight:900; color:${color};">${s.score}%</div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    // ---- Overall Notes ----
+    html += `<div style="margin-bottom:16px;">
+        <div style="font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin-bottom:8px; border-bottom:2px solid var(--border-medium); padding-bottom:6px;">📋 Overall Calibration Notes</div>
+        ${overallNotes.length > 0
+            ? overallNotes.map(n => `<div style="background:#f0f4ff; border-left:3px solid var(--header-blue); padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; margin-bottom:6px;">${n}</div>`).join('')
+            : '<div style="color:var(--text-muted); font-size:13px; font-style:italic;">No overall notes recorded.</div>'}
+    </div>`;
+
+    // ---- Personalization Discussion ----
+    if (p.offer_made) {
+        html += `<div style="margin-bottom:16px;">
+            <div style="font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin-bottom:8px; border-bottom:2px solid var(--border-medium); padding-bottom:6px;">💼 Personalization / Upselling Discussion</div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+                ${[['Offer Made', p.offer_made], ['What Offered', p.offer_type], ['Offer Quality', p.offer_quality],
+                   ['Customer Interested', p.cust_interested], ['Follow-Through', p.follow_through]].map(([label, val]) => val ? `
+                <div style="background:var(--bg-main); border-radius:6px; padding:10px;">
+                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">${label}</div>
+                    <div style="font-size:13px; font-weight:600; color:var(--text-dark); margin-top:3px;">${val}</div>
+                </div>` : '').join('')}
+            </div>
+            ${p.notes ? `<div style="background:#f0f4ff; border-left:3px solid var(--header-blue); padding:10px 14px; border-radius:0 6px 6px 0; font-size:13px; margin-top:10px;">${p.notes}</div>` : ''}
+        </div>`;
+    }
+
+    // ---- Per-question notes (only those with a note) ----
+    const qNotes = [];
+    questions.forEach(q => {
+        // All evaluators share the same note — take first non-empty across scores
+        const note = scores.map(s => s.answers?.[`Q${q.id}_Note`]).find(n => n && n.trim());
+        // Check for disagreement
+        const answers   = scores.map(s => s.answers?.[`Q${q.id}_Answer`]).filter(Boolean);
+        const hasDisagree = answers.length > 1 && answers.some(a => a === 'Yes') && answers.some(a => a === 'No');
+        if (note || hasDisagree) qNotes.push({ q, note, answers, hasDisagree });
+    });
+
+    html += `<div>
+        <div style="font-size:12px; font-weight:700; color:var(--header-blue); text-transform:uppercase; margin-bottom:8px; border-bottom:2px solid var(--border-medium); padding-bottom:6px;">🗒️ Question-Level Notes & Disagreements</div>`;
+
+    if (qNotes.length === 0) {
+        html += `<div style="color:var(--text-muted); font-size:13px; font-style:italic;">No question notes or disagreements recorded.</div>`;
+    } else {
+        qNotes.forEach(({ q, note, answers, hasDisagree }) => {
+            const answerCells = evaluators.map((ev, i) => {
+                const a     = scores[i]?.answers?.[`Q${q.id}_Answer`] || '—';
+                const color = a === 'Yes' ? 'var(--pass-green)' : a === 'No' ? 'var(--fail-red)' : 'var(--text-muted)';
+                return `<span style="font-size:11px; font-weight:700; color:${color}; margin-right:8px;">${ev}: ${a}</span>`;
+            }).join('');
+            html += `<div style="padding:10px 12px; margin-bottom:8px; border-radius:8px; border-left:4px solid ${hasDisagree ? 'var(--fail-red)' : 'var(--header-blue)'}; background:${hasDisagree ? '#fff5f5' : '#f8faff'};">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+                    <span style="background:${hasDisagree ? 'var(--fail-red)' : 'var(--header-blue)'}; color:white; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700;">Q${q.id}</span>
+                    <span style="font-size:12px; font-weight:600; color:var(--text-dark);">${q.title}</span>
+                    ${hasDisagree ? '<span style="font-size:10px; background:#fde8e8; color:var(--fail-red); padding:1px 7px; border-radius:10px; font-weight:700;">DISAGREEMENT</span>' : ''}
+                </div>
+                <div style="margin-bottom:5px;">${answerCells}</div>
+                ${note ? `<div style="font-size:12px; color:var(--text-dark); font-style:italic; margin-top:4px;">💬 ${note}</div>` : ''}
+            </div>`;
+        });
+    }
+    html += `</div>`;
+
+    content.innerHTML = html;
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Export all calibration data to CSV
+function exportCalibrationCSV() {
+    if (calibrationExercises.length === 0) { showToast('No calibration data to export'); return; }
+    const rows = [['Exercise','CNN','Site','LOB','Date','Evaluator','Score','Overall Notes','Offer Made','Offer Type','Offer Quality','Customer Interested','Follow-Through','Personalization Notes']];
+    calibrationExercises.forEach(ex => {
+        const exScores = calibrationScores.filter(s => s.exercise_id === ex.id);
+        const date     = ex.created_at ? new Date(ex.created_at).toLocaleDateString() : '';
+        if (exScores.length === 0) {
+            rows.push([ex.name, ex.cnn||'', ex.site||'', ex.lob||'', date, 'PENDING','','','','','','','','']);
+        } else {
+            exScores.forEach(s => {
+                const p = s.personalization || {};
+                rows.push([ex.name, ex.cnn||'', ex.site||'', ex.lob||'', date,
+                    s.evaluator_name, s.score, s.comments||'',
+                    p.offer_made||'', p.offer_type||'', p.offer_quality||'',
+                    p.cust_interested||'', p.follow_through||'', p.notes||'']);
+            });
+        }
+    });
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `calibration_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('CSV exported');
+}
+
+// Print/PDF report for a single exercise
+function exportCalibrationReport() {
+    const panel = document.getElementById('calDashNotesContent');
+    if (!panel) return;
+    const title = document.getElementById('calDashNotesPanelTitle')?.textContent || 'Calibration Report';
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 30px; font-size: 13px; color: #1a1a2e; }
+            h1   { font-size: 18px; margin-bottom: 4px; }
+            h2   { font-size: 13px; color: #002b5e; text-transform: uppercase; border-bottom: 2px solid #e0e6f0; padding-bottom: 6px; margin: 18px 0 10px; }
+            .score-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+            .score-box { border: 2px solid #ccc; border-radius: 8px; padding: 10px 18px; text-align: center; min-width: 90px; }
+            .disagreement { background: #fff5f5; border-left: 4px solid #e53e3e; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 8px; }
+            .note { background: #f0f4ff; border-left: 3px solid #002b5e; padding: 8px 12px; border-radius: 0 6px 6px 0; margin-bottom: 6px; }
+            @media print { body { padding: 10px; } }
+        </style>
+    </head><body>
+        <h1>${title}</h1>
+        <p style="color:#666; font-size:12px;">Generated: ${new Date().toLocaleString()}</p>
+        ${panel.innerHTML}
+        <script>window.onload=()=>window.print();<\/script>
+    </body></html>`);
+    w.document.close();
+}
+
+// ============================================================
+// ON-DEMAND EVALUATION LOADER
+// evaluationsDB is NOT loaded at startup. It is fetched the first
+// time the user navigates to a view that needs it (dashboard,
+// database, admin). Form saves go directly to Supabase and are
+// completely independent of this cache.
+// ============================================================
+let _evalsLoaded   = false;   // true once a successful full fetch has completed
+let _evalsLoading  = false;   // prevents concurrent fetches
+
+async function loadEvaluationsIfNeeded(forceRefresh = false, dateRange = null) {
+    if ((_evalsLoaded && !forceRefresh) || _evalsLoading) return;
+    if (!supabaseEnabled) {
+        if (!evaluationsDB.length) {
+            evaluationsDB = generateSampleData();
+            console.info('Using sample data — Supabase not configured.');
+        }
+        _evalsLoaded = true;
+        return;
+    }
+    _evalsLoading = true;
+    const range = dateRange || getEvalDateRange();
+    const rangeLabel = range === 'all' ? 'all time' : `last ${range}`;
+    showDataLoadingBanner(true, `⏳ Loading ${rangeLabel} evaluation data...`);
+    try {
+        const evalData = await fetchAllEvaluations(range);
+        evaluationsDB  = evalData.map(normalizeEval).filter(Boolean);
+        _evalsLoaded   = true;
+        // Show data age indicator
+        updateDataAgeIndicator(range);
+    } catch (e) {
+        console.warn('Could not load evaluations from Supabase:', e.message);
+        showToast('Could not load evaluation data — check connection', '#C8102E');
+    } finally {
+        _evalsLoading = false;
+        showDataLoadingBanner(false);
+    }
+}
+
+function showDataLoadingBanner(show, message = '⏳ Loading evaluation data...') {
+    let banner = document.getElementById('_dataLoadBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = '_dataLoadBanner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#002b5e;color:white;text-align:center;padding:8px;font-size:13px;font-weight:600;display:none;';
+        document.body.appendChild(banner);
+    }
+    banner.textContent = message;
+    banner.style.display = show ? 'block' : 'none';
+}
+
+function updateDataAgeIndicator(range) {
+    const el = document.getElementById('dbDataAgeIndicator');
+    if (!el) return;
+    if (range === 'all') {
+        el.textContent = '📊 All time';
+        el.style.color = 'var(--pass-green)';
+    } else {
+        el.textContent = `📅 Last ${range}`;
+        el.style.color = 'var(--text-muted)';
+    }
+}
+
 async function initApp() {
     // Supabase already initialized at page load; no re-init needed here
 
-    // Load data
+    // ── Startup: only load what is operationally critical ──
+    // Evaluations are NOT loaded here — they load on-demand when a
+    // view that needs them is opened. This keeps startup instant.
     if (supabaseEnabled) {
-        try {
-            const evalData = await fetchAllEvaluations();
-            evaluationsDB = evalData.map(normalizeEval).filter(Boolean);
-        } catch (e) {
-            console.warn("Could not load evaluations from Supabase:", e.message);
-            evaluationsDB = [];
-        }
         try {
             const { data: agentData, error: agentErr } = await supabaseClient
                 .from('agents').select('*').order('"Agent Name"', { ascending: true });
@@ -9433,14 +12440,8 @@ async function initApp() {
                 roster = agentData.map(normalizeAgent).filter(Boolean);
             }
         } catch (e) {
-            console.warn("Could not load agents from Supabase:", e.message);
+            console.warn('Could not load agents from Supabase:', e.message);
         }
-    }
-
-    // If empty DB and not connected to Supabase, seed with sample data so the dashboard isn't blank
-    if (!evaluationsDB.length && !supabaseEnabled) {
-        evaluationsDB = generateSampleData();
-        console.info("Using sample data — Supabase not configured.");
     }
 
     // Build UI
@@ -9474,6 +12475,9 @@ async function initApp() {
         renderOptionManager();
         showToast("✓ Options loaded from Supabase");
     }
+    buildPenaltiesFromOptions();  // bootstrap from live selectionOptions before Supabase values overlay
+    loadSavedWeightage();
+    loadViewPersonalization();
     initColumnToggles();
     document.getElementById('f_Date').value = new Date().toISOString().substring(0,10);
     toggleUpsellFields();
@@ -9486,6 +12490,7 @@ async function initApp() {
     // ── Failsafe startup checks ──
     checkDraftOnLoad();          // Show restore banner if a draft exists
     updateSaveStatusBadge();     // Show pending count in sidebar
+    updateSaveStatusDetails();   // Make badge clickable to view queue details
     // Auto-retry any pending queue after a short delay (give Supabase time to init)
     setTimeout(() => {
         const q = getPendingQueue();
@@ -9505,19 +12510,15 @@ async function initApp() {
     updateQuotaWidget();
     setInterval(updateQuotaWidget, 60000);
 
+    initNetworkStatusIndicator();
+    initKeyboardShortcuts();
+
     // Initialize advanced dashboard features (GridStack, SortableJS, ECharts, FAB menu)
     initAdvancedDashboard();
 
-    // Periodic refresh from Supabase
+    // Periodic sync of operationally critical config only (options + weightage)
+    // Evaluations are NOT polled — they load on-demand per view
     if (supabaseEnabled) {
-        setInterval(async () => {
-            try {
-                const data = await fetchAllEvaluations();
-                evaluationsDB = data.map(normalizeEval).filter(Boolean);
-                if (document.getElementById('dashboard-view').classList.contains('active')) updateDashboard();
-            } catch (e) { /* silent */ }
-        }, 15000);
-        // Periodic sync of selection options (pull from Supabase every 30s)
         setInterval(async () => {
             try {
                 await loadSelectionOptionsFromSupabase();
@@ -9525,6 +12526,10 @@ async function initApp() {
                 if (document.getElementById('refreshes-view').classList.contains('active')) renderOptionManager();
             } catch (e) { /* silent */ }
         }, 30000);
+        // Re-apply weightage silently every 60s in case another admin changed it
+        setInterval(async () => {
+            try { await loadSavedWeightage(); } catch(e) { /* silent */ }
+        }, 60000);
     }
 }
 
