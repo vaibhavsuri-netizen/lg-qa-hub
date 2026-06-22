@@ -885,6 +885,69 @@
     .trend-arrow.down, .q-trend-arrow.down { background:rgba(200,16,46,.12); color:var(--fail-red); }
     .trend-arrow.flat, .q-trend-arrow.flat { background:var(--bg-main); color:var(--text-muted); }
     .q-trend-chart-wrap { margin-top:12px; position:relative; height:120px; }
+
+    /* =========================================
+       VISUAL POLISH v2 — premium KPI + charts
+       ========================================= */
+    /* Thicker gradient accent bar on KPI cards + smoother lift */
+    .kpi-box { transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s cubic-bezier(.4,0,.2,1); }
+    .kpi-box::before { height: 4px; border-radius: 0 0 3px 3px; }
+    .kpi-box:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,43,94,.13); }
+    .kpi-box.green::before  { background: linear-gradient(90deg, var(--pass-green), var(--pass-green-light)); }
+    .kpi-box.blue::before   { background: linear-gradient(90deg, var(--accent-cyan), #4dd2ff); }
+    .kpi-box.red::before    { background: linear-gradient(90deg, var(--fail-red), #e62a4a); }
+    .kpi-box.yellow::before { background: linear-gradient(90deg, var(--warn-yellow), var(--warn-orange)); }
+    .kpi-box.purple::before { background: linear-gradient(90deg, var(--accent-purple), #a78bfa); }
+    .kpi-box.indigo::before { background: linear-gradient(90deg, var(--header-blue), var(--header-blue-light)); }
+    .kpi-box.teal::before   { background: linear-gradient(90deg, var(--accent-teal), #2dd4bf); }
+    .kpi-box.orange::before { background: linear-gradient(90deg, var(--warn-orange), #ffb347); }
+    /* subtle tinted glow halo behind icon area on hover */
+    .kpi-box::after { content:''; position:absolute; bottom:-40%; right:-20%; width:120px; height:120px; border-radius:50%; opacity:0; transition:opacity .3s; pointer-events:none; }
+    .kpi-box.clickable::after { content:"↗"; bottom:auto; right:10px; top:8px; width:auto; height:auto; border-radius:0; font-size:12px; opacity:.35; }
+
+    /* Staggered fade-up entrance for KPI rows */
+    @keyframes kpiRise { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform: translateY(0); } }
+    .kpi-row .kpi-box { animation: kpiRise .5s cubic-bezier(.4,0,.2,1) both; }
+    .kpi-row .kpi-box:nth-child(1){animation-delay:.02s}
+    .kpi-row .kpi-box:nth-child(2){animation-delay:.06s}
+    .kpi-row .kpi-box:nth-child(3){animation-delay:.10s}
+    .kpi-row .kpi-box:nth-child(4){animation-delay:.14s}
+    .kpi-row .kpi-box:nth-child(5){animation-delay:.18s}
+    .kpi-row .kpi-box:nth-child(6){animation-delay:.22s}
+    .kpi-row .kpi-box:nth-child(7){animation-delay:.26s}
+    .kpi-row .kpi-box:nth-child(8){animation-delay:.30s}
+
+    /* Hero headline tile — gradient number + glass sheen */
+    .kpi-headline { background: linear-gradient(135deg,#ffffff 0%, #f4f8fd 100%); transition: transform .25s, box-shadow .25s; }
+    .kpi-headline:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .kpi-headline::before { width:5px; background: linear-gradient(180deg, var(--accent-cyan), var(--header-blue)); }
+
+    /* Radial score gauge inside the Headline tile */
+    .hero-gauge-wrap { display:flex; align-items:center; gap:18px; }
+    .hero-gauge { position:relative; width:108px; height:108px; flex-shrink:0; }
+    .hero-gauge canvas { width:108px !important; height:108px !important; }
+    .hero-gauge-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .hero-gauge-center .g-val { font-size:26px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+    .hero-gauge-center .g-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text-muted); margin-top:3px; }
+    .hero-gauge-side { flex:1; min-width:0; }
+
+    /* Inline sparkline canvas in KPI cards */
+    .kpi-spark { margin-top:8px; height:30px; width:100%; }
+    .kpi-spark canvas { width:100% !important; height:30px !important; }
+
+    /* Glassy chart cards */
+    .chart-wrapper, .dash-card { transition: box-shadow .25s, transform .25s; }
+    .dash-card:hover { box-shadow: 0 10px 30px rgba(0,43,94,.10); }
+
+    /* Pill delta badges */
+    .delta-pill { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:11px; }
+    .delta-pill.up { background:rgba(0,132,61,.12); color:var(--pass-green); }
+    .delta-pill.down { background:rgba(200,16,46,.12); color:var(--fail-red); }
+    .delta-pill.flat { background:var(--bg-main); color:var(--text-muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kpi-row .kpi-box, .view-section.active { animation: none !important; }
+    }
 </style>
 </head>
 <body>
@@ -1269,8 +1332,18 @@
         <div class="headline-kpi-row">
             <div class="kpi-headline">
                 <h3>Headline</h3>
-                <div class="big" id="heroScore">—</div>
-                <div class="narrative" id="heroNarrative">Loading…</div>
+                <div class="hero-gauge-wrap">
+                    <div class="hero-gauge">
+                        <canvas id="heroScoreGauge" width="108" height="108"></canvas>
+                        <div class="hero-gauge-center">
+                            <div class="g-val" id="heroScore">—</div>
+                            <div class="g-lbl">Avg Score</div>
+                        </div>
+                    </div>
+                    <div class="hero-gauge-side">
+                        <div class="narrative" id="heroNarrative">Loading…</div>
+                    </div>
+                </div>
             </div>
             <div class="kpi-headline" style="cursor:pointer;" onclick="drillKPI('all')">
                 <h3>Audits This Period</h3>
@@ -1305,12 +1378,12 @@
         </div>
 
         <div class="kpi-row">
-            <div class="kpi-box green clickable" onclick="drillKPI('all')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div></div>
-            <div class="kpi-box indigo clickable" onclick="drillKPI('all')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div></div>
+            <div class="kpi-box green clickable" onclick="drillKPI('all')"><h3>Avg QA Score</h3><div class="val" id="kpiAvgScore">0%</div><div class="val-sub" id="kpiAvgDelta">—</div><div class="kpi-spark"><canvas id="sparkAvgScore"></canvas></div></div>
+            <div class="kpi-box indigo clickable" onclick="drillKPI('all')"><h3>Total Audits</h3><div class="val" id="kpiTotal">0</div><div class="val-sub" id="kpiTotalDelta">—</div><div class="kpi-spark"><canvas id="sparkAudits"></canvas></div></div>
             <div class="kpi-box red clickable" onclick="drillKPI('autoFail')"><h3>Auto-Fail Rate</h3><div class="val" id="kpiAuto">0%</div><div class="val-sub" id="kpiAutoCount">0 cases</div></div>
             <div class="kpi-box yellow clickable" onclick="drillKPI('offered')"><h3>Offer Rate</h3><div class="val" id="kpiOffer">0%</div><div class="val-sub" id="kpiOfferCount">0 offers</div></div>
             <div class="kpi-box purple clickable" onclick="drillKPI('converted')"><h3>Conversion Rate</h3><div class="val" id="kpiConv">0%</div><div class="val-sub" id="kpiConvCount">0 wins</div></div>
-            <div class="kpi-box blue clickable" onclick="drillKPI('passed')"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub" id="kpiPassCount">0/0</div></div>
+            <div class="kpi-box blue clickable" onclick="drillKPI('passed')"><h3>Pass Rate</h3><div class="val" id="kpiPass">0%</div><div class="val-sub" id="kpiPassCount">0/0</div><div class="kpi-spark"><canvas id="sparkPass"></canvas></div></div>
             <div class="kpi-box teal clickable" onclick="drillKPI('all')"><h3>Median Score</h3><div class="val" id="kpiMedian">0%</div><div class="val-sub" id="kpiStdDev">σ 0</div></div>
             <div class="kpi-box orange clickable" onclick="drillKPI('overHold')"><h3>Avg Hold Time</h3><div class="val" id="kpiHoldTime">0s</div><div class="val-sub" id="kpiHoldOver">0 over threshold</div></div>
         </div>
@@ -5983,6 +6056,109 @@ const CHART_COLORS = {
 };
 const PALETTE = ['#002b5e','#00aeef','#00843D','#C8102E','#FFB612','#8b5cf6','#14b8a6','#ff8a00','#a50034','#003d82'];
 
+// Build a vertical canvas gradient (hex -> transparent) for area fills.
+// Returns a flat color fallback if the chart area isn't laid out yet.
+function makeAreaGradient(ctx, chartArea, hex, topAlpha = 0.30, bottomAlpha = 0.02) {
+    if (!chartArea) return hexToRgba(hex, topAlpha);
+    const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    g.addColorStop(0, hexToRgba(hex, topAlpha));
+    g.addColorStop(1, hexToRgba(hex, bottomAlpha));
+    return g;
+}
+function hexToRgba(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+// Scriptable backgroundColor helper — resolves the gradient lazily once the
+// chart area exists. Use as: backgroundColor: areaFill(CHART_COLORS.blue)
+function areaFill(hex, topAlpha = 0.30, bottomAlpha = 0.02) {
+    return (context) => {
+        const { ctx, chartArea } = context.chart;
+        return makeAreaGradient(ctx, chartArea, hex, topAlpha, bottomAlpha);
+    };
+}
+
+// Radial score gauge — renders a doughnut into #heroScoreGauge with the
+// numeric value overlaid via .hero-gauge-center.
+function renderScoreGauge(score, target, threshold) {
+    const canvas = document.getElementById('heroScoreGauge');
+    if (!canvas) return;
+    const pct = Math.max(0, Math.min(100, Number(score) || 0));
+    const color = pct >= target ? CHART_COLORS.green : pct >= threshold ? CHART_COLORS.yellow : CHART_COLORS.red;
+
+    // Update centered value + color (shares #heroScore with the legacy render path)
+    const valEl = document.getElementById('heroScore');
+    if (valEl) { valEl.textContent = pct.toFixed(1) + '%'; valEl.style.color = color; }
+
+    makeChart('heroScoreGauge', {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [pct, 100 - pct],
+                backgroundColor: [color, 'rgba(148,163,184,0.15)'],
+                borderWidth: 0,
+                circumference: 360,
+                rotation: 0
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '78%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+            animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' }
+        }
+    });
+}
+
+// Inline KPI sparkline — tiny gradient area line, no axes/labels.
+function renderSparkline(canvasId, values, hex) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const vals = (values || []).filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (vals.length < 2) { destroyChart(canvasId); const c = canvas.getContext('2d'); c && c.clearRect(0,0,canvas.width,canvas.height); return; }
+    makeChart(canvasId, {
+        type: 'line',
+        data: {
+            labels: vals.map((_, i) => i),
+            datasets: [{
+                data: vals,
+                borderColor: hex,
+                backgroundColor: areaFill(hex, 0.30, 0.0),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+            scales: { x: { display: false }, y: { display: false, min: Math.min(...vals) * 0.96, max: Math.max(...vals) * 1.02 } },
+            animation: { duration: 700, easing: 'easeOutQuart' }
+        }
+    });
+}
+
+// Compute monthly series (avg score, pass rate) for sparklines — last N months.
+function monthlySeries(data, threshold, months = 8) {
+    const byMonth = {};
+    data.forEach(r => {
+        const m = r.month || r.eval_date?.substring(0, 7);
+        if (!m) return;
+        if (!byMonth[m]) byMonth[m] = { total: 0, sum: 0, pass: 0 };
+        byMonth[m].total++; byMonth[m].sum += r.final_score;
+        if (r.auto_failed !== 'Yes' && r.final_score >= threshold) byMonth[m].pass++;
+    });
+    const keys = Object.keys(byMonth).sort().slice(-months);
+    return {
+        avg:  keys.map(m => +(byMonth[m].sum / byMonth[m].total).toFixed(1)),
+        pass: keys.map(m => +(byMonth[m].pass / byMonth[m].total * 100).toFixed(1)),
+        count: keys.map(m => byMonth[m].total)
+    };
+}
+
 // ============================================================
 // CHART EXPORT
 // ============================================================
@@ -6195,6 +6371,8 @@ function renderOverview(data, threshold, holdThr) {
     const target = getScoreTarget();
 
     // ---- HERO HEADLINE ROW ----
+    // Radial gauge (sets #heroScore value + color itself)
+    renderScoreGauge(avg, target, threshold);
     const heroScoreEl = document.getElementById('heroScore');
     if (heroScoreEl) {
         const scoreColor = avg >= target ? 'var(--pass-green)' : avg >= threshold ? '#b45309' : 'var(--fail-red)';
@@ -6276,6 +6454,12 @@ function renderOverview(data, threshold, holdThr) {
     document.getElementById('kpiHoldTime').textContent = Math.round(avgHold) + 's';
     document.getElementById('kpiHoldOver').textContent =
         mode === 'pct' ? `${total ? ((overHold/total)*100).toFixed(1) : 0}% over threshold` : `${overHold} over threshold`;
+
+    // KPI sparklines — monthly mini-trends
+    const _ms = monthlySeries(data, threshold, 8);
+    renderSparkline('sparkAvgScore', _ms.avg,   CHART_COLORS.green);
+    renderSparkline('sparkAudits',   _ms.count, CHART_COLORS.blue);
+    renderSparkline('sparkPass',     _ms.pass,  CHART_COLORS.cyan);
 
     // TREND CHART — store data for toggle
     window.__overviewTrendData = data;
@@ -7194,7 +7378,7 @@ function renderOverviewTrendChart(data) {
                     label: 'Avg Score %',
                     data: avgScores,
                     borderColor: CHART_COLORS.blue,
-                    backgroundColor: 'rgba(0,43,94,0.06)',
+                    backgroundColor: areaFill(CHART_COLORS.blue, 0.28, 0.01),
                     yAxisID: 'y',
                     tension: 0.4,
                     fill: true,
